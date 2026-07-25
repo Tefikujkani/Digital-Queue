@@ -46,11 +46,24 @@ const userSchema = mongoose.Schema({
     type: Date,
     select: false
   },
+  viberId: {
+    type: String,
+    default: ''
+  },
+  viberLinkCode: {
+    type: String,
+    select: false
+  },
+  viberLinkExpires: {
+    type: Date,
+    select: false
+  },
   notificationPrefs: {
     inApp: { type: Boolean, default: true },
     email: { type: Boolean, default: true },
     sms: { type: Boolean, default: false },
-    telegram: { type: Boolean, default: false }
+    telegram: { type: Boolean, default: false },
+    viber: { type: Boolean, default: false }
   },
   resetPasswordToken: {
     type: String,

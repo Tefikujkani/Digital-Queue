@@ -37,6 +37,13 @@ export function buildAppointmentSms({
 /**
  * Cascade i avancuar për njoftime termini
  */
-export async function sendAppointmentSMS({ phone, email, telegramChatId, body, subject }) {
-  return deliverSmartMessage({ phone, email, telegramChatId, body, subject })
+export async function sendAppointmentSMS({
+  phone,
+  email,
+  telegramChatId,
+  viberId,
+  body,
+  subject,
+}) {
+  return deliverSmartMessage({ phone, email, telegramChatId, viberId, body, subject })
 }

@@ -57,12 +57,14 @@ export const updateCitizenPrefs = async (req, res) => {
         sms: req.body.notificationPrefs.sms ?? user.notificationPrefs?.sms ?? false,
         telegram:
           req.body.notificationPrefs.telegram ?? user.notificationPrefs?.telegram ?? false,
+        viber: req.body.notificationPrefs.viber ?? user.notificationPrefs?.viber ?? false,
       }
     }
     await user.save()
     res.json({
       preferredCity: user.preferredCity,
       telegramChatId: user.telegramChatId,
+      viberId: user.viberId,
       notificationPrefs: user.notificationPrefs,
       favorites: user.favorites,
     })

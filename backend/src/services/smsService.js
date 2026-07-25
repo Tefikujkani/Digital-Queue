@@ -58,6 +58,12 @@ export function getSmsProviderStatus() {
         configured: configured(process.env.TELEGRAM_BOT_TOKEN),
         note: '⭐ Kanali kryesor falas — lidhe me 1 klik te Cilësimet',
       },
+      viber: {
+        configured:
+          configured(process.env.VIBER_AUTH_TOKEN) &&
+          Boolean((process.env.VIBER_BOT_URI || '').trim()),
+        note: 'Viber Bot falas — partners.viber.com + HTTPS webhook',
+      },
       email_fallback: {
         configured: configured(process.env.SMTP_USER),
         note: 'Gmail SMTP — gjithmonë si backup',
@@ -243,6 +249,11 @@ export async function sendViaTelegram(chatId, body) {
   return sendTelegramMessage(chatId, `📱 SmartQueue\n\n${body}`)
 }
 
+export async function sendViaViber(viberId, body) {
+  const { sendViberMessage } = await import('./viberService.js')
+  return sendViberMessage(viberId, `📱 SmartQueue\n\n${body}`)
+}
+
 const PROVIDERS = {
   infobip: sendViaInfobip,
   vonage: sendViaVonage,
@@ -289,16 +300,24 @@ export async function deliverSmartMessage({
   phone,
   email,
   telegramChatId,
+  viberId,
   body,
   subject,
 }) {
   const results = []
 
-  // Telegram së pari (falas, i menjëhershëm) kur përdoruesi e ka lidhur
+  // Telegram së pari (falas)
   if (telegramChatId) {
     const tg = await sendViaTelegram(telegramChatId, body)
     results.push({ channel: 'telegram', ...tg })
     if (tg.success) return { delivered: true, via: 'telegram', results }
+  }
+
+  // Viber (falas)
+  if (viberId) {
+    const vb = await sendViaViber(viberId, body)
+    results.push({ channel: 'viber', ...vb })
+    if (vb.success) return { delivered: true, via: 'viber', results }
   }
 
   if (phone) {
@@ -317,8 +336,7 @@ export async function deliverSmartMessage({
         <h2 style="color:#a78bfa;margin:0 0 12px">SmartQueue · Njoftim</h2>
         <p style="font-size:16px;line-height:1.6;white-space:pre-wrap">${body}</p>
         <p style="color:#888;font-size:12px;margin-top:20px">
-          Ky mesazh u dërgua si backup (SMS/Telegram nuk ishin të disponueshëm).
-          Providers: Infobip · Vonage · Twilio · Gateway · Textbelt · Telegram
+          Ky mesazh u dërgua si backup (Telegram/Viber/SMS nuk ishin të disponueshëm).
         </p>
       </div>`,
     )

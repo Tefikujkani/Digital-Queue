@@ -54,6 +54,22 @@ export const extraTranslations: Record<Language, Record<string, string>> = {
     'settings.deleteFailed': 'Fshirja dështoi',
     'settings.linkFailed': 'Lidhja dështoi',
 
+    'settings.viberTitle': 'Viber (falas)',
+    'settings.viberBody':
+      'Merr njoftime SmartQueue direkt në Viber — falas, pa kredi SMS. Ideale nëse e përdor Viber çdo ditë.',
+    'settings.viberAdminHint':
+      'Admin: krijo bot te partners.viber.com → VIBER_AUTH_TOKEN + VIBER_BOT_URI në .env → HTTPS webhook (ngrok).',
+    'settings.linkViber': 'Lidhu me Viber',
+    'settings.viberLinkHint': 'Hapet Viber → nis bisedën → lidhja bëhet automatikisht',
+    'settings.openViber': 'Hape Viber dhe nis bisedën',
+    'settings.viberUnlinked': 'Viber u shkëput',
+    'settings.viberLinkFailed': 'Lidhja me Viber dështoi',
+    'settings.viberWebhookHint':
+      'Për lokal: nis ngrok HTTPS dhe vendos VIBER_WEBHOOK_URL, pastaj rinis backend-in.',
+    'settings.viber': 'Viber',
+    'settings.viberOn': 'Aktiv · i lidhur',
+    'settings.viberOff': 'Lidhe më sipër',
+
     'cities.eyebrow': 'Republika e Kosovës',
     'cities.title': 'Qytetet & Komunat',
     'cities.subtitle': 'Zgjidh qytetin tënd dhe gjej institucione publike e private me radhë digjitale —',
@@ -224,6 +240,22 @@ export const extraTranslations: Record<Language, Record<string, string>> = {
     'settings.deleteFailed': 'Delete failed',
     'settings.linkFailed': 'Link failed',
 
+    'settings.viberTitle': 'Viber (free)',
+    'settings.viberBody':
+      'Get SmartQueue alerts on Viber — free, no SMS credits. Ideal if you use Viber daily.',
+    'settings.viberAdminHint':
+      'Admin: create a bot at partners.viber.com → set VIBER_AUTH_TOKEN + VIBER_BOT_URI → HTTPS webhook (ngrok).',
+    'settings.linkViber': 'Connect Viber',
+    'settings.viberLinkHint': 'Opens Viber → start chat → linking is automatic',
+    'settings.openViber': 'Open Viber and start the chat',
+    'settings.viberUnlinked': 'Viber disconnected',
+    'settings.viberLinkFailed': 'Viber link failed',
+    'settings.viberWebhookHint':
+      'For local: start HTTPS ngrok, set VIBER_WEBHOOK_URL, then restart backend.',
+    'settings.viber': 'Viber',
+    'settings.viberOn': 'On · connected',
+    'settings.viberOff': 'Connect above',
+
     'cities.eyebrow': 'Republic of Kosovo',
     'cities.title': 'Cities & Municipalities',
     'cities.subtitle': 'Pick your city and find public & private institutions with digital queues —',
@@ -388,6 +420,22 @@ export const extraTranslations: Record<Language, Record<string, string>> = {
     'settings.deleted': 'Nalog obrisan',
     'settings.deleteFailed': 'Brisanje nije uspelo',
     'settings.linkFailed': 'Povezivanje nije uspelo',
+
+    'settings.viberTitle': 'Viber (besplatno)',
+    'settings.viberBody':
+      'Primaj SmartQueue obaveštenja na Viberu — besplatno, bez SMS kredita.',
+    'settings.viberAdminHint':
+      'Admin: napravi bota na partners.viber.com → VIBER_AUTH_TOKEN + VIBER_BOT_URI → HTTPS webhook (ngrok).',
+    'settings.linkViber': 'Poveži Viber',
+    'settings.viberLinkHint': 'Otvara Viber → započni chat → povezivanje je automatsko',
+    'settings.openViber': 'Otvori Viber i započni chat',
+    'settings.viberUnlinked': 'Viber prekinut',
+    'settings.viberLinkFailed': 'Povezivanje Vibera nije uspelo',
+    'settings.viberWebhookHint':
+      'Za lokal: pokreni HTTPS ngrok, stavi VIBER_WEBHOOK_URL, restartuj backend.',
+    'settings.viber': 'Viber',
+    'settings.viberOn': 'Aktivno · povezano',
+    'settings.viberOff': 'Poveži iznad',
 
     'cities.eyebrow': 'Republika Kosovo',
     'cities.title': 'Gradovi i opštine',

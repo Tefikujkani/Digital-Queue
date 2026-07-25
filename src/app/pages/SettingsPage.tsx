@@ -37,14 +37,22 @@ const SettingsPage: React.FC = () => {
     email: true,
     sms: false,
     telegram: false,
+    viber: false,
   })
   const [tgStatus, setTgStatus] = useState<{
     configured: boolean
     botUsername: string | null
     note?: string
   }>({ configured: false, botUsername: null })
+  const [vbStatus, setVbStatus] = useState<{
+    configured: boolean
+    botUri: string | null
+    webhook?: boolean
+  }>({ configured: false, botUri: null })
   const [linking, setLinking] = useState(false)
+  const [linkingViber, setLinkingViber] = useState(false)
   const [unlinking, setUnlinking] = useState(false)
+  const [unlinkingViber, setUnlinkingViber] = useState(false)
   const [saving, setSaving] = useState(false)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -52,9 +60,12 @@ const SettingsPage: React.FC = () => {
   const [pwLoading, setPwLoading] = useState(false)
 
   const linked = Boolean(user?.telegramChatId)
+  const viberLinked = Boolean(user?.viberId)
 
-  const loadTelegram = () =>
+  const loadMessengerStatus = () => {
     api.get('/telegram/status').then((r) => setTgStatus(r.data || { configured: false }))
+    api.get('/viber/status').then((r) => setVbStatus(r.data || { configured: false }))
+  }
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -67,9 +78,10 @@ const SettingsPage: React.FC = () => {
       email: user?.notificationPrefs?.email !== false,
       sms: user?.notificationPrefs?.sms === true,
       telegram: user?.notificationPrefs?.telegram === true || Boolean(user?.telegramChatId),
+      viber: user?.notificationPrefs?.viber === true || Boolean(user?.viberId),
     })
     api.get('/citizen/cities').then((r) => setCities(r.data?.cities || []))
-    loadTelegram()
+    loadMessengerStatus()
   }, [isAuthenticated, user, navigate])
 
   const linkTelegram = async () => {
@@ -112,6 +124,51 @@ const SettingsPage: React.FC = () => {
       toast.error(err?.response?.data?.message || t('settings.linkFailed'))
     } finally {
       setUnlinking(false)
+    }
+  }
+
+  const linkViber = async () => {
+    setLinkingViber(true)
+    try {
+      const { data } = await api.post('/viber/link')
+      if (!data.ok) {
+        toast.error(data.message || t('settings.viberLinkFailed'))
+        return
+      }
+      if (data.needsWebhook) {
+        toast.message(t('settings.viberWebhookHint'))
+      }
+      toast.success(t('settings.openViber'))
+      window.open(data.deepLink || data.webLink, '_blank', 'noopener,noreferrer')
+      let tries = 0
+      const poll = setInterval(async () => {
+        tries += 1
+        try {
+          await refreshUser()
+        } catch {
+          /* ignore */
+        }
+        if (tries > 40) clearInterval(poll)
+      }, 2500)
+      setTimeout(() => clearInterval(poll), 120000)
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || t('settings.viberLinkFailed'))
+    } finally {
+      setLinkingViber(false)
+    }
+  }
+
+  const unlinkVb = async () => {
+    setUnlinkingViber(true)
+    try {
+      await api.post('/viber/unlink')
+      await refreshUser({ viberId: '', notificationPrefs: { ...prefs, viber: false } } as any)
+      setPrefs((p) => ({ ...p, viber: false }))
+      toast.success(t('settings.viberUnlinked'))
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || t('settings.viberLinkFailed'))
+    } finally {
+      setUnlinkingViber(false)
     }
   }
 
@@ -246,6 +303,74 @@ const SettingsPage: React.FC = () => {
               )}
             </div>
 
+            {/* VIBER */}
+            <div className="surface-card rounded-2xl p-5 space-y-4 border border-violet-500/25 bg-gradient-to-br from-violet-500/10 to-transparent">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-violet-300" />
+                <h2 className="font-semibold">{t('settings.viberTitle')}</h2>
+                <span className="ml-auto text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-200">
+                  {t('settings.free')}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {t('settings.viberBody')}
+              </p>
+
+              {viberLinked ? (
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex-1 flex items-center gap-2 text-sm text-accent">
+                    <CheckCircle2 className="w-5 h-5 shrink-0" />
+                    <span>
+                      {t('settings.linked')}
+                      {vbStatus.botUri ? (
+                        <>
+                          {' '}
+                          · <strong>{vbStatus.botUri}</strong>
+                        </>
+                      ) : null}
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={unlinkVb}
+                    disabled={unlinkingViber}
+                    className="border-white/15"
+                  >
+                    {unlinkingViber ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Unplug className="w-4 h-4" />
+                    )}
+                    {t('settings.unlink')}
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {!vbStatus.configured && (
+                    <p className="text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
+                      {t('settings.viberAdminHint')}
+                    </p>
+                  )}
+                  <Button
+                    className="w-full h-12 bg-violet-600 hover:bg-violet-500 text-white"
+                    onClick={linkViber}
+                    disabled={linkingViber || !vbStatus.configured}
+                  >
+                    {linkingViber ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <ExternalLink className="w-4 h-4" />
+                    )}
+                    {t('settings.linkViber')}
+                  </Button>
+                  <p className="text-[11px] text-muted-foreground text-center">
+                    {t('settings.viberLinkHint')}
+                  </p>
+                </div>
+              )}
+            </div>
+
             <div className="surface-card rounded-2xl p-5 space-y-4">
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-primary" />
@@ -320,7 +445,24 @@ const SettingsPage: React.FC = () => {
 
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-start gap-3">
-                  <MessageSquare className="w-4 h-4 text-muted-foreground mt-0.5" />
+                  <MessageSquare className="w-4 h-4 text-violet-300 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">{t('settings.viber')}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {viberLinked ? t('settings.viberOn') : t('settings.viberOff')}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={prefs.viber}
+                  disabled={!viberLinked}
+                  onCheckedChange={(v) => setPrefs((p) => ({ ...p, viber: v }))}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <Smartphone className="w-4 h-4 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-sm font-medium">{t('settings.smsOptional')}</p>
                     <p className="text-xs text-muted-foreground">{t('settings.smsHint')}</p>

@@ -30,12 +30,14 @@ class NotificationService {
     const email = Boolean(channels.email) && prefs.email !== false
     const wantsTelegram =
       Boolean(user?.telegramChatId) && prefs.telegram !== false
+    const wantsViber = Boolean(user?.viberId) && prefs.viber !== false
     // Transactional appointment SMS can override prefs when forceSms + phone
     const sms =
       (Boolean(channels.sms) && prefs.sms === true) ||
       (forceSms && Boolean(user?.phone || data.phoneOverride))
     const smartDelivery =
-      type.startsWith('appointment_') && (sms || wantsTelegram || forceSms)
+      type.startsWith('appointment_') &&
+      (sms || wantsTelegram || wantsViber || forceSms)
 
     const notification = await Notification.create({
       userId,
@@ -43,7 +45,7 @@ class NotificationService {
       title,
       message,
       data,
-      channels: { inApp, email, sms: sms || wantsTelegram },
+      channels: { inApp, email, sms: sms || wantsTelegram || wantsViber },
     })
 
     if (inApp && this.io) {
@@ -100,6 +102,7 @@ class NotificationService {
           phone: sms ? phone : undefined,
           email: user?.email,
           telegramChatId: wantsTelegram ? user.telegramChatId : undefined,
+          viberId: wantsViber ? user.viberId : undefined,
           body: message,
           subject: `📱 ${title}`,
         })
@@ -117,17 +120,14 @@ class NotificationService {
       }
     }
 
-    // Telegram për thirrjen e radhës (pa SMS)
-    if (
-      !smartDelivery &&
-      wantsTelegram &&
-      type === 'ticket_called'
-    ) {
+    // Messenger falas për thirrjen e radhës (pa SMS)
+    if (!smartDelivery && type === 'ticket_called') {
       try {
-        const { sendViaTelegram } = await import('./smsService.js')
-        await sendViaTelegram(user.telegramChatId, message)
+        const { sendViaTelegram, sendViaViber } = await import('./smsService.js')
+        if (wantsTelegram) await sendViaTelegram(user.telegramChatId, message)
+        if (wantsViber) await sendViaViber(user.viberId, message)
       } catch (err) {
-        console.error('Telegram notify failed:', err.message)
+        console.error('Messenger notify failed:', err.message)
       }
     }
 

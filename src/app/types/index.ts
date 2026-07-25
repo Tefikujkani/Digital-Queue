@@ -32,8 +32,10 @@ export interface User {
     email?: boolean
     sms?: boolean
     telegram?: boolean
+    viber?: boolean
   }
   telegramChatId?: string
+  viberId?: string
   createdAt: Date
 }
 

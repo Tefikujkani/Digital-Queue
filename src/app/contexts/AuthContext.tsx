@@ -34,6 +34,7 @@ function formatUser(userData: any): User {
     favorites: userData.favorites,
     preferredCity: userData.preferredCity,
     telegramChatId: userData.telegramChatId || '',
+    viberId: userData.viberId || '',
     notificationPrefs: userData.notificationPrefs,
     createdAt: userData.createdAt || new Date(),
   }
@@ -113,7 +114,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         partial &&
         (partial.preferredCity ||
           partial.notificationPrefs ||
-          partial.telegramChatId !== undefined)
+          partial.telegramChatId !== undefined ||
+          partial.viberId !== undefined)
       ) {
         setUser((prev) => {
           if (!prev) return prev
