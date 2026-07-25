@@ -59,12 +59,17 @@ const SettingsPage: React.FC = () => {
   const [deletePassword, setDeletePassword] = useState('')
   const [pwLoading, setPwLoading] = useState(false)
 
+  const [channels, setChannels] = useState<
+    Record<string, { configured: boolean; label: string; note: string }>
+  >({})
+
   const linked = Boolean(user?.telegramChatId)
   const viberLinked = Boolean(user?.viberId)
 
   const loadMessengerStatus = () => {
     api.get('/telegram/status').then((r) => setTgStatus(r.data || { configured: false }))
     api.get('/viber/status').then((r) => setVbStatus(r.data || { configured: false }))
+    api.get('/citizen/notify-channels').then((r) => setChannels(r.data || {}))
   }
 
   useEffect(() => {
@@ -369,6 +374,46 @@ const SettingsPage: React.FC = () => {
                   </p>
                 </div>
               )}
+            </div>
+
+            </div>
+
+            {/* Free SMS status */}
+            <div className="surface-card rounded-2xl p-5 space-y-3 border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-transparent">
+              <div className="flex items-center gap-2">
+                <Smartphone className="w-4 h-4 text-emerald-400" />
+                <h2 className="font-semibold">{t('settings.freeSmsTitle')}</h2>
+              </div>
+              <p className="text-xs text-muted-foreground">{t('settings.freeSmsBody')}</p>
+              <div className="space-y-2">
+                {['textbee', 'textbelt'].map((key) => {
+                  const info = channels[key]
+                  if (!info) return null
+                  return (
+                    <div
+                      key={key}
+                      className="flex items-center justify-between gap-3 text-xs rounded-xl bg-white/[0.03] border border-white/6 px-3 py-2.5"
+                    >
+                      <div>
+                        <p className="font-semibold text-foreground">{info.label}</p>
+                        <p className="text-muted-foreground mt-0.5">{info.note}</p>
+                      </div>
+                      <span
+                        className={`shrink-0 px-2 py-0.5 rounded-full font-bold ${
+                          info.configured
+                            ? 'bg-emerald-500/15 text-emerald-300'
+                            : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        {info.configured ? 'ON' : 'OFF'}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                {t('settings.textbeeSetup')}
+              </p>
             </div>
 
             <div className="surface-card rounded-2xl p-5 space-y-4">

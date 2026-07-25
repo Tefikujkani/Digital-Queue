@@ -1,11 +1,11 @@
 /**
  * SmartQueue SMS Router — multi-provider i avancuar
  *
- * Prioriteti (SMS_PROVIDER_ORDER):
- *   infobip → vonage → twilio → gateway → textbelt
+ * Prioriteti falas-first (SMS_PROVIDER_ORDER):
+ *   textbee → textbelt → gateway → infobip → vonage → twilio
  *
- * Plus kanale falas:
- *   telegram (bot), email_fallback
+ * Plus kanale falas (jo SMS):
+ *   telegram, viber, email_fallback
  */
 
 import twilio from 'twilio'
@@ -27,10 +27,26 @@ function configured(v) {
   return Boolean(v && !String(v).includes('your_') && String(v).trim().length > 2)
 }
 
+function isTextbeeConfigured() {
+  return configured(process.env.TEXTBEE_API_KEY) && configured(process.env.TEXTBEE_DEVICE_ID)
+}
+
 export function getSmsProviderStatus() {
   return {
     order: getProviderOrder(),
     providers: {
+      textbee: {
+        configured: isTextbeeConfigured(),
+        note: '⭐ SMS falas me telefon Android — textbee.dev (deri ~50 SMS/ditë)',
+      },
+      textbelt: {
+        configured: true,
+        note: 'TEXTBELT_KEY=textbelt → ~1 SMS falas/ditë për test',
+      },
+      gateway: {
+        configured: configured(process.env.SMS_GATEWAY_URL),
+        note: 'Webhook i përgjithshëm Android/SIM gateway',
+      },
       infobip: {
         configured: configured(process.env.INFOBIP_API_KEY),
         note: 'Mirë për Evropë/Ballkan — trial falas te portal.infobip.com',
@@ -46,17 +62,9 @@ export function getSmsProviderStatus() {
           configured(process.env.TWILIO_AUTH_TOKEN),
         note: 'Twilio — kërkon kredi',
       },
-      gateway: {
-        configured: configured(process.env.SMS_GATEWAY_URL),
-        note: 'Android SIM gateway (Textbee etj.) — falas me kartelën tënde',
-      },
-      textbelt: {
-        configured: true,
-        note: 'TEXTBELT_KEY=textbelt → ~1 SMS falas/ditë',
-      },
       telegram: {
         configured: configured(process.env.TELEGRAM_BOT_TOKEN),
-        note: '⭐ Kanali kryesor falas — lidhe me 1 klik te Cilësimet',
+        note: 'Messenger falas — lidhe me 1 klik te Cilësimet',
       },
       viber: {
         configured:
@@ -72,8 +80,37 @@ export function getSmsProviderStatus() {
   }
 }
 
+/** Status i shkurtër për UI qytetari (pa secrets) */
+export function getFreeNotifyStatus() {
+  return {
+    textbee: {
+      configured: isTextbeeConfigured(),
+      label: 'TextBee SMS',
+      note: 'SMS reale falas nga telefon Android',
+    },
+    textbelt: {
+      configured: true,
+      label: 'Textbelt',
+      note: '~1 SMS falas / ditë',
+    },
+    telegram: {
+      configured: configured(process.env.TELEGRAM_BOT_TOKEN),
+      label: 'Telegram',
+      note: 'Messenger falas',
+    },
+    viber: {
+      configured:
+        configured(process.env.VIBER_AUTH_TOKEN) &&
+        Boolean((process.env.VIBER_BOT_URI || '').trim()),
+      label: 'Viber',
+      note: 'Messenger falas',
+    },
+  }
+}
+
 function getProviderOrder() {
-  const raw = process.env.SMS_PROVIDER_ORDER || 'infobip,vonage,twilio,gateway,textbelt'
+  const raw =
+    process.env.SMS_PROVIDER_ORDER || 'textbee,textbelt,gateway,infobip,vonage,twilio'
   return raw
     .split(',')
     .map((s) => s.trim().toLowerCase())
@@ -202,6 +239,45 @@ async function sendViaVonage(to, body) {
   }
 }
 
+async function sendViaTextbee(to, body) {
+  const apiKey = process.env.TEXTBEE_API_KEY
+  const deviceId = process.env.TEXTBEE_DEVICE_ID
+  if (!configured(apiKey) || !configured(deviceId)) {
+    return { success: false, provider: 'textbee', reason: 'not_configured' }
+  }
+  try {
+    const res = await fetch(
+      `https://api.textbee.dev/api/v1/gateway/devices/${encodeURIComponent(deviceId)}/send-sms`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+        },
+        body: JSON.stringify({
+          recipients: [to],
+          message: body.slice(0, 1000),
+        }),
+      },
+    )
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      return {
+        success: false,
+        provider: 'textbee',
+        error: data?.message || data?.error || `HTTP ${res.status}`,
+      }
+    }
+    return {
+      success: true,
+      provider: 'textbee',
+      id: String(data?.data?._id || data?.id || data?.messageId || ''),
+    }
+  } catch (err) {
+    return { success: false, provider: 'textbee', error: err.message }
+  }
+}
+
 async function sendViaGateway(to, body) {
   const url = process.env.SMS_GATEWAY_URL
   if (!configured(url)) {
@@ -255,11 +331,12 @@ export async function sendViaViber(viberId, body) {
 }
 
 const PROVIDERS = {
+  textbee: sendViaTextbee,
+  textbelt: sendViaTextbelt,
+  gateway: sendViaGateway,
   infobip: sendViaInfobip,
   vonage: sendViaVonage,
   twilio: sendViaTwilio,
-  gateway: sendViaGateway,
-  textbelt: sendViaTextbelt,
 }
 
 /**

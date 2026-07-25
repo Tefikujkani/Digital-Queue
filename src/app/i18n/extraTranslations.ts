@@ -70,6 +70,12 @@ export const extraTranslations: Record<Language, Record<string, string>> = {
     'settings.viberOn': 'Aktiv · i lidhur',
     'settings.viberOff': 'Lidhe më sipër',
 
+    'settings.freeSmsTitle': 'SMS falas (TextBee)',
+    'settings.freeSmsBody':
+      'SMS reale pa Twilio: TextBee dërgon nga telefoni yt Android. Textbelt jep ~1 SMS/ditë për test.',
+    'settings.textbeeSetup':
+      'Setup: textbee.dev → app Android → API key + Device ID → TEXTBEE_API_KEY dhe TEXTBEE_DEVICE_ID në backend/.env → rinis serverin.',
+
     'cities.eyebrow': 'Republika e Kosovës',
     'cities.title': 'Qytetet & Komunat',
     'cities.subtitle': 'Zgjidh qytetin tënd dhe gjej institucione publike e private me radhë digjitale —',
@@ -256,6 +262,12 @@ export const extraTranslations: Record<Language, Record<string, string>> = {
     'settings.viberOn': 'On · connected',
     'settings.viberOff': 'Connect above',
 
+    'settings.freeSmsTitle': 'Free SMS (TextBee)',
+    'settings.freeSmsBody':
+      'Real SMS without Twilio: TextBee sends from your Android phone. Textbelt gives ~1 SMS/day for tests.',
+    'settings.textbeeSetup':
+      'Setup: textbee.dev → Android app → API key + Device ID → TEXTBEE_API_KEY and TEXTBEE_DEVICE_ID in backend/.env → restart.',
+
     'cities.eyebrow': 'Republic of Kosovo',
     'cities.title': 'Cities & Municipalities',
     'cities.subtitle': 'Pick your city and find public & private institutions with digital queues —',
@@ -436,6 +448,12 @@ export const extraTranslations: Record<Language, Record<string, string>> = {
     'settings.viber': 'Viber',
     'settings.viberOn': 'Aktivno · povezano',
     'settings.viberOff': 'Poveži iznad',
+
+    'settings.freeSmsTitle': 'Besplatan SMS (TextBee)',
+    'settings.freeSmsBody':
+      'Pravi SMS bez Twilija: TextBee šalje sa tvog Androida. Textbelt daje ~1 SMS/dan za test.',
+    'settings.textbeeSetup':
+      'Setup: textbee.dev → Android app → API key + Device ID → TEXTBEE_API_KEY i TEXTBEE_DEVICE_ID u backend/.env → restart.',
 
     'cities.eyebrow': 'Republika Kosovo',
     'cities.title': 'Gradovi i opštine',
