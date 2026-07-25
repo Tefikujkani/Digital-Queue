@@ -49,6 +49,7 @@ interface QueueContextType {
     userName: string,
     scheduledDate?: string,
     scheduledTime?: string,
+    options?: { notifySms?: boolean; phone?: string },
   ) => Promise<Ticket>
   cancelTicket: (ticketId: string) => Promise<void>
   callNextTicket: (institutionId: string, counterId: string) => Promise<void>
@@ -138,6 +139,7 @@ export const QueueProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       userName: string,
       scheduledDate?: string,
       scheduledTime?: string,
+      options?: { notifySms?: boolean; phone?: string },
     ): Promise<Ticket> => {
       try {
         const response = await api.post('/tickets', {
@@ -147,14 +149,24 @@ export const QueueProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           userName,
           scheduledDate,
           scheduledTime,
+          notifySms: options?.notifySms,
+          phone: options?.phone,
         })
         const newTicket = normalize(response.data)
         setTickets((prev) => [...prev, newTicket])
         setCurrentTicket(newTicket)
 
-        toast.success(`Numri juaj: ${newTicket.number}`, {
-          description: `Pozicioni në radhë: ${newTicket.positionInQueue || 'Në pritje'}`,
-        })
+        const isAppointment = Boolean(scheduledDate && scheduledTime)
+        toast.success(
+          isAppointment ? `Termini u rezervua · ${newTicket.number}` : `Numri juaj: ${newTicket.number}`,
+          {
+            description: isAppointment
+              ? options?.notifySms !== false
+                ? 'SMS + email u dërguan (ose email backup nëse SMS dështon)'
+                : 'Email / njoftim në app u dërgua'
+              : `Pozicioni në radhë: ${newTicket.positionInQueue || 'Në pritje'}`,
+          },
+        )
 
         return newTicket
       } catch (error: any) {

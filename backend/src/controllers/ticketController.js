@@ -5,7 +5,8 @@ import Institution from '../models/Institution.js'
 // @access  Private
 export const issueTicket = async (req, res) => {
   try {
-    const { institutionId, serviceId, priority, userName, scheduledDate, scheduledTime } = req.body
+    const { institutionId, serviceId, priority, userName, scheduledDate, scheduledTime, notifySms, phone } =
+      req.body
 
     let scheduledAt
     if (scheduledDate && scheduledTime) {
@@ -41,26 +42,49 @@ export const issueTicket = async (req, res) => {
       number: ticketNumber,
       priority: priority || 'normal',
       qrCode: `SQK-${ticketNumber}-${Date.now()}`,
-      estimatedWaitTime: ticketCount * 5 + 5, // Simple estimation
+      estimatedWaitTime: ticketCount * 5 + 5,
       scheduledAt,
     })
 
     const institution = await Institution.findById(institutionId).lean()
 
-    // Dispatch global notification (in-app + email + sms) via NotificationService
     if (institution) {
-      const serviceObj = institution.services.find(s => s._id.toString() === serviceId);
-      const serviceName = serviceObj ? serviceObj.name : 'Shërbim i Përgjithshëm';
+      const serviceObj = institution.services.find(
+        (s) => s._id?.toString() === serviceId || s.id === serviceId,
+      )
+      const serviceName = serviceObj ? serviceObj.name : 'Shërbim i Përgjithshëm'
+
+      if (scheduledAt) {
+        const delivery = await req.notificationService.appointmentBooked(
+          req.user._id,
+          ticket,
+          institution.name,
+          serviceName,
+          {
+            notifySms: notifySms !== false,
+            phone: phone || req.user.phone,
+            enableSms: notifySms !== false,
+          },
+        )
+        req.io.to(institutionId.toString()).emit('new_ticket', ticket)
+        return res.status(201).json({
+          ...ticket.toObject(),
+          notification: {
+            type: 'appointment',
+            smsRequested: notifySms !== false,
+            delivery: delivery?.delivery || null,
+          },
+        })
+      }
 
       await req.notificationService.ticketIssued(
         req.user._id,
         ticket,
         institution.name,
-        serviceName
-      );
+        serviceName,
+      )
     }
 
-    // Notify institution room for dashboard
     req.io.to(institutionId.toString()).emit('new_ticket', ticket)
 
     res.status(201).json(ticket)

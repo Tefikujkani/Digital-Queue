@@ -45,6 +45,10 @@ const ticketSchema = mongoose.Schema(
       type: String,
     },
     scheduledAt: Date,
+    remindersSent: {
+      reminder24h: { type: Boolean, default: false },
+      reminder2h: { type: Boolean, default: false },
+    },
     calledAt: Date,
     completedAt: Date,
   },

@@ -2,9 +2,15 @@ import Notification from '../models/Notification.js'
 import User from '../models/User.js'
 import { sendEmail, ticketIssuedEmail, ticketCalledEmail, ticketCompletedEmail } from './emailService.js'
 import { sendSMS } from './smsService.js'
+import {
+  buildAppointmentSms,
+  sendAppointmentSMS,
+  formatAppointmentLocal,
+} from './appointmentNotify.js'
 
 /**
  * Central notification service — respects user.notificationPrefs
+ * Appointments force SMS cascade (Twilio → gateway → Textbelt → email)
  */
 class NotificationService {
   constructor(io) {
@@ -19,9 +25,13 @@ class NotificationService {
       sms: false,
     }
 
+    const forceSms = channels.forceSms === true
     const inApp = channels.inApp !== false && prefs.inApp !== false
     const email = Boolean(channels.email) && prefs.email !== false
-    const sms = Boolean(channels.sms) && prefs.sms === true
+    // Transactional appointment SMS can override prefs when forceSms + phone
+    const sms =
+      (Boolean(channels.sms) && prefs.sms === true) ||
+      (forceSms && Boolean(user?.phone || data.phoneOverride))
 
     const notification = await Notification.create({
       userId,
@@ -49,6 +59,7 @@ class NotificationService {
         let emailContent
         switch (type) {
           case 'ticket_issued':
+          case 'appointment_booked':
             emailContent = ticketIssuedEmail(
               user.name,
               data.ticketNumber,
@@ -63,6 +74,12 @@ class NotificationService {
           case 'ticket_completed':
             emailContent = ticketCompletedEmail(user.name, data.ticketNumber)
             break
+          case 'appointment_reminder':
+            emailContent = {
+              subject: title,
+              html: `<div style="font-family:sans-serif;padding:24px"><h2>${title}</h2><p>${message}</p></div>`,
+            }
+            break
           default:
             emailContent = { subject: title, html: `<p>${message}</p>` }
         }
@@ -72,9 +89,21 @@ class NotificationService {
       }
     }
 
-    if (sms && user?.phone) {
+    if (sms) {
+      const phone = data.phoneOverride || user?.phone
       try {
-        await sendSMS(user.phone, message)
+        if (forceSms || type.startsWith('appointment_')) {
+          const delivery = await sendAppointmentSMS({
+            phone,
+            email: user?.email,
+            body: message,
+            subject: `📱 ${title}`,
+          })
+          notification.delivery = delivery
+          await notification.save()
+        } else if (phone) {
+          await sendSMS(phone, message)
+        }
       } catch (err) {
         console.error('SMS notification failed:', err.message)
       }
@@ -84,6 +113,11 @@ class NotificationService {
   }
 
   async ticketIssued(userId, ticket, institutionName, serviceName) {
+    // Nëse ka termin (scheduledAt) → rruga e specializuar e SMS
+    if (ticket.scheduledAt) {
+      return this.appointmentBooked(userId, ticket, institutionName, serviceName)
+    }
+
     return this.notify(
       userId,
       'ticket_issued',
@@ -101,6 +135,85 @@ class NotificationService {
     )
   }
 
+  /**
+   * Kur qytetari rezervon termin — SMS + email + in-app (falas me cascade)
+   */
+  async appointmentBooked(userId, ticket, institutionName, serviceName, opts = {}) {
+    const smsBody = buildAppointmentSms({
+      ticketNumber: ticket.number,
+      institutionName,
+      serviceName,
+      scheduledAt: ticket.scheduledAt,
+      kind: 'confirm',
+    })
+    const { dateStr, timeStr } = formatAppointmentLocal(ticket.scheduledAt)
+
+    // Opsional: ruaj telefonin nëse u dërgua nga forma e rezervimit
+    if (opts.phone) {
+      const user = await User.findById(userId)
+      if (user && !user.phone) {
+        user.phone = opts.phone
+        user.notificationPrefs = {
+          ...(user.notificationPrefs || {}),
+          sms: true,
+          email: true,
+          inApp: true,
+        }
+        await user.save()
+      } else if (user && opts.enableSms) {
+        user.notificationPrefs = {
+          ...(user.notificationPrefs || {}),
+          sms: true,
+        }
+        await user.save()
+      }
+    }
+
+    return this.notify(
+      userId,
+      'appointment_booked',
+      'Termini u konfirmua',
+      smsBody,
+      {
+        ticketId: ticket._id.toString(),
+        ticketNumber: ticket.number,
+        institutionId: ticket.institutionId.toString(),
+        institutionName,
+        serviceName,
+        scheduledAt: ticket.scheduledAt,
+        dateStr,
+        timeStr,
+        phoneOverride: opts.phone,
+      },
+      { inApp: true, email: true, sms: true, forceSms: opts.notifySms !== false },
+    )
+  }
+
+  async appointmentReminder(userId, ticket, institutionName, serviceName) {
+    const smsBody = buildAppointmentSms({
+      ticketNumber: ticket.number,
+      institutionName,
+      serviceName,
+      scheduledAt: ticket.scheduledAt,
+      kind: 'reminder',
+    })
+    return this.notify(
+      userId,
+      'appointment_reminder',
+      'Kujtesë termini',
+      smsBody,
+      {
+        ticketId: ticket._id.toString(),
+        ticketNumber: ticket.number,
+        institutionId: ticket.institutionId.toString(),
+        institutionName,
+        serviceName,
+        scheduledAt: ticket.scheduledAt,
+      },
+      { inApp: true, email: true, sms: true, forceSms: true },
+    )
+  }
+
   async ticketCalled(userId, ticket, institutionName) {
     return this.notify(
       userId,
@@ -114,7 +227,7 @@ class NotificationService {
         institutionName,
         counterId: ticket.counterId,
       },
-      { inApp: true, email: true, sms: true },
+      { inApp: true, email: true, sms: true, forceSms: true },
     )
   }
 

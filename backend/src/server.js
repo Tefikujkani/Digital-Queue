@@ -21,6 +21,7 @@ import chatRoutes from './routes/chatRoutes.js'
 import favoriteRoutes from './routes/favoriteRoutes.js'
 import citizenRoutes from './routes/citizenRoutes.js'
 import NotificationService from './services/notificationService.js'
+import { startAppointmentReminderJob } from './services/reminderJob.js'
 
 const app = express()
 let io = null
@@ -95,6 +96,7 @@ const startServer = (port, attempt = 0) => {
       console.log(
         `🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${port}`,
       )
+      startAppointmentReminderJob(io)
     })
     .once('error', (error) => {
       if (error.code === 'EADDRINUSE' && attempt < MAX_PORT_RETRIES) {

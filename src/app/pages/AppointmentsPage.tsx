@@ -11,10 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useQueue } from '../contexts/QueueContext';
-import { Calendar as CalendarIcon, Clock, MapPin, Check, ChevronRight, Zap, Info, X, Loader2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, MapPin, Check, ChevronRight, Zap, Info, X, Loader2, Smartphone, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Institution, Service } from '../types';
 import api from '../lib/api';
+import { Input } from '../components/ui/input';
+import { Switch } from '../components/ui/switch';
 
 const AppointmentsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -30,6 +32,12 @@ const AppointmentsPage: React.FC = () => {
   const [selectedTime, setSelectedTime] = useState('');
   const [loading, setLoading] = useState(true);
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [notifySms, setNotifySms] = useState(true);
+  const [phone, setPhone] = useState(user?.phone || '');
+
+  useEffect(() => {
+    if (user?.phone) setPhone(user.phone);
+  }, [user?.phone]);
 
   // Fetch institutions
   useEffect(() => {
@@ -75,6 +83,11 @@ const AppointmentsPage: React.FC = () => {
       return;
     }
 
+    if (notifySms && !phone.trim()) {
+      toast.error('Shkruaj numrin e telefonit për SMS, ose çaktivizo SMS');
+      return;
+    }
+
     setBookingLoading(true);
     try {
       const dateStr = selectedDate.toISOString().split('T')[0];
@@ -84,9 +97,10 @@ const AppointmentsPage: React.FC = () => {
         'normal',
         user?.name || 'Qytetar',
         dateStr,
-        selectedTime
+        selectedTime,
+        { notifySms, phone: phone.trim() || undefined },
       );
-      toast.success('Termini u rezervua me sukses!');
+      toast.success('Termini u rezervua — kontrollo SMS/email');
       navigate(`/queue/${selectedInstitution}`);
     } catch (error) {
       console.error('Booking failed:', error);
@@ -193,6 +207,38 @@ const AppointmentsPage: React.FC = () => {
                     ))}
                   </div>
                 </div>
+
+                <div className="rounded-2xl border border-accent/25 bg-accent/5 p-5 space-y-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <Smartphone className="w-5 h-5 text-accent mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-sm">Njoftim me SMS (falas / cascade)</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Kur rezervon, merr SMS konfirmimi + kujtesë 24h dhe 2h para. Nëse SMS dështon, dërgohet email backup (Gmail).
+                        </p>
+                      </div>
+                    </div>
+                    <Switch checked={notifySms} onCheckedChange={setNotifySms} />
+                  </div>
+                  {notifySms && (
+                    <div className="space-y-2">
+                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                        Numri i telefonit (+383…)
+                      </Label>
+                      <Input
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="044 xxx xxx"
+                        className="h-12 rounded-xl"
+                      />
+                      <p className="text-[11px] text-muted-foreground inline-flex items-center gap-1.5">
+                        <Mail className="w-3 h-3" /> Email konfirmimi shkon gjithmonë te {user?.email}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 <Button 
                   className="w-full h-16 text-xl rounded-2xl shadow-xl shadow-primary/20" 
                   onClick={handleBook}
