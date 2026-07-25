@@ -227,6 +227,9 @@ const QueuePage: React.FC = () => {
         user?.name || 'Qytetar',
         selectedDate || undefined,
         selectedTime || undefined,
+        selectedDate && selectedTime
+          ? { notifySms: true, phone: user?.phone }
+          : undefined,
       )
       setShowTicketDialog(true)
     } catch {
