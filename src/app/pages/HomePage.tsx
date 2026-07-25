@@ -227,7 +227,7 @@ const HomePage: React.FC = () => {
                             : 'wait-high'
                       }`}
                     >
-                      {s.wait} min · {s.level === 'low' ? 'Ulët' : s.level === 'medium' ? 'Mesatare' : 'Lartë'}
+                      {s.wait} min · {t(`wait.${s.level}`)}
                     </span>
                   </motion.div>
                 ))}

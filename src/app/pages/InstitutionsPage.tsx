@@ -146,7 +146,7 @@ const InstitutionsPage: React.FC = () => {
               return (
                 <div
                   key={id}
-                  className="surface-card rounded-2xl p-5 cursor-pointer group hover:border-primary/40 transition-all duration-300 hover:-translate-y-1"
+                  className="surface-card rounded-2xl p-5 cursor-pointer group hover:border-primary/40 transition-all duration-300 hover:-translate-y-1 flex flex-col h-full"
                   onClick={() => navigate(`/queue/${id}`)}
                 >
                   <div className="flex items-start justify-between mb-4">
@@ -172,13 +172,12 @@ const InstitutionsPage: React.FC = () => {
                               : 'wait-high'
                         }`}
                       >
-                        {wait} min ·{' '}
-                        {level === 'low' ? 'Ulët' : level === 'medium' ? 'Mesatare' : 'Lartë'}
+                        {wait} min · {t(`wait.${level}`)}
                       </span>
                     </div>
                   </div>
 
-                  <h3 className="text-lg font-semibold group-hover:text-primary transition-colors mb-1">
+                  <h3 className="text-lg font-semibold group-hover:text-primary transition-colors mb-1 line-clamp-2 min-h-[3.5rem]">
                     {institution.name}
                   </h3>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
@@ -188,7 +187,7 @@ const InstitutionsPage: React.FC = () => {
                     {institution.description}
                   </p>
 
-                  <div className="space-y-2 text-sm text-muted-foreground mb-5">
+                  <div className="space-y-2 text-sm text-muted-foreground mb-5 flex-1">
                     <div className="flex items-center gap-2">
                       <MapPin className="w-3.5 h-3.5 text-primary/70" />
                       <span className="truncate text-xs">
@@ -211,7 +210,7 @@ const InstitutionsPage: React.FC = () => {
                   </div>
 
                   <Button
-                    className="w-full h-11"
+                    className="w-full h-11 mt-auto"
                     onClick={(e) => {
                       e.stopPropagation()
                       navigate(`/queue/${id}`)

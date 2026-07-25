@@ -4,6 +4,7 @@ import type { Language } from '../types';
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
+  languageLabel: string;
   t: (key: string) => string;
 }
 
@@ -129,6 +130,11 @@ const translations: Record<Language, Record<string, string>> = {
     'common.noData': 'Nuk ka të dhëna',
     'common.error': 'Gabim',
     'common.success': 'Sukses',
+
+    // Wait levels
+    'wait.low': 'Ulët',
+    'wait.medium': 'Mesatare',
+    'wait.high': 'Lartë',
   },
   en: {
     // Navigation
@@ -248,6 +254,11 @@ const translations: Record<Language, Record<string, string>> = {
     'common.noData': 'No data',
     'common.error': 'Error',
     'common.success': 'Success',
+
+    // Wait levels
+    'wait.low': 'Low',
+    'wait.medium': 'Medium',
+    'wait.high': 'High',
   },
   sr: {
     // Navigation
@@ -367,11 +378,28 @@ const translations: Record<Language, Record<string, string>> = {
     'common.noData': 'Nema podataka',
     'common.error': 'Greška',
     'common.success': 'Uspeh',
+
+    // Wait levels
+    'wait.low': 'Nisko',
+    'wait.medium': 'Srednje',
+    'wait.high': 'Visoko',
   },
 };
 
+const languageLabels: Record<Language, string> = {
+  sq: 'SQ',
+  en: 'EN',
+  sr: 'SR',
+};
+
+function getStoredLanguage(): Language {
+  const stored = localStorage.getItem('language');
+  if (stored === 'sq' || stored === 'en' || stored === 'sr') return stored;
+  return 'sq';
+}
+
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguageState] = useState<Language>('sq');
+  const [language, setLanguageState] = useState<Language>(getStoredLanguage);
 
   const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
@@ -383,7 +411,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [language]);
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, languageLabel: languageLabels[language], t }}>
       {children}
     </LanguageContext.Provider>
   );
