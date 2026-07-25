@@ -18,6 +18,8 @@ import ticketRoutes from './routes/ticketRoutes.js'
 import analyticsRoutes from './routes/analyticsRoutes.js'
 import notificationRoutes from './routes/notificationRoutes.js'
 import chatRoutes from './routes/chatRoutes.js'
+import favoriteRoutes from './routes/favoriteRoutes.js'
+import citizenRoutes from './routes/citizenRoutes.js'
 import NotificationService from './services/notificationService.js'
 
 const app = express()
@@ -74,6 +76,8 @@ app.use('/api/tickets', ticketRoutes)
 app.use('/api/analytics', analyticsRoutes)
 app.use('/api/notifications', notificationRoutes)
 app.use('/api/chat', chatRoutes)
+app.use('/api/favorites', favoriteRoutes)
+app.use('/api/citizen', citizenRoutes)
 
 app.get('/', (req, res) => {
   res.send('SmartQueue Kosova API - Advanced Backend Running')

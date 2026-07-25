@@ -17,6 +17,7 @@ import {
   Ticket,
   Check,
   ChevronDown,
+  MapPin,
 } from 'lucide-react'
 
 const languages: { code: Language; label: string; native: string }[] = [
@@ -57,6 +58,7 @@ const Navigation: React.FC = () => {
 
   const navLinks = [
     { name: t('nav.institutions'), path: '/institutions', icon: Building2 },
+    { name: 'Qytetet', path: '/cities', icon: MapPin },
     { name: t('nav.appointments'), path: '/appointments', icon: Calendar },
   ]
 

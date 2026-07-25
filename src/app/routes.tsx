@@ -10,6 +10,7 @@ import CitizenDashboard from './pages/CitizenDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import AppointmentsPage from './pages/AppointmentsPage';
+import CitiesPage from './pages/CitiesPage';
 import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -22,6 +23,7 @@ export const router = createBrowserRouter([
       { path: 'login', element: <LoginPage /> },
       { path: 'register', element: <RegisterPage /> },
       { path: 'institutions', element: <InstitutionsPage /> },
+      { path: 'cities', element: <CitiesPage /> },
       { path: 'queue/:institutionId', element: <QueuePage /> },
       { 
         path: 'appointments', 

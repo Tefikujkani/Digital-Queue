@@ -1,0 +1,18 @@
+{
+  "name": "SmartQueue Kosova",
+  "short_name": "SmartQueue",
+  "description": "Radhë digjitale dhe termine për institucionet e Kosovës",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#08080f",
+  "theme_color": "#7f41ff",
+  "lang": "sq",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

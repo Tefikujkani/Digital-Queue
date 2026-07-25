@@ -2,12 +2,28 @@ import Institution from '../models/Institution.js'
 import Counter from '../models/Counter.js'
 import Ticket from '../models/Ticket.js'
 
-// @desc    Get all active institutions
+// @desc    Get all active institutions (optional city, type, q filters)
 // @route   GET /api/institutions
 // @access  Public
 export const getInstitutions = async (req, res) => {
   try {
-    const institutions = await Institution.find({ isActive: true })
+    const filter = { isActive: true }
+    if (req.query.city) {
+      filter['location.city'] = { $regex: String(req.query.city).trim(), $options: 'i' }
+    }
+    if (req.query.type && req.query.type !== 'all') {
+      filter.type = req.query.type
+    }
+    if (req.query.q) {
+      const q = String(req.query.q).trim()
+      filter.$or = [
+        { name: { $regex: q, $options: 'i' } },
+        { 'location.city': { $regex: q, $options: 'i' } },
+        { 'location.address': { $regex: q, $options: 'i' } },
+        { 'services.name': { $regex: q, $options: 'i' } },
+      ]
+    }
+    const institutions = await Institution.find(filter).sort({ ratingAvg: -1, name: 1 })
     res.json(institutions)
   } catch (error) {
     res.status(500).json({ message: error.message })

@@ -33,6 +33,10 @@ export const registerUser = async (req, res) => {
         email: user.email,
         role: user.role,
         institutionId: user.institutionId,
+        phone: user.phone,
+        favorites: user.favorites || [],
+        preferredCity: user.preferredCity || 'Prishtinë',
+        notificationPrefs: user.notificationPrefs,
         token: generateToken(user._id),
       });
     }
@@ -53,6 +57,10 @@ export const loginUser = async (req, res) => {
         email: user.email,
         role: user.role,
         institutionId: user.institutionId,
+        phone: user.phone,
+        favorites: user.favorites || [],
+        preferredCity: user.preferredCity || 'Prishtinë',
+        notificationPrefs: user.notificationPrefs,
         token: generateToken(user._id),
       });
     } else {

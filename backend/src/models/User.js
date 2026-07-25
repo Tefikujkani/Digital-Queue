@@ -25,6 +25,19 @@ const userSchema = mongoose.Schema({
   institutionId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Institution'
+  },
+  favorites: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Institution'
+  }],
+  preferredCity: {
+    type: String,
+    default: 'Prishtinë'
+  },
+  notificationPrefs: {
+    inApp: { type: Boolean, default: true },
+    email: { type: Boolean, default: true },
+    sms: { type: Boolean, default: false }
   }
 }, {
   timestamps: true

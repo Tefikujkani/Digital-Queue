@@ -25,6 +25,8 @@ export interface User {
   phone?: string
   role: UserRole
   institutionId?: string
+  favorites?: string[]
+  preferredCity?: string
   createdAt: Date
 }
 
@@ -32,10 +34,10 @@ export interface Institution {
   id: string
   _id?: string
   name: string
-  type: InstitutionType
-  description: string
-  address: string
-  city: string
+  type: InstitutionType | string
+  description?: string
+  address?: string
+  city?: string
   location?: {
     address: string
     city: string
@@ -47,9 +49,11 @@ export interface Institution {
     close: string
   }
   services: Service[]
-  counters: Counter[]
+  counters?: Counter[]
   logo?: string
   isActive: boolean
+  ratingAvg?: number
+  ratingCount?: number
 }
 
 export interface Service {
@@ -58,7 +62,8 @@ export interface Service {
   name: string
   description: string
   estimatedTime: number // in minutes
-  institutionId: string
+  institutionId?: string
+  requiredDocuments?: string[]
 }
 
 export interface Counter {

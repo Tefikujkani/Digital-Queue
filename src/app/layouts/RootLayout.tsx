@@ -45,6 +45,11 @@ const RootLayout: React.FC = () => {
                     </Link>
                   </li>
                   <li>
+                    <Link to="/cities" className="hover:text-primary transition-colors">
+                      Qytetet
+                    </Link>
+                  </li>
+                  <li>
                     <Link to="/institutions" className="hover:text-primary transition-colors">
                       Institucionet
                     </Link>

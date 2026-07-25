@@ -38,9 +38,18 @@ import {
   MapPin,
   Activity,
   CheckCircle2,
+  FileText,
+  Heart,
+  Star,
+  Sparkles,
 } from 'lucide-react'
 import { TicketPriority } from '../types'
 import { toast } from 'sonner'
+import { useFavorites } from '../contexts/FavoritesContext'
+
+const DEFAULT_DOCS: Record<string, string[]> = {
+  default: ['Letërnjoftimi / Pasaporta', 'Numri personal'],
+}
 
 const QueuePage: React.FC = () => {
   const { institutionId } = useParams()
@@ -48,6 +57,7 @@ const QueuePage: React.FC = () => {
   const { t } = useLanguage()
   const { user, isAuthenticated } = useAuth()
   const { getTicket, currentTicket, cancelTicket, getWaitingTickets } = useQueue()
+  const { isFavorite, toggleFavorite } = useFavorites()
 
   const [institution, setInstitution] = useState<Institution | null>(null)
   const [services, setServices] = useState<Service[]>([])
@@ -57,16 +67,34 @@ const QueuePage: React.FC = () => {
   const [selectedTime, setSelectedTime] = useState('')
   const [showTicketDialog, setShowTicketDialog] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [waitStats, setWaitStats] = useState<any>(null)
+  const [ratingScore, setRatingScore] = useState(0)
+  const [ratingComment, setRatingComment] = useState('')
+  const [docsChecked, setDocsChecked] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [instRes, servRes] = await Promise.all([
+        const [instRes, servRes, statsRes] = await Promise.all([
           api.get(`/institutions/${institutionId}`).catch(() => ({ data: null })),
           api.get(`/institutions/${institutionId}/services`).catch(() => ({ data: [] })),
+          api.get(`/citizen/wait-stats/${institutionId}`).catch(() => ({ data: null })),
         ])
-        setInstitution(instRes.data)
-        setServices(servRes.data || [])
+        const inst = instRes.data
+        setInstitution(inst)
+        const rawServices = servRes.data?.length ? servRes.data : inst?.services || []
+        setServices(
+          rawServices.map((s: any, idx: number) => ({
+            ...s,
+            id: s.id || s._id || `svc-${idx}`,
+            _id: s._id || s.id || `svc-${idx}`,
+            requiredDocuments:
+              s.requiredDocuments?.length > 0
+                ? s.requiredDocuments
+                : DEFAULT_DOCS.default,
+          })),
+        )
+        setWaitStats(statsRes.data)
       } catch (error) {
         console.error('Failed to fetch institution details:', error)
       } finally {
@@ -77,9 +105,17 @@ const QueuePage: React.FC = () => {
   }, [institutionId])
 
   const waitingTickets = institutionId ? getWaitingTickets(institutionId) : []
-  const waitMins = waitingTickets.length * 5
+  const waitMins = waitStats?.estimatedWaitMinutes ?? waitingTickets.length * 5
   const waitClass =
     waitMins < 20 ? 'wait-low' : waitMins < 40 ? 'wait-medium' : 'wait-high'
+
+  const selectedServiceObj = services.find(
+    (s) => (s.id || s._id) === selectedService,
+  ) as (Service & { requiredDocuments?: string[] }) | undefined
+
+  useEffect(() => {
+    setDocsChecked({})
+  }, [selectedService])
 
   useEffect(() => {
     if (
@@ -90,6 +126,35 @@ const QueuePage: React.FC = () => {
       setShowTicketDialog(true)
     }
   }, [currentTicket, institutionId, institution?._id])
+
+  const allDocsReady =
+    !selectedServiceObj?.requiredDocuments?.length ||
+    selectedServiceObj.requiredDocuments.every((d) => docsChecked[d])
+
+  const submitRating = async () => {
+    if (!isAuthenticated) {
+      toast.error('Kyçu për të vlerësuar')
+      return navigate('/login')
+    }
+    if (ratingScore < 1) {
+      toast.error('Zgjidh një vlerësim 1–5')
+      return
+    }
+    try {
+      await api.post('/citizen/ratings', {
+        institutionId: institutionId || institution?._id,
+        score: ratingScore,
+        comment: ratingComment,
+        ticketId: currentTicket?.id || currentTicket?._id,
+      })
+      toast.success('Faleminderit për vlerësimin!')
+      setRatingComment('')
+      const stats = await api.get(`/citizen/wait-stats/${institutionId}`)
+      setWaitStats(stats.data)
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Vlerësimi dështoi')
+    }
+  }
 
   if (loading) {
     return (
@@ -121,6 +186,10 @@ const QueuePage: React.FC = () => {
     }
     if (!selectedService) {
       toast.error('Ju lutemi zgjidhni një shërbim')
+      return
+    }
+    if (!allDocsReady) {
+      toast.error('Konfirmo që i ke të gjitha dokumentet e nevojshme')
       return
     }
     if ((selectedDate && !selectedTime) || (!selectedDate && selectedTime)) {
@@ -175,20 +244,50 @@ const QueuePage: React.FC = () => {
           </Button>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
                 <span className="text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-primary/15 text-primary border border-primary/25">
                   Live Queue
                 </span>
                 <span className={`text-xs font-semibold px-3 py-1 rounded-full ${waitClass}`}>
-                  {waitMins} min pritje
+                  ~{waitMins} min pritje
                 </span>
+                {waitStats?.bestHourHint && (
+                  <span className="text-xs font-medium px-3 py-1 rounded-full bg-accent/10 text-accent inline-flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" />
+                    Më mirë: {waitStats.bestHourHint}
+                  </span>
+                )}
+                {(waitStats?.ratingAvg > 0 || (institution as any).ratingAvg > 0) && (
+                  <span className="text-xs font-medium px-3 py-1 rounded-full bg-warning/10 text-warning inline-flex items-center gap-1">
+                    <Star className="w-3 h-3 fill-warning" />
+                    {(waitStats?.ratingAvg || (institution as any).ratingAvg).toFixed(1)}
+                  </span>
+                )}
               </div>
               <h1 className="text-3xl md:text-4xl font-bold">{institution.name}</h1>
-              <p className="text-muted-foreground mt-2 max-w-2xl text-sm">{institution.description}</p>
+              <p className="text-muted-foreground mt-2 max-w-2xl text-sm">
+                {institution.location?.city} · {institution.location?.address}
+              </p>
             </div>
-            <div className="hidden md:flex items-center gap-2 text-success text-sm font-medium">
-              <span className="w-2 h-2 bg-success rounded-full animate-pulse" />
-              {institution.workingHours?.open} - {institution.workingHours?.close}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => toggleFavorite(String(institutionId || institution._id))}
+              >
+                <Heart
+                  className={`w-4 h-4 ${
+                    isFavorite(String(institutionId || institution._id))
+                      ? 'fill-accent text-accent'
+                      : ''
+                  }`}
+                />
+                Preferuar
+              </Button>
+              <div className="hidden md:flex items-center gap-2 text-success text-sm font-medium">
+                <span className="w-2 h-2 bg-success rounded-full animate-pulse" />
+                {institution.workingHours?.open} - {institution.workingHours?.close}
+              </div>
             </div>
           </div>
         </div>
@@ -279,6 +378,37 @@ const QueuePage: React.FC = () => {
                   </Select>
                 </div>
 
+                {selectedServiceObj?.requiredDocuments &&
+                  selectedServiceObj.requiredDocuments.length > 0 && (
+                    <div className="rounded-2xl border border-accent/20 bg-accent/5 p-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-accent" />
+                        <p className="text-sm font-semibold">Dokumentet e nevojshme</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Konfirmo që i ke me vete para se të marrësh numrin.
+                      </p>
+                      <div className="space-y-2">
+                        {selectedServiceObj.requiredDocuments.map((doc) => (
+                          <label
+                            key={doc}
+                            className="flex items-center gap-3 text-sm cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={!!docsChecked[doc]}
+                              onChange={(e) =>
+                                setDocsChecked((prev) => ({ ...prev, [doc]: e.target.checked }))
+                              }
+                              className="rounded border-white/20"
+                            />
+                            <span>{doc}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -353,7 +483,7 @@ const QueuePage: React.FC = () => {
                   className="w-full text-base"
                   size="lg"
                   onClick={handleGetTicket}
-                  disabled={!selectedService}
+                  disabled={!selectedService || !allDocsReady}
                 >
                   Merr Numrin Digjital
                   <ArrowRight className="w-4 h-4" />
@@ -415,6 +545,38 @@ const QueuePage: React.FC = () => {
                 )}
               </div>
             </div>
+
+            <div className="surface-card rounded-2xl p-5 space-y-4">
+              <h3 className="font-semibold text-sm flex items-center gap-2">
+                <Star className="w-4 h-4 text-warning" /> Vlerëso shërbimin
+              </h3>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setRatingScore(n)}
+                    className="p-1"
+                    aria-label={`${n} yje`}
+                  >
+                    <Star
+                      className={`w-6 h-6 ${
+                        n <= ratingScore ? 'fill-warning text-warning' : 'text-muted-foreground'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={ratingComment}
+                onChange={(e) => setRatingComment(e.target.value)}
+                placeholder="Koment (opsional)…"
+                className="w-full min-h-[72px] rounded-xl bg-muted/50 border border-white/8 px-3 py-2 text-sm"
+              />
+              <Button className="w-full" variant="secondary" onClick={submitRating}>
+                Dërgo vlerësimin
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -429,7 +591,7 @@ const QueuePage: React.FC = () => {
               <CheckCircle2 className="w-7 h-7 text-success" />
             </div>
             <DialogTitle className="text-center text-2xl font-bold">
-              Booking Confirmed!
+              Numri u konfirmua!
             </DialogTitle>
             <DialogDescription className="text-center">
               Skanoni këtë kod QR kur të arrini në sportel.

@@ -1,9 +1,10 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { motion } from 'motion/react'
 import { Button } from '../components/ui/button'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useAuth } from '../contexts/AuthContext'
+import api from '../lib/api'
 import {
   Clock,
   Calendar,
@@ -19,12 +20,52 @@ import {
   Ticket,
   Zap,
   MapPin,
+  Bot,
+  Heart,
 } from 'lucide-react'
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate()
   const { t } = useLanguage()
   const { isAuthenticated } = useAuth()
+  const [liveStations, setLiveStations] = useState<
+    { id: string; name: string; wait: number; level: string; city: string }[]
+  >([])
+  const [cities, setCities] = useState<{ name: string; count: number }[]>([])
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [instRes, cityRes] = await Promise.all([
+          api.get('/institutions'),
+          api.get('/citizen/cities'),
+        ])
+        const insts = (instRes.data || []).slice(0, 8)
+        const ids = insts.map((i: any) => i._id).join(',')
+        let stats: Record<string, any> = {}
+        if (ids) {
+          const s = await api.get('/citizen/wait-stats', { params: { ids } })
+          stats = s.data || {}
+        }
+        setLiveStations(
+          insts.slice(0, 3).map((i: any) => {
+            const st = stats[i._id] || { estimatedWaitMinutes: 0, load: 'low' }
+            return {
+              id: i._id,
+              name: i.name,
+              wait: st.estimatedWaitMinutes || 0,
+              level: st.load || 'low',
+              city: i.location?.city || '',
+            }
+          }),
+        )
+        setCities((cityRes.data?.cities || []).slice(0, 6))
+      } catch {
+        /* keep empty */
+      }
+    }
+    load()
+  }, [])
 
   const features = [
     {
@@ -78,12 +119,6 @@ const HomePage: React.FC = () => {
       desc: 'Arrini në kohë, skanoni kodin dhe anashkaloni radhën fizike.',
       icon: QrCode,
     },
-  ]
-
-  const liveStations = [
-    { name: 'Komuna e Prishtinës', wait: 12, level: 'low', dist: '0.8 km' },
-    { name: 'QKUK — Ambulanca', wait: 35, level: 'medium', dist: '1.4 km' },
-    { name: 'ATK Prishtinë', wait: 52, level: 'high', dist: '2.1 km' },
   ]
 
   return (
@@ -186,36 +221,48 @@ const HomePage: React.FC = () => {
               </div>
 
               <div className="flex gap-2 mb-5">
-                {['Afër meje', 'Popullore', 'Favorite'].map((tab, i) => (
-                  <span
-                    key={tab}
+                {[
+                  { label: 'Afër meje', path: '/institutions' },
+                  { label: 'Qytetet', path: '/cities' },
+                  { label: 'Favorite', path: '/institutions?fav=1' },
+                ].map((tab, i) => (
+                  <button
+                    key={tab.label}
+                    type="button"
+                    onClick={() => navigate(tab.path)}
                     className={`px-4 py-1.5 rounded-full text-xs font-semibold ${
                       i === 0
                         ? 'btn-gradient text-white glow-primary-sm'
-                        : 'bg-muted text-muted-foreground'
+                        : 'bg-muted text-muted-foreground hover:text-foreground'
                     }`}
                   >
-                    {tab}
-                  </span>
+                    {tab.label}
+                  </button>
                 ))}
               </div>
 
               <div className="space-y-3">
-                {liveStations.map((s, i) => (
+                {(liveStations.length
+                  ? liveStations
+                  : [
+                      { id: '', name: 'Duke ngarkuar…', wait: 0, level: 'low', city: 'Kosovë' },
+                    ]
+                ).map((s, i) => (
                   <motion.div
-                    key={s.name}
+                    key={s.name + i}
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 + i * 0.1 }}
-                    className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/6 hover:border-primary/30 transition-colors"
+                    onClick={() => s.id && navigate(`/queue/${s.id}`)}
+                    className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/6 hover:border-primary/30 transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center">
                         <Building2 className="w-5 h-5 text-primary" />
                       </div>
                       <div>
-                        <p className="font-semibold text-sm">{s.name}</p>
-                        <p className="text-xs text-muted-foreground">{s.dist} larg</p>
+                        <p className="font-semibold text-sm line-clamp-1">{s.name}</p>
+                        <p className="text-xs text-muted-foreground">{s.city}</p>
                       </div>
                     </div>
                     <span
@@ -242,15 +289,47 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
+      {/* Kosovo cities */}
+      <section className="py-10 px-5">
+        <div className="container mx-auto max-w-6xl">
+          <div className="flex items-end justify-between mb-5 gap-4">
+            <div>
+              <p className="text-primary text-xs font-bold uppercase tracking-[0.2em] mb-2">Kosovë</p>
+              <h2 className="text-2xl font-bold">Zgjidh qytetin tënd</h2>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => navigate('/cities')}>
+              Të gjitha qytetet
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {cities.map((c) => (
+              <button
+                key={c.name}
+                type="button"
+                onClick={() => navigate(`/institutions?city=${encodeURIComponent(c.name)}`)}
+                className="shrink-0 px-5 py-3 rounded-2xl surface-card hover:border-primary/40 text-left min-w-[140px]"
+              >
+                <p className="font-semibold text-sm">{c.name}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{c.count} institucione</p>
+              </button>
+            ))}
+            {!cities.length && (
+              <p className="text-sm text-muted-foreground">Duke ngarkuar qytetet…</p>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* Stats strip */}
       <section className="py-12 px-5">
         <div className="container mx-auto max-w-6xl">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: 'Institucione', value: '50+', icon: Building2 },
-              { label: 'Përdorues Aktivë', value: '10K+', icon: Users },
-              { label: 'Bileta të Dhëna', value: '250K+', icon: CheckCircle2 },
-              { label: 'Kohë e Kursyer', value: '1M+ min', icon: TrendingUp },
+              { label: 'Institucione', value: `${cities.reduce((s, c) => s + c.count, 0) || '25'}+`, icon: Building2 },
+              { label: 'Qytete', value: `${cities.length || 6}+`, icon: MapPin },
+              { label: 'AI Asistent', value: '24/7', icon: Bot },
+              { label: 'Të preferuarat', value: '♥', icon: Heart },
             ].map((s, i) => (
               <div
                 key={i}

@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router'
+import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router'
 import { Input } from '../components/ui/input'
 import { Button } from '../components/ui/button'
 import { useLanguage } from '../contexts/LanguageContext'
+import { useAuth } from '../contexts/AuthContext'
+import { useFavorites } from '../contexts/FavoritesContext'
 import api from '../lib/api'
 import type { Institution } from '../types'
 import {
@@ -20,6 +22,10 @@ import {
   Gavel,
   Zap,
   Building,
+  Heart,
+  Star,
+  LayoutGrid,
+  Map as MapIcon,
 } from 'lucide-react'
 
 const institutionIcons: Record<string, any> = {
@@ -36,43 +42,69 @@ const institutionIcons: Record<string, any> = {
   other: Building2,
 }
 
-function waitLevel(index: number) {
-  const wait = 8 + ((index * 17) % 55)
-  const level = wait < 20 ? 'low' : wait < 40 ? 'medium' : 'high'
-  return { wait, level }
-}
+type WaitStat = { waiting: number; estimatedWaitMinutes: number; load: string }
 
 const InstitutionsPage: React.FC = () => {
   const navigate = useNavigate()
+  const [params, setParams] = useSearchParams()
   const { t } = useLanguage()
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedType, setSelectedType] = useState<string>('all')
+  const { isAuthenticated } = useAuth()
+  const { isFavorite, toggleFavorite } = useFavorites()
+
+  const [searchTerm, setSearchTerm] = useState(params.get('q') || '')
+  const [selectedType, setSelectedType] = useState(params.get('type') || 'all')
+  const [selectedCity, setSelectedCity] = useState(params.get('city') || 'all')
+  const [onlyFavorites, setOnlyFavorites] = useState(params.get('fav') === '1')
+  const [view, setView] = useState<'grid' | 'map'>('grid')
   const [institutions, setInstitutions] = useState<Institution[]>([])
+  const [cities, setCities] = useState<{ name: string; count: number }[]>([])
+  const [waitStats, setWaitStats] = useState<Record<string, WaitStat>>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const fetchInstitutions = async () => {
+    const load = async () => {
+      setLoading(true)
       try {
-        const response = await api.get('/institutions')
-        setInstitutions(response.data)
-      } catch (error) {
-        console.error('Failed to fetch institutions:', error)
+        const query: Record<string, string> = {}
+        if (selectedCity !== 'all') query.city = selectedCity
+        if (selectedType !== 'all') query.type = selectedType
+        if (searchTerm.trim()) query.q = searchTerm.trim()
+
+        const [instRes, cityRes] = await Promise.all([
+          api.get('/institutions', { params: query }),
+          api.get('/citizen/cities'),
+        ])
+        setInstitutions(instRes.data || [])
+        setCities(cityRes.data?.cities || [])
+
+        const ids = (instRes.data || [])
+          .map((i: any) => i._id || i.id)
+          .filter(Boolean)
+          .join(',')
+        if (ids) {
+          const stats = await api.get('/citizen/wait-stats', { params: { ids } })
+          setWaitStats(stats.data || {})
+        } else {
+          setWaitStats({})
+        }
+      } catch (e) {
+        console.error(e)
       } finally {
         setLoading(false)
       }
     }
-    fetchInstitutions()
-  }, [])
+    const tmr = setTimeout(load, 200)
+    return () => clearTimeout(tmr)
+  }, [selectedCity, selectedType, searchTerm])
 
-  const filteredInstitutions = institutions.filter((inst) => {
-    const matchesSearch =
-      inst.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (inst.location?.city || (inst as any).city || '')
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase())
-    const matchesType = selectedType === 'all' || inst.type === selectedType
-    return matchesSearch && matchesType
-  })
+  useEffect(() => {
+    const next = new URLSearchParams()
+    if (selectedCity !== 'all') next.set('city', selectedCity)
+    if (selectedType !== 'all') next.set('type', selectedType)
+    if (searchTerm.trim()) next.set('q', searchTerm.trim())
+    if (onlyFavorites) next.set('fav', '1')
+    setParams(next, { replace: true })
+  }, [selectedCity, selectedType, searchTerm, onlyFavorites, setParams])
 
   const types = [
     { id: 'all', label: 'Të gjitha' },
@@ -87,49 +119,154 @@ const InstitutionsPage: React.FC = () => {
     { id: 'post', label: 'Posta' },
   ]
 
+  const list = useMemo(() => {
+    let rows = institutions
+    if (onlyFavorites) {
+      rows = rows.filter((i) => isFavorite(String((i as any)._id || i.id)))
+    }
+    return rows
+  }, [institutions, onlyFavorites, isFavorite])
+
   return (
     <div className="min-h-screen pb-20">
       <div className="pt-10 pb-8 px-5">
         <div className="container mx-auto max-w-6xl">
-          <div className="mb-8">
-            <p className="text-primary text-xs font-bold uppercase tracking-[0.2em] mb-2">
-              Zbuloni
-            </p>
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">{t('nav.institutions')}</h1>
-            <p className="text-muted-foreground">
-              Zgjidhni institucionin — shihni kohën e pritjes live dhe rezervoni slot.
-            </p>
+          <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <p className="text-primary text-xs font-bold uppercase tracking-[0.2em] mb-2">
+                Kosovë · Live
+              </p>
+              <h1 className="text-3xl md:text-4xl font-bold mb-2">{t('nav.institutions')}</h1>
+              <p className="text-muted-foreground">
+                Filtro sipas qytetit, shiko pritjen live, ruaj të preferuarat dhe hap radhën digjitale.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant={view === 'grid' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setView('grid')}
+              >
+                <LayoutGrid className="w-4 h-4" /> Lista
+              </Button>
+              <Button
+                variant={view === 'map' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setView('map')}
+              >
+                <MapIcon className="w-4 h-4" /> Harta
+              </Button>
+            </div>
           </div>
 
           <div className="relative mb-5 max-w-2xl">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
             <Input
-              placeholder={t('common.search') + ' sipas emrit ose qytetit...'}
+              placeholder="Kërko institucion, shërbim ose qytet…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-12 h-14 rounded-2xl bg-muted/60 border-white/8 text-base focus-visible:ring-primary/40"
             />
           </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide mb-2">
+            <button
+              onClick={() => setSelectedCity('all')}
+              className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap ${
+                selectedCity === 'all'
+                  ? 'btn-gradient text-white'
+                  : 'bg-muted/60 text-muted-foreground border border-white/5'
+              }`}
+            >
+              Të gjitha qytetet
+            </button>
+            {cities.map((c) => (
+              <button
+                key={c.name}
+                onClick={() => setSelectedCity(c.name)}
+                className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap ${
+                  selectedCity === c.name
+                    ? 'btn-gradient text-white'
+                    : 'bg-muted/60 text-muted-foreground border border-white/5'
+                }`}
+              >
+                {c.name} ({c.count})
+              </button>
+            ))}
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide items-center">
             {types.map((type) => (
               <button
                 key={type.id}
                 onClick={() => setSelectedType(type.id)}
-                className={`px-4 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-300 ${
+                className={`px-4 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all ${
                   selectedType === type.id
-                    ? 'btn-gradient text-white glow-primary-sm'
-                    : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground border border-white/5'
+                    ? 'bg-primary/20 text-primary border border-primary/40'
+                    : 'bg-muted/40 text-muted-foreground hover:bg-muted border border-white/5'
                 }`}
               >
                 {type.label}
               </button>
             ))}
+            <button
+              onClick={() => {
+                if (!isAuthenticated) return navigate('/login')
+                setOnlyFavorites((v) => !v)
+              }}
+              className={`px-4 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap inline-flex items-center gap-1.5 ${
+                onlyFavorites
+                  ? 'bg-accent/20 text-accent border border-accent/40'
+                  : 'bg-muted/40 text-muted-foreground border border-white/5'
+              }`}
+            >
+              <Heart className={`w-3.5 h-3.5 ${onlyFavorites ? 'fill-accent' : ''}`} />
+              Të preferuarat
+            </button>
           </div>
         </div>
       </div>
 
       <div className="container mx-auto max-w-6xl px-5">
+        {view === 'map' && (
+          <div className="mb-8 rounded-3xl border border-white/10 overflow-hidden bg-[#0c1020]">
+            <div className="p-4 border-b border-white/8 flex items-center justify-between">
+              <p className="text-sm font-medium">Harta e institucioneve · OpenStreetMap</p>
+              <span className="text-xs text-muted-foreground">{list.length} lokacione</span>
+            </div>
+            <iframe
+              title="Harta SmartQueue"
+              className="w-full h-[420px] grayscale-[20%] contrast-125"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              src={`https://www.openstreetmap.org/export/embed.html?bbox=19.9%2C41.8%2C21.8%2C43.3&layer=mapnik&marker=${
+                list[0]?.location?.lat || 42.6629
+              }%2C${list[0]?.location?.lng || 21.1655}`}
+            />
+            <div className="p-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-56 overflow-y-auto">
+              {list.map((inst) => {
+                const id = String((inst as any)._id || inst.id)
+                const lat = inst.location?.lat
+                const lng = inst.location?.lng
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => navigate(`/queue/${id}`)}
+                    className="text-left text-xs px-3 py-2 rounded-xl bg-white/5 hover:bg-primary/15 border border-white/5"
+                  >
+                    <span className="font-semibold text-foreground line-clamp-1">{inst.name}</span>
+                    <span className="block text-muted-foreground mt-0.5">
+                      {inst.location?.city}
+                      {lat && lng ? ` · ${lat.toFixed(2)}, ${lng.toFixed(2)}` : ''}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -138,31 +275,38 @@ const InstitutionsPage: React.FC = () => {
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredInstitutions.map((institution, index) => {
+            {list.map((institution) => {
               const Icon = institutionIcons[institution.type] || Building2
-              const { wait, level } = waitLevel(index)
-              const id = institution.id || (institution as any)._id
+              const id = String((institution as any)._id || institution.id)
+              const stats = waitStats[id] || { waiting: 0, estimatedWaitMinutes: 0, load: 'low' }
+              const level = stats.load || 'low'
+              const wait = stats.estimatedWaitMinutes || 0
+              const rating = (institution as any).ratingAvg || 0
+              const fav = isFavorite(id)
 
               return (
                 <div
                   key={id}
-                  className="surface-card rounded-2xl p-5 cursor-pointer group hover:border-primary/40 transition-all duration-300 hover:-translate-y-1 flex flex-col h-full"
+                  className="surface-card rounded-2xl p-5 cursor-pointer group hover:border-primary/40 transition-all duration-300 hover:-translate-y-1 flex flex-col h-full relative"
                   onClick={() => navigate(`/queue/${id}`)}
                 >
-                  <div className="flex items-start justify-between mb-4">
+                  <button
+                    type="button"
+                    className="absolute top-4 right-4 z-10 w-9 h-9 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center hover:bg-accent/20"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleFavorite(id)
+                    }}
+                    aria-label="Preferuar"
+                  >
+                    <Heart className={`w-4 h-4 ${fav ? 'fill-accent text-accent' : 'text-muted-foreground'}`} />
+                  </button>
+
+                  <div className="flex items-start justify-between mb-4 pr-10">
                     <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center group-hover:glow-primary-sm transition-all">
                       <Icon className="w-5 h-5 text-primary" />
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <span
-                        className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
-                          institution.isActive
-                            ? 'wait-low'
-                            : 'bg-white/5 text-muted-foreground border border-white/10'
-                        }`}
-                      >
-                        {institution.isActive ? '● Online' : 'Offline'}
-                      </span>
                       <span
                         className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
                           level === 'low'
@@ -172,8 +316,13 @@ const InstitutionsPage: React.FC = () => {
                               : 'wait-high'
                         }`}
                       >
-                        {wait} min · {t(`wait.${level}`)}
+                        ~{wait} min · {t(`wait.${level}`)}
                       </span>
+                      {rating > 0 && (
+                        <span className="text-[11px] text-warning inline-flex items-center gap-1">
+                          <Star className="w-3 h-3 fill-warning" /> {rating.toFixed(1)}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -181,17 +330,13 @@ const InstitutionsPage: React.FC = () => {
                     {institution.name}
                   </h3>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                    {t(`institution.${institution.type}`)}
-                  </p>
-                  <p className="text-muted-foreground text-sm leading-relaxed line-clamp-2 mb-4">
-                    {institution.description}
+                    {t(`institution.${institution.type}`) || institution.type}
                   </p>
 
                   <div className="space-y-2 text-sm text-muted-foreground mb-5 flex-1">
                     <div className="flex items-center gap-2">
                       <MapPin className="w-3.5 h-3.5 text-primary/70" />
                       <span className="truncate text-xs">
-                        {institution.location?.address},{' '}
                         {institution.location?.city || (institution as any).city}
                       </span>
                     </div>
@@ -200,6 +345,9 @@ const InstitutionsPage: React.FC = () => {
                       <span className="text-xs">
                         {institution.workingHours?.open} - {institution.workingHours?.close}
                       </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <UsersIcon waiting={stats.waiting} />
                     </div>
                     {(institution as any).contact?.phone && (
                       <div className="flex items-center gap-2">
@@ -225,17 +373,34 @@ const InstitutionsPage: React.FC = () => {
           </div>
         )}
 
-        {!loading && filteredInstitutions.length === 0 && (
+        {!loading && list.length === 0 && (
           <div className="text-center py-24">
             <Search className="w-10 h-10 text-muted-foreground/30 mx-auto mb-4" />
             <p className="text-muted-foreground text-lg mb-4">{t('common.noData')}</p>
-            <Button variant="outline" onClick={() => setSearchTerm('')}>
-              Pastro kërkimin
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSearchTerm('')
+                setSelectedCity('all')
+                setSelectedType('all')
+                setOnlyFavorites(false)
+              }}
+            >
+              Pastro filtrat
             </Button>
           </div>
         )}
       </div>
     </div>
+  )
+}
+
+function UsersIcon({ waiting }: { waiting: number }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+      <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+      {waiting} në pritje tani
+    </span>
   )
 }
 

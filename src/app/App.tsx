@@ -4,6 +4,7 @@ import { LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { QueueProvider } from './contexts/QueueContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { FavoritesProvider } from './contexts/FavoritesContext';
 import { ThemeProvider } from 'next-themes';
 
 export default function App() {
@@ -12,9 +13,11 @@ export default function App() {
       <LanguageProvider>
         <AuthProvider>
           <NotificationProvider>
-            <QueueProvider>
-              <RouterProvider router={router} />
-            </QueueProvider>
+            <FavoritesProvider>
+              <QueueProvider>
+                <RouterProvider router={router} />
+              </QueueProvider>
+            </FavoritesProvider>
           </NotificationProvider>
         </AuthProvider>
       </LanguageProvider>

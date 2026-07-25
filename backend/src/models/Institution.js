@@ -25,6 +25,7 @@ const institutionSchema = mongoose.Schema({
     name: String,
     description: String,
     estimatedTime: Number, // in minutes
+    requiredDocuments: [String],
   }],
   workingHours: {
     open: String,
@@ -34,6 +35,14 @@ const institutionSchema = mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  ratingAvg: {
+    type: Number,
+    default: 0
+  },
+  ratingCount: {
+    type: Number,
+    default: 0
   },
   adminId: {
     type: mongoose.Schema.Types.ObjectId,
