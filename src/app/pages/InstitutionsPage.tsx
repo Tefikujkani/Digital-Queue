@@ -108,16 +108,16 @@ const InstitutionsPage: React.FC = () => {
   }, [selectedCity, selectedType, searchTerm, onlyFavorites, setParams])
 
   const types = [
-    { id: 'all', label: 'Të gjitha' },
-    { id: 'municipality', label: 'Komunat' },
-    { id: 'hospital', label: 'Spitalet' },
-    { id: 'bank', label: 'Bankat' },
-    { id: 'ministry', label: 'Ministritë' },
-    { id: 'university', label: 'Universitetet' },
-    { id: 'utility', label: 'Shërbimet Publike' },
-    { id: 'court', label: 'Gjykatat' },
-    { id: 'embassy', label: 'Ambasadat' },
-    { id: 'post', label: 'Posta' },
+    'all',
+    'municipality',
+    'hospital',
+    'bank',
+    'ministry',
+    'university',
+    'utility',
+    'court',
+    'embassy',
+    'post',
   ]
 
   const list = useMemo(() => {
@@ -135,11 +135,11 @@ const InstitutionsPage: React.FC = () => {
           <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <p className="text-primary text-xs font-bold uppercase tracking-[0.2em] mb-2">
-                Kosovë · Live
+                {t('institution.discover')}
               </p>
               <h1 className="text-3xl md:text-4xl font-bold mb-2">{t('nav.institutions')}</h1>
               <p className="text-muted-foreground">
-                Filtro sipas qytetit, shiko pritjen live, ruaj të preferuarat dhe hap radhën digjitale.
+                {t('institution.pageSubtitle')}
               </p>
             </div>
             <div className="flex gap-2">
@@ -163,7 +163,7 @@ const InstitutionsPage: React.FC = () => {
           <div className="relative mb-5 max-w-2xl">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
             <Input
-              placeholder="Kërko institucion, shërbim ose qytet…"
+              placeholder={t('institution.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-12 h-14 rounded-2xl bg-muted/60 border-white/8 text-base focus-visible:ring-primary/40"
@@ -197,17 +197,17 @@ const InstitutionsPage: React.FC = () => {
           </div>
 
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide items-center">
-            {types.map((type) => (
+            {types.map((id) => (
               <button
-                key={type.id}
-                onClick={() => setSelectedType(type.id)}
-                className={`px-4 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all ${
-                  selectedType === type.id
-                    ? 'bg-primary/20 text-primary border border-primary/40'
-                    : 'bg-muted/40 text-muted-foreground hover:bg-muted border border-white/5'
+                key={id}
+                onClick={() => setSelectedType(id)}
+                className={`px-4 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-300 ${
+                  selectedType === id
+                    ? 'btn-gradient text-white glow-primary-sm'
+                    : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground border border-white/5'
                 }`}
               >
-                {type.label}
+                {t(`institution.filter.${id}`)}
               </button>
             ))}
             <button
@@ -397,7 +397,7 @@ const InstitutionsPage: React.FC = () => {
                 setOnlyFavorites(false)
               }}
             >
-              Pastro filtrat
+              {t('institution.clearSearch')}
             </Button>
           </div>
         )}

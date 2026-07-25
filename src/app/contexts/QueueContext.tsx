@@ -3,6 +3,7 @@ import type { Ticket, TicketPriority } from '../types'
 import api from '../lib/api'
 import { toast } from 'sonner'
 import { io, Socket } from 'socket.io-client'
+import { translate } from '../i18n/translate'
 
 const SOCKET_CANDIDATES = [
   (import.meta as any).env?.VITE_SOCKET_URL as string | undefined,
@@ -98,10 +99,11 @@ export const QueueProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           setCurrentTicket(normalized)
           if (normalized.status === 'called') {
             toast.info(
-              `Numri juaj ${normalized.number} u thirr në sportelin ${normalized.counterId}`,
-              {
-                duration: 10000,
-              },
+              translate('toast.ticketCalled', {
+                number: normalized.number,
+                counter: normalized.counterId || '-',
+              }),
+              { duration: 10000 },
             )
           }
         }
@@ -158,19 +160,23 @@ export const QueueProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         const isAppointment = Boolean(scheduledDate && scheduledTime)
         toast.success(
-          isAppointment ? `Termini u rezervua · ${newTicket.number}` : `Numri juaj: ${newTicket.number}`,
+          isAppointment
+            ? `${translate('appointment.bookSuccess')} · ${newTicket.number}`
+            : translate('toast.ticketSuccess', { number: newTicket.number }),
           {
             description: isAppointment
               ? options?.notifySms !== false
                 ? 'SMS + email u dërguan (ose email backup nëse SMS dështon)'
                 : 'Email / njoftim në app u dërgua'
-              : `Pozicioni në radhë: ${newTicket.positionInQueue || 'Në pritje'}`,
+              : translate('toast.ticketPosition', {
+                  position: newTicket.positionInQueue || translate('status.waiting'),
+                }),
           },
         )
 
         return newTicket
       } catch (error: any) {
-        toast.error('Dështoi marrja e biletës')
+        toast.error(translate('toast.ticketFailed'))
         throw error
       }
     },
@@ -190,7 +196,7 @@ export const QueueProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           setCurrentTicket(null)
         }
       } catch (error) {
-        toast.error('Dështoi anulimi')
+        toast.error(translate('toast.cancelFailed'))
       }
     },
     [currentTicket],
@@ -206,9 +212,9 @@ export const QueueProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           t.id === nextTicket.id || (t as any)._id === nextTicket.id ? nextTicket : t,
         ),
       )
-      toast.success(`U thirr: ${nextTicket.number}`)
+      toast.success(translate('toast.callNext', { number: nextTicket.number }))
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Nuk ka qytetarë në pritje'
+      const message = error.response?.data?.message || translate('toast.callNextFailed')
       toast.info(message)
     }
   }, [])
@@ -221,9 +227,9 @@ export const QueueProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           t.id === ticketId || (t as any)._id === ticketId ? { ...t, status: 'completed' } : t,
         ),
       )
-      toast.success('Shërbimi u përfundua')
+      toast.success(translate('toast.serviceCompleted'))
     } catch (error) {
-      toast.error('Dështoi përfundimi')
+      toast.error(translate('toast.completeFailed'))
     }
   }, [])
 

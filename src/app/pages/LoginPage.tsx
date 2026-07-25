@@ -19,7 +19,7 @@ const LoginPage: React.FC = () => {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      toast.error('Ju lutemi mbushni të gjitha fushat')
+      toast.error(t('auth.fillAllFields'))
       return
     }
 
@@ -35,7 +35,7 @@ const LoginPage: React.FC = () => {
         navigate('/dashboard/citizen')
       }
 
-      toast.success('Mirësevini përsëri!')
+      toast.success(t('auth.welcomeBack'))
     } catch {
       // Error handled in AuthContext
     } finally {
@@ -66,7 +66,7 @@ const LoginPage: React.FC = () => {
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   type="email"
-                  placeholder="emri@shembull.com"
+                  placeholder={t('auth.emailPlaceholder')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-11 h-12 rounded-xl bg-muted/50 border-white/8"
@@ -114,7 +114,7 @@ const LoginPage: React.FC = () => {
               onClick={() => navigate('/')}
             >
               <ArrowLeft className="w-4 h-4" />
-              Kthehu në Ballina
+              {t('common.backHome')}
             </Button>
           </div>
         </div>

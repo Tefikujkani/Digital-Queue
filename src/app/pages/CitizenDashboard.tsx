@@ -25,7 +25,7 @@ import {
 
 const CitizenDashboard: React.FC = () => {
   const navigate = useNavigate()
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const { user } = useAuth()
   const { tickets, cancelTicket } = useQueue()
 
@@ -47,18 +47,18 @@ const CitizenDashboard: React.FC = () => {
   }, [])
 
   const myTickets = useMemo(
-    () => tickets.filter((t) => t.userId === user?.id || (user as any)?._id === t.userId),
+    () => tickets.filter((tk) => tk.userId === user?.id || (user as any)?._id === tk.userId),
     [tickets, user],
   )
 
-  const activeTicket = myTickets.find((t) => t.status === 'waiting' || t.status === 'called')
-  const completedTickets = myTickets.filter((t) => t.status === 'completed')
+  const activeTicket = myTickets.find((tk) => tk.status === 'waiting' || tk.status === 'called')
+  const completedTickets = myTickets.filter((tk) => tk.status === 'completed')
 
   const getInstitutionName = (institutionId: string) => {
     const inst = institutions.find(
       (i) => i.id === institutionId || (i as any)._id === institutionId,
     )
-    return inst?.name || 'Institucion...'
+    return inst?.name || t('common.institution')
   }
 
   const getServiceName = (institutionId: string, serviceId: string) => {
@@ -66,7 +66,7 @@ const CitizenDashboard: React.FC = () => {
       (i) => i.id === institutionId || (i as any)._id === institutionId,
     )
     const service = inst?.services?.find((s: any) => s.id === serviceId || s._id === serviceId)
-    return service?.name || 'Shërbimi...'
+    return service?.name || t('common.service')
   }
 
   const exportHistoryCsv = () => {
@@ -101,7 +101,11 @@ const CitizenDashboard: React.FC = () => {
 
   const hour = new Date().getHours()
   const greeting =
-    hour < 12 ? 'Mirëmëngjes' : hour < 18 ? 'Mirëdita' : 'Mirëmbrëma'
+    hour < 12
+      ? t('home.greeting.morning')
+      : hour < 18
+        ? t('home.greeting.afternoon')
+        : t('home.greeting.evening')
 
   if (loading) {
     return (
@@ -140,7 +144,7 @@ const CitizenDashboard: React.FC = () => {
                 <Download className="w-4 h-4" /> Eksporto CSV
               </Button>
               <Button className="h-11" onClick={() => navigate('/institutions')}>
-                Merr një numër <ArrowRight className="w-4 h-4" />
+                {t('citizen.getNumber')} <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
           </div>
@@ -150,15 +154,15 @@ const CitizenDashboard: React.FC = () => {
       <div className="container mx-auto max-w-6xl px-5">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           {[
-            { label: 'Bileta Aktive', value: activeTicket ? 1 : 0, icon: Ticket, tone: 'text-primary' },
+            { label: t('citizen.stat.active'), value: activeTicket ? 1 : 0, icon: Ticket, tone: 'text-primary' },
             {
-              label: 'Të Përfunduara',
+              label: t('citizen.stat.completed'),
               value: completedTickets.length,
               icon: CheckCircle2,
               tone: 'text-success',
             },
-            { label: 'Termine', value: 0, icon: Calendar, tone: 'text-secondary' },
-            { label: 'Njoftime', value: 3, icon: Bell, tone: 'text-warning' },
+            { label: t('citizen.stat.appointments'), value: 0, icon: Calendar, tone: 'text-secondary' },
+            { label: t('citizen.stat.notifications'), value: 3, icon: Bell, tone: 'text-warning' },
           ].map((stat, i) => (
             <div key={i} className="surface-card rounded-2xl p-4">
               <div className="flex items-center justify-between">
@@ -180,7 +184,7 @@ const CitizenDashboard: React.FC = () => {
             <div className="flex items-center justify-between mb-6 relative">
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <span className="w-2.5 h-2.5 bg-primary rounded-full animate-pulse" />
-                Bileta Juaj Aktive
+                {t('citizen.activeTicket')}
               </h2>
               <Badge className="bg-primary/15 text-primary border-primary/25">
                 {t(`status.${activeTicket.status}`)}
@@ -199,7 +203,7 @@ const CitizenDashboard: React.FC = () => {
               <div className="space-y-3">
                 <div className="p-4 rounded-xl bg-white/[0.04] border border-white/6">
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-                    Institucioni
+                    {t('common.institution')}
                   </p>
                   <p className="font-semibold flex items-center gap-2 text-sm">
                     <Building2 className="w-4 h-4 text-primary" />
@@ -208,7 +212,7 @@ const CitizenDashboard: React.FC = () => {
                 </div>
                 <div className="p-4 rounded-xl bg-white/[0.04] border border-white/6">
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-                    Shërbimi
+                    {t('common.service')}
                   </p>
                   <p className="font-semibold flex items-center gap-2 text-sm">
                     <Zap className="w-4 h-4 text-warning" />
@@ -221,7 +225,7 @@ const CitizenDashboard: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-4 rounded-xl bg-white/[0.04] border border-white/6 text-center">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-                      Pozicioni
+                      {t('citizen.position')}
                     </p>
                     <p className="text-2xl font-bold text-primary">
                       #{activeTicket.positionInQueue}
@@ -229,7 +233,7 @@ const CitizenDashboard: React.FC = () => {
                   </div>
                   <div className="p-4 rounded-xl bg-white/[0.04] border border-white/6 text-center">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-                      Pritja
+                      {t('citizen.wait')}
                     </p>
                     <p className="text-2xl font-bold text-warning">
                       ~{activeTicket.estimatedWaitTime}m
@@ -241,7 +245,7 @@ const CitizenDashboard: React.FC = () => {
                   className="h-11"
                   onClick={() => cancelTicket(activeTicket.id || (activeTicket as any)._id)}
                 >
-                  <AlertCircle className="w-4 h-4" /> Anulo Radhën
+                  <AlertCircle className="w-4 h-4" /> {t('citizen.cancelQueue')}
                 </Button>
               </div>
             </div>
@@ -254,31 +258,31 @@ const CitizenDashboard: React.FC = () => {
             <div className="w-14 h-14 rounded-2xl bg-primary/15 flex items-center justify-center mx-auto mb-4">
               <Ticket className="w-7 h-7 text-primary" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">Nuk keni asnjë biletë aktive</h3>
+            <h3 className="text-xl font-semibold mb-2">{t('citizen.noActiveTicket')}</h3>
             <p className="text-muted-foreground max-w-sm mx-auto mb-6 text-sm">
-              Merrni një numër të ri digjital për çdo institucion në Kosovë.
+              {t('citizen.noActiveHint')}
             </p>
-            <Button>Merr një numër tani</Button>
+            <Button>{t('citizen.getNumberNow')}</Button>
           </div>
         )}
 
         <div className="grid md:grid-cols-3 gap-3 mb-6">
           {[
             {
-              title: 'Institucionet',
-              desc: 'Merrni numër të ri digjital',
+              title: t('citizen.action.institutions'),
+              desc: t('citizen.action.institutionsDesc'),
               icon: Building2,
               path: '/institutions',
             },
             {
-              title: 'Terminet',
-              desc: 'Rezervoni një orar fiks',
+              title: t('citizen.action.appointments'),
+              desc: t('citizen.action.appointmentsDesc'),
               icon: Calendar,
               path: '/appointments',
             },
             {
-              title: 'Hartat Live',
-              desc: 'Shihni radhët afër jush',
+              title: t('citizen.action.liveMap'),
+              desc: t('citizen.action.liveMapDesc'),
               icon: MapPin,
               path: '/institutions',
             },
@@ -304,13 +308,13 @@ const CitizenDashboard: React.FC = () => {
 
         <div className="surface-card rounded-2xl p-6">
           <div className="mb-5">
-            <h2 className="text-lg font-semibold">Aktiviteti i Fundit</h2>
-            <p className="text-sm text-muted-foreground">Historiku i shërbimeve tuaja</p>
+            <h2 className="text-lg font-semibold">{t('citizen.recentActivity')}</h2>
+            <p className="text-sm text-muted-foreground">{t('citizen.activitySubtitle')}</p>
           </div>
           {myTickets.length === 0 ? (
             <div className="text-center py-14 text-muted-foreground">
               <Ticket className="w-10 h-10 mx-auto mb-3 opacity-20" />
-              <p className="text-sm">Nuk keni asnjë biletë në historik.</p>
+              <p className="text-sm">{t('citizen.noHistory')}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -346,7 +350,7 @@ const CitizenDashboard: React.FC = () => {
                     </span>
                     <p className="text-[11px] text-muted-foreground mt-1.5">
                       <Clock className="w-3 h-3 inline mr-1" />
-                      {new Date(ticket.createdAt).toLocaleDateString('sq-AL')}
+                      {new Date(ticket.createdAt).toLocaleDateString(locale)}
                     </p>
                   </div>
                 </div>

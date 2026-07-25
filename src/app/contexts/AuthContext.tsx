@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import type { User, UserRole } from '../types'
 import api from '../lib/api'
 import { toast } from 'sonner'
+import { translate } from '../i18n/translate'
 
 interface AuthContextType {
   user: User | null
@@ -62,7 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       persist(formattedUser, token)
       return formattedUser
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Login failed'
+      const message = error.response?.data?.message || translate('auth.loginFailed')
       toast.error(message)
       throw error
     }
@@ -91,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         persist(formattedUser, token)
         return formattedUser
       } catch (error: any) {
-        const message = error.response?.data?.message || 'Registration failed'
+        const message = error.response?.data?.message || translate('auth.registerFailed')
         toast.error(message)
         throw error
       }
@@ -103,7 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('smartqueue_token')
     localStorage.removeItem('smartqueue_current_user')
     setUser(null)
-    toast.info('Dole me sukses')
+    toast.info(translate('auth.logoutSuccess'))
   }, [])
 
   const refreshUser = useCallback(async (partial?: Partial<User> & Record<string, unknown>) => {

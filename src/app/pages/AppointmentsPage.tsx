@@ -20,9 +20,9 @@ import { Switch } from '../components/ui/switch';
 
 const AppointmentsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const { user, isAuthenticated } = useAuth();
-  const { getTicket, tickets } = useQueue();
+  const { getTicket, tickets, cancelTicket } = useQueue();
   
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -73,13 +73,13 @@ const AppointmentsPage: React.FC = () => {
 
   const handleBook = async () => {
     if (!isAuthenticated) {
-      toast.error('Ju lutemi kyçuni për të rezervuar termin');
+      toast.error(t('appointment.loginRequired'));
       navigate('/login');
       return;
     }
 
     if (!selectedInstitution || !selectedService || !selectedDate || !selectedTime) {
-      toast.error('Ju lutemi plotësoni të gjitha fushat e detyrueshme');
+      toast.error(t('appointment.fillAll'));
       return;
     }
 
@@ -95,12 +95,12 @@ const AppointmentsPage: React.FC = () => {
         selectedInstitution,
         selectedService,
         'normal',
-        user?.name || 'Qytetar',
+        user?.name || t('auth.citizen'),
         dateStr,
         selectedTime,
         { notifySms, phone: phone.trim() || undefined },
       );
-      toast.success('Termini u rezervua — kontrollo SMS/email');
+      toast.success(t('appointment.bookSuccess'));
       navigate(`/queue/${selectedInstitution}`);
     } catch (error) {
       console.error('Booking failed:', error);
@@ -128,11 +128,11 @@ const AppointmentsPage: React.FC = () => {
             <div className="space-y-3">
               <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1.5 rounded-full bg-primary/15 text-primary border border-primary/25">
                 <CalendarIcon className="w-3.5 h-3.5 mr-2" />
-                Sistemi i Termineve
+                {t('appointment.systemBadge')}
               </span>
               <h1 className="text-3xl md:text-4xl font-bold tracking-tight">{t('nav.appointments')}</h1>
               <p className="text-muted-foreground max-w-2xl text-sm md:text-base">
-                Rezervoni terminin tuaj paraprakisht për të evituar pritjet e gjata.
+                {t('appointment.pageSubtitle')}
               </p>
             </div>
           </motion.div>
@@ -145,7 +145,7 @@ const AppointmentsPage: React.FC = () => {
             <Card className="glass border-white/5 overflow-hidden rounded-[2.5rem] shadow-2xl">
               <CardHeader className="border-b border-white/5 bg-white/[0.02] p-8">
                 <CardTitle className="text-2xl font-black">{t('appointment.book')}</CardTitle>
-                <CardDescription className="text-lg">Plotësoni detajet e rezervimit</CardDescription>
+                <CardDescription className="text-lg">{t('appointment.fillDetails')}</CardDescription>
               </CardHeader>
               <CardContent className="p-8 space-y-8">
                 <div className="grid md:grid-cols-2 gap-8">
@@ -154,7 +154,7 @@ const AppointmentsPage: React.FC = () => {
                       <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">{t('institution.selectInstitution')} *</Label>
                       <Select value={selectedInstitution} onValueChange={setSelectedInstitution}>
                         <SelectTrigger className="h-14 rounded-2xl glass border-white/10 text-lg font-bold">
-                          <SelectValue placeholder="Zgjidhni institucionin" />
+                          <SelectValue placeholder={t('institution.selectInstitution')} />
                         </SelectTrigger>
                         <SelectContent className="glass border-white/10">
                           {institutions.map(inst => (
@@ -169,7 +169,7 @@ const AppointmentsPage: React.FC = () => {
                       <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">{t('institution.selectService')} *</Label>
                       <Select value={selectedService} onValueChange={setSelectedService} disabled={!selectedInstitution}>
                         <SelectTrigger className="h-14 rounded-2xl glass border-white/10 text-lg font-bold">
-                          <SelectValue placeholder="Zgjidhni shërbimin" />
+                          <SelectValue placeholder={t('institution.selectService')} />
                         </SelectTrigger>
                         <SelectContent className="glass border-white/10">
                           {services.map(service => (
@@ -182,14 +182,14 @@ const AppointmentsPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Zgjidhni Datën *</Label>
+                    <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">{t('appointment.selectDate')} *</Label>
                     <div className="glass rounded-2xl p-2 border-white/5">
                       <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} className="rounded-xl border-0" />
                     </div>
                   </div>
                 </div>
                 <div className="space-y-4">
-                  <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Koha e Disponueshme *</Label>
+                  <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">{t('appointment.availableTime')} *</Label>
                   <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
                     {['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '13:00', '13:30', '14:00', '14:30'].map(time => (
                       <Button
@@ -252,7 +252,7 @@ const AppointmentsPage: React.FC = () => {
                   disabled={bookingLoading}
                 >
                   {bookingLoading ? <Loader2 className="w-6 h-6 animate-spin mr-2" /> : null}
-                  Rezervo Terminin
+                  {t('appointment.bookAction')}
                 </Button>
               </CardContent>
             </Card>
@@ -261,39 +261,39 @@ const AppointmentsPage: React.FC = () => {
           <div className="space-y-8">
             <Card className="glass border-white/5 overflow-hidden rounded-[2.5rem]">
               <CardHeader className="border-b border-white/5">
-                <CardTitle className="text-xl font-bold">Terminet e Mia</CardTitle>
+                <CardTitle className="text-xl font-bold">{t('appointment.myAppointments')}</CardTitle>
               </CardHeader>
               <CardContent className="p-6">
                 <Tabs defaultValue="upcoming" className="w-full">
                   <TabsList className="grid w-full grid-cols-2 glass p-1 rounded-xl mb-6">
-                    <TabsTrigger value="upcoming" className="rounded-lg font-bold">Të Ardhshme</TabsTrigger>
-                    <TabsTrigger value="past" className="rounded-lg font-bold">Të Kaluara</TabsTrigger>
+                    <TabsTrigger value="upcoming" className="rounded-lg font-bold">{t('appointment.upcoming')}</TabsTrigger>
+                    <TabsTrigger value="past" className="rounded-lg font-bold">{t('appointment.past')}</TabsTrigger>
                   </TabsList>
                   <TabsContent value="upcoming" className="space-y-4 mt-0">
                     {upcomingAppointments.length === 0 ? (
                       <div className="text-center py-12 opacity-20">
                          <CalendarIcon className="w-12 h-12 mx-auto mb-2" />
-                         <p className="font-bold">Nuk keni termine</p>
+                         <p className="font-bold">{t('appointment.none')}</p>
                       </div>
                     ) : (
                       upcomingAppointments.map(appointment => (
                         <div key={appointment.id || (appointment as any)._id} className="p-5 glass border-white/5 rounded-2xl space-y-4 hover:bg-white/5 transition-all group">
                           <div className="flex items-center justify-between">
                             <p className="font-black text-foreground group-hover:text-primary transition-colors">
-                              {institutions.find(i => (i.id || (i as any)._id) === appointment.institutionId)?.name || 'Institucioni'}
+                              {institutions.find(i => (i.id || (i as any)._id) === appointment.institutionId)?.name || t('common.institution')}
                             </p>
                             <Badge className={`${appointment.status === 'called' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-primary/10 text-primary'} border-0 px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-widest`}>
-                              {appointment.status === 'called' ? 'Thirrur' : 'Në Pritje'}
+                              {t(`status.${appointment.status}`)}
                             </Badge>
                           </div>
                           <p className="text-sm font-bold text-muted-foreground">
-                            {services.find(s => (s.id || (s as any)._id) === appointment.serviceId)?.name || 'Shërbimi'}
+                            {services.find(s => (s.id || (s as any)._id) === appointment.serviceId)?.name || t('common.service')}
                           </p>
                           <div className="flex items-center justify-between pt-2 border-t border-white/5">
                              <div className="flex items-center gap-4 text-xs font-bold">
                                <div className="flex items-center gap-1.5">
                                  <CalendarIcon className="w-3.5 h-3.5 text-primary" />
-                                 {new Date(appointment.createdAt).toLocaleDateString()}
+                                 {new Date(appointment.createdAt).toLocaleDateString(locale)}
                                </div>
                                <div className="flex items-center gap-1.5">
                                  <Clock className="w-3.5 h-3.5 text-amber-500" />
@@ -304,7 +304,7 @@ const AppointmentsPage: React.FC = () => {
                                size="icon" 
                                variant="ghost" 
                                className="h-8 w-8 rounded-lg hover:bg-rose-500/20 hover:text-rose-500"
-                               onClick={() => useQueue().cancelTicket(appointment.id || (appointment as any)._id)}
+                               onClick={() => cancelTicket(appointment.id || (appointment as any)._id)}
                              >
                                 <X className="w-4 h-4" />
                              </Button>
@@ -316,7 +316,7 @@ const AppointmentsPage: React.FC = () => {
                   <TabsContent value="past" className="mt-0">
                     <div className="text-center py-12 opacity-20">
                          <CalendarIcon className="w-12 h-12 mx-auto mb-2" />
-                         <p className="font-bold">Historiku bosh</p>
+                         <p className="font-bold">{t('appointment.historyEmpty')}</p>
                     </div>
                   </TabsContent>
                 </Tabs>
@@ -327,14 +327,14 @@ const AppointmentsPage: React.FC = () => {
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg font-bold flex items-center gap-2">
                    <Info className="w-5 h-5 text-primary" />
-                   Informacione
+                   {t('appointment.infoTitle')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 pt-4">
                 {[
-                  'Mbërrini 10 minuta para kohës së caktuar.',
-                  'Sigurohuni që keni ID-në me vete.',
-                  'Anuloni të paktën 24 orë përpara.'
+                  t('appointment.tip1'),
+                  t('appointment.tip2'),
+                  t('appointment.tip3'),
                 ].map((tip, i) => (
                   <div key={i} className="flex gap-4 group">
                     <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">

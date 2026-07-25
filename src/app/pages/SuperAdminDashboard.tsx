@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card'
+import { Card } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { useAuth } from '../contexts/AuthContext'
+import { useLanguage } from '../contexts/LanguageContext'
 import api from '../lib/api'
 import { toast } from 'sonner'
 import {
@@ -20,6 +21,7 @@ import {
 
 const SuperAdminDashboard: React.FC = () => {
   const { user } = useAuth()
+  const { t } = useLanguage()
   const [activeTab, setActiveTab] = useState<'institutions' | 'users'>('institutions')
   
   const [institutions, setInstitutions] = useState<any[]>([])
@@ -41,7 +43,7 @@ const SuperAdminDashboard: React.FC = () => {
       setInstitutions(instRes.data)
       setUsers(userRes.data)
     } catch (error) {
-      toast.error('Failed to fetch admin data')
+      toast.error(t('superadmin.fetchError'))
     } finally {
       setLoading(false)
     }
@@ -53,9 +55,9 @@ const SuperAdminDashboard: React.FC = () => {
       setInstitutions(prev => 
         prev.map(inst => inst._id === id ? { ...inst, isActive: !currentStatus } : inst)
       )
-      toast.success('Statusi u ndryshua me sukses')
+      toast.success(t('superadmin.statusChanged'))
     } catch (error) {
-      toast.error('Ndryshimi i statusit dështoi')
+      toast.error(t('superadmin.statusFailed'))
     }
   }
 
@@ -69,7 +71,7 @@ const SuperAdminDashboard: React.FC = () => {
   )
 
   if (user?.role !== 'superadmin') {
-    return <div className="min-h-screen pt-10 flex justify-center">Nuk keni qasje.</div>
+    return <div className="min-h-screen pt-10 flex justify-center">{t('superadmin.noAccess')}</div>
   }
 
   return (
@@ -80,10 +82,10 @@ const SuperAdminDashboard: React.FC = () => {
             <div>
               <Badge className="bg-primary/10 text-primary border-primary/20 mb-3">
                 <ShieldCheck className="w-3 h-3 mr-1 inline" />
-                Super Admin Panel
+                {t('superadmin.badge')}
               </Badge>
-              <h1 className="text-3xl md:text-4xl font-bold">Menaxhimi i Platformës</h1>
-              <p className="text-muted-foreground mt-1">Kontroll i plotë mbi institucionet dhe përdoruesit.</p>
+              <h1 className="text-3xl md:text-4xl font-bold">{t('superadmin.title')}</h1>
+              <p className="text-muted-foreground mt-1">{t('superadmin.subtitle')}</p>
             </div>
             
             <div className="flex bg-muted p-1 rounded-xl w-full md:w-auto">
@@ -92,14 +94,14 @@ const SuperAdminDashboard: React.FC = () => {
                 className={`flex-1 md:w-40 rounded-lg ${activeTab === 'institutions' ? 'shadow-sm' : ''}`}
                 onClick={() => setActiveTab('institutions')}
               >
-                <Building2 className="w-4 h-4 mr-2" /> Institucionet
+                <Building2 className="w-4 h-4 mr-2" /> {t('nav.institutions')}
               </Button>
               <Button 
                 variant={activeTab === 'users' ? 'default' : 'ghost'} 
                 className={`flex-1 md:w-40 rounded-lg ${activeTab === 'users' ? 'shadow-sm' : ''}`}
                 onClick={() => setActiveTab('users')}
               >
-                <Users className="w-4 h-4 mr-2" /> Përdoruesit
+                <Users className="w-4 h-4 mr-2" /> {t('superadmin.users')}
               </Button>
             </div>
           </div>
@@ -110,7 +112,7 @@ const SuperAdminDashboard: React.FC = () => {
         <div className="mb-6 relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
           <Input 
-            placeholder="Kërko..." 
+            placeholder={t('common.search') + '...'} 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-12 h-12 rounded-xl bg-card border-border max-w-md"
@@ -135,13 +137,13 @@ const SuperAdminDashboard: React.FC = () => {
                     <div className="flex items-center justify-center sm:justify-start gap-2 text-sm text-muted-foreground mt-1">
                       <MapPin className="w-4 h-4" /> {inst.location?.city}
                       <span className="mx-2">•</span>
-                      <Activity className="w-4 h-4" /> {inst.services?.length || 0} Shërbime
+                      <Activity className="w-4 h-4" /> {t('superadmin.servicesCount', { n: inst.services?.length || 0 })}
                     </div>
                   </div>
 
                   <div className="flex items-center gap-4">
                     <Badge variant="outline" className={inst.isActive ? "wait-low" : "wait-high"}>
-                      {inst.isActive ? 'Aktiv' : 'Jo Aktiv'}
+                      {inst.isActive ? t('superadmin.active') : t('superadmin.inactive')}
                     </Badge>
                     <Button 
                       variant={inst.isActive ? 'destructive' : 'default'} 
@@ -150,7 +152,7 @@ const SuperAdminDashboard: React.FC = () => {
                       onClick={() => toggleInstitutionStatus(inst._id, inst.isActive)}
                     >
                       <Power className="w-4 h-4 mr-2" />
-                      {inst.isActive ? 'Deaktivizo' : 'Aktivizo'}
+                      {inst.isActive ? t('superadmin.deactivate') : t('superadmin.activate')}
                     </Button>
                   </div>
                 </div>
@@ -187,7 +189,7 @@ const SuperAdminDashboard: React.FC = () => {
             {(activeTab === 'institutions' && filteredInstitutions.length === 0) || 
              (activeTab === 'users' && filteredUsers.length === 0) ? (
               <div className="text-center py-12 text-muted-foreground">
-                Nuk u gjetën të dhëna.
+                {t('common.noData')}
               </div>
             ) : null}
           </div>

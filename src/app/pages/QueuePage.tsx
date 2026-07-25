@@ -57,7 +57,7 @@ const DEFAULT_DOCS: Record<string, string[]> = {
 const QueuePage: React.FC = () => {
   const { institutionId } = useParams()
   const navigate = useNavigate()
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const { user, isAuthenticated } = useAuth()
   const { getTicket, currentTicket, cancelTicket, getWaitingTickets } = useQueue()
   const { isFavorite, toggleFavorite } = useFavorites()
@@ -179,9 +179,9 @@ const QueuePage: React.FC = () => {
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
           <X className="w-12 h-12 text-destructive mx-auto mb-4" />
-          <p className="text-xl font-semibold mb-2">Institucioni nuk u gjet</p>
+          <p className="text-xl font-semibold mb-2">{t('queue.notFound')}</p>
           <Button variant="link" onClick={() => navigate('/institutions')}>
-            Kthehu te Institucionet
+            {t('queue.backToInstitutions')}
           </Button>
         </div>
       </div>
@@ -190,12 +190,12 @@ const QueuePage: React.FC = () => {
 
   const handleGetTicket = async () => {
     if (!isAuthenticated) {
-      toast.error('Ju lutemi kyçuni për të marrë biletë')
+      toast.error(t('queue.loginRequired'))
       navigate('/login')
       return
     }
     if (!selectedService) {
-      toast.error('Ju lutemi zgjidhni një shërbim')
+      toast.error(t('queue.selectServiceToast'))
       return
     }
     if (!allDocsReady) {
@@ -215,7 +215,7 @@ const QueuePage: React.FC = () => {
       if (!ok) return
     }
     if ((selectedDate && !selectedTime) || (!selectedDate && selectedTime)) {
-      toast.error('Ju lutemi zgjidhni datën dhe orën së bashku')
+      toast.error(t('queue.selectDateAndTime'))
       return
     }
 
@@ -224,7 +224,7 @@ const QueuePage: React.FC = () => {
         institutionId || (institution as any)._id!,
         selectedService,
         selectedPriority,
-        user?.name || 'Qytetar',
+        user?.name || t('auth.citizen'),
         selectedDate || undefined,
         selectedTime || undefined,
         selectedDate && selectedTime
@@ -285,16 +285,16 @@ const QueuePage: React.FC = () => {
             onClick={() => navigate('/institutions')}
           >
             <ChevronLeft className="w-4 h-4" />
-            Kthehu mbrapsht
+            {t('common.back')}
           </Button>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-3 flex-wrap">
                 <span className="text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-primary/15 text-primary border border-primary/25">
-                  Live Queue
+                  {t('queue.liveBadge')}
                 </span>
                 <span className={`text-xs font-semibold px-3 py-1 rounded-full ${waitClass}`}>
-                  ~{waitMins} min pritje
+                  {t('queue.waitMins', { n: waitMins })}
                 </span>
                 {waitStats?.bestHourHint && (
                   <span className="text-xs font-medium px-3 py-1 rounded-full bg-accent/10 text-accent inline-flex items-center gap-1">
@@ -354,28 +354,28 @@ const QueuePage: React.FC = () => {
             <div className="surface-card rounded-2xl p-6">
               <div className="flex items-center gap-2 mb-6">
                 <Activity className="w-5 h-5 text-primary" />
-                <h2 className="font-semibold text-lg">Monitorimi në Kohë Reale</h2>
+                <h2 className="font-semibold text-lg">{t('queue.liveMonitor')}</h2>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 {[
                   {
                     icon: TicketIcon,
                     value: waitingTickets.length > 0 ? waitingTickets[0].number : '---',
-                    label: 'Numri Aktual',
+                    label: t('queue.currentNumber'),
                     color: 'text-primary',
                     bg: 'bg-primary/15',
                   },
                   {
                     icon: Users,
                     value: waitingTickets.length,
-                    label: 'Në Pritje',
+                    label: t('queue.waitingCount'),
                     color: 'text-success',
                     bg: 'bg-success/15',
                   },
                   {
                     icon: Clock,
                     value: waitMins,
-                    label: 'Min. Pritje',
+                    label: t('queue.waitMinsShort'),
                     color: 'text-warning',
                     bg: 'bg-warning/15',
                   },
@@ -433,7 +433,7 @@ const QueuePage: React.FC = () => {
             <div className="surface-card rounded-2xl p-6 border-primary/25">
               <h2 className="font-semibold text-lg mb-1">{t('queue.getTicket')}</h2>
               <p className="text-sm text-muted-foreground mb-6">
-                Zgjidhni shërbimin, orarin dhe prioritetin tuaj
+                {t('queue.formHint')}
               </p>
 
               <div className="space-y-5">
@@ -443,7 +443,7 @@ const QueuePage: React.FC = () => {
                   </Label>
                   <Select value={selectedService} onValueChange={setSelectedService}>
                     <SelectTrigger className="h-12 rounded-xl bg-muted/50 border-white/8">
-                      <SelectValue placeholder="Zgjidhni shërbimin..." />
+                      <SelectValue placeholder={t('queue.selectServicePlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
                       {services.map((service) => (
@@ -461,7 +461,7 @@ const QueuePage: React.FC = () => {
                       ))}
                       {services.length === 0 && (
                         <SelectItem value="none" disabled>
-                          Nuk ka shërbime të disponueshme
+                          {t('queue.noServicesAvailable')}
                         </SelectItem>
                       )}
                     </SelectContent>
@@ -502,7 +502,7 @@ const QueuePage: React.FC = () => {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Data e Terminit
+                      {t('appointment.date')}
                     </Label>
                     <input
                       type="date"
@@ -513,7 +513,7 @@ const QueuePage: React.FC = () => {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Ora e Terminit
+                      {t('appointment.time')}
                     </Label>
                     <input
                       type="time"
@@ -526,7 +526,7 @@ const QueuePage: React.FC = () => {
 
                 <div className="space-y-2">
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Kategoria e Prioritetit
+                    {t('queue.priorityCategory')}
                   </Label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {[
@@ -575,7 +575,7 @@ const QueuePage: React.FC = () => {
                   onClick={handleGetTicket}
                   disabled={!selectedService || !allDocsReady}
                 >
-                  Merr Numrin Digjital
+                  {t('queue.getDigitalNumber')}
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -585,7 +585,7 @@ const QueuePage: React.FC = () => {
           {/* Sidebar */}
           <div className="space-y-5">
             <div className="surface-card rounded-2xl p-5">
-              <h3 className="font-semibold mb-4 text-sm">Detajet e Institucionit</h3>
+              <h3 className="font-semibold mb-4 text-sm">{t('queue.institutionDetails')}</h3>
               <div className="space-y-4">
                 <div className="flex gap-3">
                   <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
@@ -593,7 +593,7 @@ const QueuePage: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
-                      Adresa
+                      {t('queue.address')}
                     </p>
                     <p className="text-sm font-medium">
                       {institution.location?.address}, {institution.location?.city}
@@ -606,7 +606,7 @@ const QueuePage: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
-                      Orari i Punës
+                      {t('queue.workingHours')}
                     </p>
                     <p className="text-sm font-medium">
                       {institution.workingHours?.open} - {institution.workingHours?.close}
@@ -617,7 +617,7 @@ const QueuePage: React.FC = () => {
             </div>
 
             <div className="surface-card rounded-2xl p-5">
-              <h3 className="font-semibold mb-4 text-sm">Të Gjitha Shërbimet</h3>
+              <h3 className="font-semibold mb-4 text-sm">{t('queue.allServices')}</h3>
               <div className="space-y-2">
                 {services.map((service) => (
                   <div
@@ -631,7 +631,7 @@ const QueuePage: React.FC = () => {
                   </div>
                 ))}
                 {services.length === 0 && (
-                  <p className="text-center text-muted-foreground py-4 text-sm">Nuk ka shërbime</p>
+                  <p className="text-center text-muted-foreground py-4 text-sm">{t('queue.noServices')}</p>
                 )}
               </div>
             </div>
@@ -681,10 +681,10 @@ const QueuePage: React.FC = () => {
               <CheckCircle2 className="w-7 h-7 text-success" />
             </div>
             <DialogTitle className="text-center text-2xl font-bold">
-              Numri u konfirmua!
+              {t('queue.bookingConfirmed')}
             </DialogTitle>
             <DialogDescription className="text-center">
-              Skanoni këtë kod QR kur të arrini në sportel.
+              {t('queue.scanQrHint')}
             </DialogDescription>
           </DialogHeader>
 
@@ -702,14 +702,14 @@ const QueuePage: React.FC = () => {
                   </Badge>
                   {currentTicket.scheduledAt && (
                     <p className="text-sm text-muted-foreground mt-2">
-                      Termini:{' '}
-                      {new Date(currentTicket.scheduledAt).toLocaleDateString('sq-SQ', {
+                      {t('queue.appointmentAt')}{' '}
+                      {new Date(currentTicket.scheduledAt).toLocaleDateString(locale, {
                         day: '2-digit',
                         month: 'long',
                         year: 'numeric',
                       })}{' '}
-                      në{' '}
-                      {new Date(currentTicket.scheduledAt).toLocaleTimeString('sq-SQ', {
+                      {t('queue.at')}{' '}
+                      {new Date(currentTicket.scheduledAt).toLocaleTimeString(locale, {
                         hour: '2-digit',
                         minute: '2-digit',
                       })}
@@ -726,7 +726,7 @@ const QueuePage: React.FC = () => {
               </div>
 
               <Button variant="outline" className="w-full h-11" onClick={handleDownloadQR}>
-                <Download className="w-4 h-4" /> Shkarko si Foto
+                <Download className="w-4 h-4" /> {t('queue.downloadPhoto')}
               </Button>
               <Button variant="secondary" className="w-full h-11" onClick={shareTicket}>
                 <Share2 className="w-4 h-4" /> Ndaj / Kopjo ticket-in
@@ -734,7 +734,7 @@ const QueuePage: React.FC = () => {
 
               <div className="space-y-3">
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground">Pozicioni aktual</span>
+                  <span className="text-muted-foreground">{t('queue.currentPosition')}</span>
                   <span className="font-bold">#{currentTicket.positionInQueue}</span>
                 </div>
                 <Progress
@@ -745,7 +745,7 @@ const QueuePage: React.FC = () => {
                   className="h-2"
                 />
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground">Pritja e përafërt</span>
+                  <span className="text-muted-foreground">{t('queue.approxWait')}</span>
                   <span className="font-bold text-warning">
                     ~{currentTicket.estimatedWaitTime} min
                   </span>
@@ -754,14 +754,14 @@ const QueuePage: React.FC = () => {
 
               <div className="flex gap-3 pt-1">
                 <Button variant="destructive" onClick={handleCancelTicket} className="flex-1 h-11">
-                  <X className="w-4 h-4" /> Anulo
+                  <X className="w-4 h-4" /> {t('queue.cancel')}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => setShowTicketDialog(false)}
                   className="flex-1 h-11"
                 >
-                  Mbyll
+                  {t('common.close')}
                 </Button>
               </div>
             </div>

@@ -22,11 +22,11 @@ const RegisterPage: React.FC = () => {
 
   const handleRegister = async () => {
     if (!name || !email || !password) {
-      toast.error('Ju lutemi mbushni të gjitha fushat e detyrueshme')
+      toast.error(t('auth.fillRequired'))
       return
     }
     if (password !== confirmPassword) {
-      toast.error('Fjalëkalimet nuk përputhen')
+      toast.error(t('auth.passwordMismatch'))
       return
     }
 
@@ -38,7 +38,7 @@ const RegisterPage: React.FC = () => {
       } else {
         navigate('/dashboard/citizen')
       }
-      toast.success('Llogaria u krijua me sukses!')
+      toast.success(t('auth.registerSuccess'))
     } catch {
       // Error handled in AuthContext
     } finally {
@@ -56,8 +56,8 @@ const RegisterPage: React.FC = () => {
             <div className="w-14 h-14 btn-gradient rounded-2xl flex items-center justify-center mx-auto mb-5 glow-primary">
               <Ticket className="w-7 h-7 text-white" />
             </div>
-            <h1 className="text-2xl font-bold">Krijo Llogari</h1>
-            <p className="text-muted-foreground mt-1 text-sm">Bashkohu me SmartQueue Kosova</p>
+            <h1 className="text-2xl font-bold">{t('auth.createAccount')}</h1>
+            <p className="text-muted-foreground mt-1 text-sm">{t('auth.joinSubtitle')}</p>
           </div>
 
           <div className="space-y-4">
@@ -69,7 +69,7 @@ const RegisterPage: React.FC = () => {
                 <div className="relative">
                   <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
-                    placeholder="Emri Mbiemri"
+                    placeholder={t('auth.namePlaceholder')}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="pl-11 h-12 rounded-xl bg-muted/50 border-white/8"
@@ -84,7 +84,7 @@ const RegisterPage: React.FC = () => {
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     type="email"
-                    placeholder="emri@shembull.com"
+                    placeholder={t('auth.emailPlaceholder')}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-11 h-12 rounded-xl bg-muted/50 border-white/8"
@@ -111,7 +111,7 @@ const RegisterPage: React.FC = () => {
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Fjalëkalimi *
+                  {t('auth.password')} *
                 </Label>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -126,7 +126,7 @@ const RegisterPage: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Konfirmo *
+                  {t('auth.confirmPassword')} *
                 </Label>
                 <Input
                   type="password"
@@ -155,7 +155,7 @@ const RegisterPage: React.FC = () => {
               className="w-full h-10 text-sm text-muted-foreground"
               onClick={() => navigate('/')}
             >
-              <ArrowLeft className="w-4 h-4" /> Kthehu në Ballina
+              <ArrowLeft className="w-4 h-4" /> {t('common.backHome')}
             </Button>
           </div>
         </div>

@@ -124,7 +124,7 @@ const AdminDashboard: React.FC = () => {
       ? analytics.peakHoursData.map((d: any) => `${d.hour}:00`)
       : ['08:00', '10:00', '12:00', '14:00', '16:00'],
     datasets: [{
-      label: 'Vizitorë',
+      label: t('dashboard.visitors'),
       data: analytics?.peakHoursData?.length > 0
         ? analytics.peakHoursData.map((d: any) => d.count)
         : [0, 0, 0, 0, 0],
@@ -136,7 +136,7 @@ const AdminDashboard: React.FC = () => {
   };
 
   const serviceData = {
-    labels: institution?.services?.length ? institution.services.map(s => s.name) : ['Nuk ka shërbime'],
+    labels: institution?.services?.length ? institution.services.map(s => s.name) : [t('queue.noServices')],
     datasets: [{
       data: institution?.services?.length ? institution.services.map(() => 0) : [0],
       backgroundColor: ['#6c5ce7', '#a29bfe', '#00cec9', '#fdcb6e', '#74b9ff'],
@@ -157,9 +157,9 @@ const AdminDashboard: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="max-w-md w-full text-center p-8 rounded-2xl">
           <XCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-          <h2 className="text-xl font-bold mb-2">Qasje e Refuzuar</h2>
-          <p className="text-muted-foreground mb-6">Nuk keni autorizim për këtë faqe.</p>
-          <Button className="rounded-xl" onClick={() => window.location.href = '/'}>Kthehu në Ballina</Button>
+          <h2 className="text-xl font-bold mb-2">{t('admin.accessDenied')}</h2>
+          <p className="text-muted-foreground mb-6">{t('admin.unauthorized')}</p>
+          <Button className="rounded-xl" onClick={() => window.location.href = '/'}>{t('common.backHome')}</Button>
         </Card>
       </div>
     );
@@ -177,12 +177,12 @@ const AdminDashboard: React.FC = () => {
                 {t('nav.admin')}
               </div>
               <h1 className="text-3xl font-bold">
-                {institution?.name || 'SmartQueue'} <span className="text-primary">Monitor</span>
+                {institution?.name || 'SmartQueue'} <span className="text-primary">{t('admin.monitor')}</span>
               </h1>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 wait-low rounded-full text-sm font-medium">
               <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
-              Sistemi Live
+              {t('admin.systemLive')}
             </div>
           </div>
         </div>
@@ -192,10 +192,10 @@ const AdminDashboard: React.FC = () => {
         {/* Stats */}
         <div className="grid md:grid-cols-4 gap-4 mb-8">
           {[
-            { label: 'Sportele Aktive', value: activeCounters, icon: Activity, color: 'text-primary' },
-            { label: t('status.waiting'), value: waitingTickets.length, icon: Users, color: 'text-amber-600' },
-            { label: 'Vizitorë Sot', value: todayTickets.length, icon: TrendingUp, color: 'text-emerald-600' },
-            { label: 'Pritja Mesatare', value: `${avgWaitTime} min`, icon: Clock, color: 'text-blue-600' },
+            { label: t('dashboard.activeCounters'), value: activeCounters, icon: Activity, color: 'text-primary' },
+            { label: t('dashboard.waitingTickets'), value: waitingTickets.length, icon: Users, color: 'text-amber-600' },
+            { label: t('dashboard.todayVisitors'), value: todayTickets.length, icon: TrendingUp, color: 'text-emerald-600' },
+            { label: t('dashboard.avgWaitTime'), value: `${avgWaitTime} min`, icon: Clock, color: 'text-blue-600' },
           ].map((stat, i) => (
             <Card key={i} className="border border-border rounded-2xl">
               <CardContent className="pt-5 pb-4">
@@ -215,14 +215,14 @@ const AdminDashboard: React.FC = () => {
           {/* Counter Control */}
           <Card className="border border-primary/20 rounded-2xl">
             <CardHeader className="border-b border-border pb-4">
-              <CardTitle className="text-lg font-semibold">Menaxhimi i Sportelit</CardTitle>
+              <CardTitle className="text-lg font-semibold">{t('admin.counterManagement')}</CardTitle>
             </CardHeader>
             <CardContent className="pt-6 space-y-6">
               <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground">Zgjidh Sportelin</label>
+                <label className="text-xs font-medium text-muted-foreground">{t('admin.selectCounter')}</label>
                 <Select value={selectedCounter} onValueChange={setSelectedCounter}>
                   <SelectTrigger className="h-12 rounded-xl">
-                    <SelectValue placeholder="Zgjidh sportelin..." />
+                    <SelectValue placeholder={t('admin.selectCounterPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {counters.map(counter => (
@@ -230,13 +230,13 @@ const AdminDashboard: React.FC = () => {
                         {counter.name || `Sporteli ${counter.number}`}
                       </SelectItem>
                     ))}
-                    {counters.length === 0 && <SelectItem value="none" disabled>Asnjë sportel</SelectItem>}
+                    {counters.length === 0 && <SelectItem value="none" disabled>{t('admin.noCounters')}</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="p-6 bg-muted rounded-2xl text-center">
-                <p className="text-xs font-medium text-primary mb-1">Tjetri në radhë</p>
+                <p className="text-xs font-medium text-primary mb-1">{t('admin.nextInQueue')}</p>
                 <div className="text-5xl font-bold">
                   {waitingTickets.length > 0 ? waitingTickets[0].number : '---'}
                 </div>
@@ -256,9 +256,9 @@ const AdminDashboard: React.FC = () => {
           {/* Waiting List */}
           <Card className="lg:col-span-2 border border-border rounded-2xl">
             <CardHeader className="flex flex-row items-center justify-between border-b border-border pb-4">
-              <CardTitle className="text-lg font-semibold">Lista e Pritjes</CardTitle>
+              <CardTitle className="text-lg font-semibold">{t('admin.waitingList')}</CardTitle>
               <Badge className="bg-primary/10 text-primary border-primary/20">
-                {waitingTickets.length} Qytetarë
+                {waitingTickets.length} {t('admin.citizensCount')}
               </Badge>
             </CardHeader>
             <CardContent className="pt-4">
@@ -266,7 +266,7 @@ const AdminDashboard: React.FC = () => {
                 {waitingTickets.length === 0 ? (
                   <div className="text-center py-20 text-muted-foreground">
                     <Users className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                    <p>Radha është e zbrazët</p>
+                    <p>{t('admin.queueEmpty')}</p>
                   </div>
                 ) : (
                   waitingTickets.map((ticket, index) => (
@@ -275,7 +275,7 @@ const AdminDashboard: React.FC = () => {
                         <div className="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center text-sm font-bold">{index + 1}</div>
                         <div>
                           <p className="font-semibold text-lg">{ticket.number}</p>
-                          <p className="text-sm text-muted-foreground">{ticket.userName || 'Qytetar'}</p>
+                          <p className="text-sm text-muted-foreground">{ticket.userName || t('auth.citizen')}</p>
                         </div>
                       </div>
                       <div className="text-right">
@@ -298,7 +298,7 @@ const AdminDashboard: React.FC = () => {
         <div className="grid lg:grid-cols-2 gap-6">
           <Card className="border border-border rounded-2xl">
             <CardHeader className="border-b border-border pb-4">
-              <CardTitle className="text-base font-semibold">Volumi i Vizitave</CardTitle>
+              <CardTitle className="text-base font-semibold">{t('dashboard.peakHours')}</CardTitle>
             </CardHeader>
             <CardContent className="pt-6 h-[300px]">
               <Line data={peakHoursData} options={{ responsive: true, maintainAspectRatio: false }} />
@@ -306,7 +306,7 @@ const AdminDashboard: React.FC = () => {
           </Card>
           <Card className="border border-border rounded-2xl">
             <CardHeader className="border-b border-border pb-4">
-              <CardTitle className="text-base font-semibold">Shërbimet më të kërkuara</CardTitle>
+              <CardTitle className="text-base font-semibold">{t('admin.topServices')}</CardTitle>
             </CardHeader>
             <CardContent className="pt-6 flex items-center justify-center h-[300px]">
               <div className="w-[200px]"><Doughnut data={serviceData} /></div>

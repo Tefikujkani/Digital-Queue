@@ -14,6 +14,7 @@ import {
   User as UserIcon,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { useLanguage } from '../contexts/LanguageContext'
 import { streamChat, fetchChatSuggestions, type ChatMessage } from '../lib/chatApi'
 import { Button } from './ui/button'
 import { cn } from './ui/utils'
@@ -22,22 +23,6 @@ type UiMessage = ChatMessage & {
   id: string
   tools?: string[]
   streaming?: boolean
-}
-
-const SQ = {
-  title: 'Asistenti SmartQueue',
-  subtitle: 'Ndihmës inteligjent për qytetarët',
-  greetingUser: (name: string) => `Përshëndetje, ${name} — si mund të ndihmoj?`,
-  welcomeTitle: 'Si mund të ndihmoj sot?',
-  welcomeBody:
-    'Mund të kërkoj institucione, të kontrolloj radhën live, të të udhëzoj për ticket/termine, dhe të shoh ticket-et e tua nëse je i kyçur.',
-  placeholder: 'Shkruaj pyetjen tënde…',
-  thinking: 'Duke menduar…',
-  reset: 'Fillo bisedë të re',
-  error: 'Diçka shkoi keq. Provo përsëri.',
-  poweredBy: 'Fuqizuar nga Grok 4.5 · xAI · të dhëna live',
-  openQueue: 'Hap radhën',
-  close: 'Mbyll',
 }
 
 const TOOL_LABELS: Record<string, string> = {
@@ -107,6 +92,7 @@ function renderRichText(content: string) {
 
 const Chatbot: React.FC = () => {
   const { user, isAuthenticated } = useAuth()
+  const { t, language } = useLanguage()
   const location = useLocation()
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
@@ -126,8 +112,8 @@ const Chatbot: React.FC = () => {
 
   useEffect(() => {
     if (!open) return
-    fetchChatSuggestions('sq').then(setSuggestions)
-  }, [open])
+    fetchChatSuggestions(language).then(setSuggestions)
+  }, [open, language])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -177,7 +163,7 @@ const Chatbot: React.FC = () => {
       try {
         await streamChat({
           messages: history,
-          language: 'sq',
+          language,
           signal: controller.signal,
           onEvent: (ev) => {
             if (ev.type === 'tool_start') {
@@ -226,7 +212,7 @@ const Chatbot: React.FC = () => {
         })
       } catch (err: unknown) {
         if ((err as Error)?.name !== 'AbortError') {
-          setError(SQ.error)
+          setError(t('chat.error'))
         }
       } finally {
         setBusy(false)
@@ -236,7 +222,7 @@ const Chatbot: React.FC = () => {
         )
       }
     },
-    [busy, messages],
+    [busy, messages, language, t],
   )
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -259,7 +245,7 @@ const Chatbot: React.FC = () => {
             transition={{ type: 'spring', stiffness: 380, damping: 28 }}
             className="fixed bottom-24 right-4 sm:right-6 z-[60] w-[min(100vw-1.5rem,420px)] h-[min(72vh,640px)] flex flex-col rounded-3xl overflow-hidden border border-primary/25 bg-[#0e0e18]/95 backdrop-blur-xl shadow-[0_25px_80px_-20px_rgba(127,65,255,0.55)]"
             role="dialog"
-            aria-label={SQ.title}
+            aria-label={t('chat.title')}
           >
             <div className="relative px-4 py-3.5 border-b border-white/8 bg-gradient-to-r from-primary/25 via-secondary/10 to-transparent">
               <div className="flex items-center gap-3">
@@ -271,7 +257,7 @@ const Chatbot: React.FC = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h2 className="font-semibold text-sm tracking-tight truncate">{SQ.title}</h2>
+                    <h2 className="font-semibold text-sm tracking-tight truncate">{t('chat.title')}</h2>
                     <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded-md">
                       <Sparkles className="w-3 h-3" />
                       Grok
@@ -279,8 +265,8 @@ const Chatbot: React.FC = () => {
                   </div>
                   <p className="text-xs text-muted-foreground truncate">
                     {isAuthenticated
-                      ? SQ.greetingUser(user?.name?.split(' ')[0] || '')
-                      : SQ.subtitle}
+                      ? t('chat.greetingUser', { name: user?.name?.split(' ')[0] || '' })
+                      : t('chat.subtitle')}
                   </p>
                 </div>
                 <div className="flex items-center gap-1">
@@ -290,7 +276,7 @@ const Chatbot: React.FC = () => {
                     size="icon"
                     className="h-8 w-8 rounded-xl text-muted-foreground hover:text-foreground"
                     onClick={resetChat}
-                    title={SQ.reset}
+                    title={t('chat.reset')}
                   >
                     <RotateCcw className="w-4 h-4" />
                   </Button>
@@ -300,7 +286,7 @@ const Chatbot: React.FC = () => {
                     size="icon"
                     className="h-8 w-8 rounded-xl text-muted-foreground hover:text-foreground"
                     onClick={() => setOpen(false)}
-                    aria-label={SQ.close}
+                    aria-label={t('common.close')}
                   >
                     <X className="w-4 h-4" />
                   </Button>
@@ -317,9 +303,9 @@ const Chatbot: React.FC = () => {
                         <Zap className="w-4 h-4 text-primary" />
                       </div>
                       <div className="space-y-1.5">
-                        <p className="text-sm font-medium text-foreground">{SQ.welcomeTitle}</p>
+                        <p className="text-sm font-medium text-foreground">{t('chat.welcomeTitle')}</p>
                         <p className="text-xs text-muted-foreground leading-relaxed">
-                          {SQ.welcomeBody}
+                          {t('chat.welcomeBody')}
                         </p>
                       </div>
                     </div>
@@ -366,7 +352,7 @@ const Chatbot: React.FC = () => {
                           {m.content ? renderRichText(m.content) : m.streaming ? (
                             <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              {SQ.thinking}
+                              {t('chat.thinking')}
                             </span>
                           ) : null}
                           {!!m.tools?.length && (
@@ -390,7 +376,7 @@ const Chatbot: React.FC = () => {
                                   onClick={() => setOpen(false)}
                                   className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-lg bg-primary/15 text-primary hover:bg-primary/25 transition-colors"
                                 >
-                                  {href.includes('queue') ? SQ.openQueue : href.replace('/', '')}
+                                  {href.includes('queue') ? t('chat.openQueue') : href.replace('/', '')}
                                   <ExternalLink className="w-3 h-3" />
                                 </Link>
                               ))}
@@ -431,7 +417,7 @@ const Chatbot: React.FC = () => {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={onKeyDown}
-                  placeholder={SQ.placeholder}
+                  placeholder={t('chat.placeholder')}
                   disabled={busy}
                   className="flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground/70 max-h-28 py-1.5 px-1"
                 />
@@ -446,7 +432,7 @@ const Chatbot: React.FC = () => {
                 </Button>
               </div>
               <p className="text-[10px] text-muted-foreground/70 text-center mt-2">
-                {SQ.poweredBy}
+                {t('chat.poweredBy')}
               </p>
             </div>
           </motion.div>
@@ -455,7 +441,7 @@ const Chatbot: React.FC = () => {
 
       <motion.button
         type="button"
-        aria-label={SQ.title}
+        aria-label={t('chat.title')}
         onClick={() => setOpen((v) => !v)}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}

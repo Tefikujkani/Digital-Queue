@@ -31,7 +31,7 @@ const languages: { code: Language; label: string; native: string }[] = [
 
 const Navigation: React.FC = () => {
   const { user, logout, isAuthenticated } = useAuth()
-  const { t, language, setLanguage } = useLanguage()
+  const { t, language, setLanguage, locale } = useLanguage()
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications()
   const navigate = useNavigate()
   const location = useLocation()
@@ -183,20 +183,20 @@ const Navigation: React.FC = () => {
                   {showNotifications && (
                     <div className="absolute top-full right-0 mt-3 w-80 glass rounded-2xl z-[300] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
                       <div className="p-4 border-b border-white/8 flex justify-between items-center">
-                        <h3 className="font-semibold text-sm">Njoftimet</h3>
+                        <h3 className="font-semibold text-sm">{t('nav.notifications')}</h3>
                         {unreadCount > 0 && (
                           <button
                             onClick={markAllAsRead}
                             className="text-xs text-primary hover:underline"
                           >
-                            Lexo të gjitha
+                            {t('nav.markAllRead')}
                           </button>
                         )}
                       </div>
                       <div className="max-h-80 overflow-y-auto p-2">
                         {notifications.length === 0 ? (
                           <div className="p-8 text-center text-muted-foreground text-sm">
-                            Nuk keni asnjë njoftim
+                            {t('nav.noNotifications')}
                           </div>
                         ) : (
                           notifications.map((notif) => (
@@ -216,7 +216,7 @@ const Navigation: React.FC = () => {
                               <p className="text-sm font-semibold">{notif.title}</p>
                               <p className="text-xs text-muted-foreground mt-0.5">{notif.message}</p>
                               <p className="text-[10px] text-muted-foreground mt-2">
-                                {new Date(notif.createdAt).toLocaleTimeString('sq-SQ', {
+                                {new Date(notif.createdAt).toLocaleTimeString(locale, {
                                   hour: '2-digit',
                                   minute: '2-digit',
                                 })}
@@ -299,7 +299,7 @@ const Navigation: React.FC = () => {
             <div className="px-3 py-2">
               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
                 <Globe className="w-3.5 h-3.5" />
-                Language
+                {t('nav.language')}
               </p>
               <div className="grid grid-cols-3 gap-2">
                 {languages.map((lang) => (
