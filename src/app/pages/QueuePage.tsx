@@ -42,10 +42,13 @@ import {
   Heart,
   Star,
   Sparkles,
+  Share2,
+  Copy,
 } from 'lucide-react'
 import { TicketPriority } from '../types'
 import { toast } from 'sonner'
 import { useFavorites } from '../contexts/FavoritesContext'
+import { getOpenStatus } from '../lib/hours'
 
 const DEFAULT_DOCS: Record<string, string[]> = {
   default: ['Letërnjoftimi / Pasaporta', 'Numri personal'],
@@ -108,6 +111,13 @@ const QueuePage: React.FC = () => {
   const waitMins = waitStats?.estimatedWaitMinutes ?? waitingTickets.length * 5
   const waitClass =
     waitMins < 20 ? 'wait-low' : waitMins < 40 ? 'wait-medium' : 'wait-high'
+  const openStatus = getOpenStatus(institution?.workingHours)
+  const priorityCounts = {
+    emergency: waitingTickets.filter((t) => t.priority === 'emergency').length,
+    elderly: waitingTickets.filter((t) => t.priority === 'elderly').length,
+    disability: waitingTickets.filter((t) => t.priority === 'disability').length,
+    normal: waitingTickets.filter((t) => t.priority === 'normal' || !t.priority).length,
+  }
 
   const selectedServiceObj = services.find(
     (s) => (s.id || s._id) === selectedService,
@@ -192,6 +202,18 @@ const QueuePage: React.FC = () => {
       toast.error('Konfirmo që i ke të gjitha dokumentet e nevojshme')
       return
     }
+    if (!openStatus.isOpen) {
+      const ok = window.confirm(
+        `Institucioni duket ${openStatus.label}. A dëshiron të vazhdosh me ticket / termin?`,
+      )
+      if (!ok) return
+    }
+    if (selectedPriority !== 'normal') {
+      const ok = window.confirm(
+        'Po zgjedh prioritet të veçantë. Përdore vetëm nëse ke të drejtë. Vazhdon?',
+      )
+      if (!ok) return
+    }
     if ((selectedDate && !selectedTime) || (!selectedDate && selectedTime)) {
       toast.error('Ju lutemi zgjidhni datën dhe orën së bashku')
       return
@@ -230,6 +252,26 @@ const QueuePage: React.FC = () => {
     }
   }
 
+  const shareTicket = async () => {
+    if (!currentTicket) return
+    const text = `SmartQueue · Numri ${currentTicket.number} te ${institution.name}. Status: ${currentTicket.status}. Hap: ${window.location.origin}/queue/${institutionId}`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'SmartQueue Ticket', text })
+      } else {
+        await navigator.clipboard.writeText(text)
+        toast.success('U kopjua në clipboard')
+      }
+    } catch {
+      try {
+        await navigator.clipboard.writeText(text)
+        toast.success('U kopjua në clipboard')
+      } catch {
+        toast.error('Nuk u nda')
+      }
+    }
+  }
+
   return (
     <div className="min-h-screen pb-20">
       <div className="pt-8 pb-6 px-5">
@@ -257,6 +299,15 @@ const QueuePage: React.FC = () => {
                     Më mirë: {waitStats.bestHourHint}
                   </span>
                 )}
+                <span
+                  className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                    openStatus.isOpen
+                      ? 'wait-low'
+                      : 'bg-destructive/15 text-destructive border border-destructive/25'
+                  }`}
+                >
+                  {openStatus.label}
+                </span>
                 {(waitStats?.ratingAvg > 0 || (institution as any).ratingAvg > 0) && (
                   <span className="text-xs font-medium px-3 py-1 rounded-full bg-warning/10 text-warning inline-flex items-center gap-1">
                     <Star className="w-3 h-3 fill-warning" />
@@ -337,6 +388,42 @@ const QueuePage: React.FC = () => {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Priority lanes */}
+            <div className="surface-card rounded-2xl p-5">
+              <h2 className="font-semibold text-sm mb-3">Radha sipas prioritetit</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {[
+                  { key: 'emergency', label: 'Emergjencë', count: priorityCounts.emergency, cls: 'text-destructive' },
+                  { key: 'elderly', label: 'Të moshuar', count: priorityCounts.elderly, cls: 'text-warning' },
+                  { key: 'disability', label: 'Aftësi kufizuara', count: priorityCounts.disability, cls: 'text-secondary' },
+                  { key: 'normal', label: 'Normal', count: priorityCounts.normal, cls: 'text-muted-foreground' },
+                ].map((lane) => (
+                  <div
+                    key={lane.key}
+                    className="rounded-xl bg-white/[0.03] border border-white/6 p-3 text-center"
+                  >
+                    <p className={`text-2xl font-bold ${lane.cls}`}>{lane.count}</p>
+                    <p className="text-[11px] text-muted-foreground mt-1">{lane.label}</p>
+                  </div>
+                ))}
+              </div>
+              {waitingTickets.slice(0, 5).length > 0 && (
+                <div className="mt-4 space-y-2">
+                  {waitingTickets.slice(0, 5).map((ticketRow) => (
+                    <div
+                      key={ticketRow.id || (ticketRow as any)._id}
+                      className="flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-muted/40"
+                    >
+                      <span className="font-mono font-semibold">{ticketRow.number}</span>
+                      <Badge variant="outline" className="text-[10px]">
+                        {t(`priority.${ticketRow.priority || 'normal'}`)}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Booking form */}
@@ -637,6 +724,9 @@ const QueuePage: React.FC = () => {
 
               <Button variant="outline" className="w-full h-11" onClick={handleDownloadQR}>
                 <Download className="w-4 h-4" /> Shkarko si Foto
+              </Button>
+              <Button variant="secondary" className="w-full h-11" onClick={shareTicket}>
+                <Share2 className="w-4 h-4" /> Ndaj / Kopjo ticket-in
               </Button>
 
               <div className="space-y-3">

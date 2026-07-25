@@ -27,6 +27,11 @@ export interface User {
   institutionId?: string
   favorites?: string[]
   preferredCity?: string
+  notificationPrefs?: {
+    inApp?: boolean
+    email?: boolean
+    sms?: boolean
+  }
   createdAt: Date
 }
 

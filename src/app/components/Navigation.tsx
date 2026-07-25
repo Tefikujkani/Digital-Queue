@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useNotifications } from '../contexts/NotificationContext'
 import type { Language } from '../types'
+import CommandPalette from './CommandPalette'
 import {
   Menu,
   X,
@@ -18,6 +19,8 @@ import {
   Check,
   ChevronDown,
   MapPin,
+  Settings,
+  HelpCircle,
 } from 'lucide-react'
 
 const languages: { code: Language; label: string; native: string }[] = [
@@ -113,6 +116,8 @@ const Navigation: React.FC = () => {
               </Link>
             ))}
 
+            <div className="h-5 w-px bg-white/10 mx-3" />
+            <CommandPalette />
             <div className="h-5 w-px bg-white/10 mx-3" />
 
             <div className="relative" ref={langMenuRef}>
@@ -226,6 +231,24 @@ const Navigation: React.FC = () => {
                 <Button size="sm" className="ml-1" onClick={() => navigate(dashboardPath)}>
                   <LayoutDashboard className="w-4 h-4" />
                   {t('nav.dashboard')}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-xl"
+                  onClick={() => navigate('/settings')}
+                  title="Cilësimet"
+                >
+                  <Settings className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-xl"
+                  onClick={() => navigate('/help')}
+                  title="Ndihma"
+                >
+                  <HelpCircle className="w-4 h-4" />
                 </Button>
                 <Button
                   variant="ghost"

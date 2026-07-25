@@ -11,6 +11,10 @@ import AdminDashboard from './pages/AdminDashboard';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import AppointmentsPage from './pages/AppointmentsPage';
 import CitiesPage from './pages/CitiesPage';
+import SettingsPage from './pages/SettingsPage';
+import HelpPage from './pages/HelpPage';
+import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
 import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -24,7 +28,18 @@ export const router = createBrowserRouter([
       { path: 'register', element: <RegisterPage /> },
       { path: 'institutions', element: <InstitutionsPage /> },
       { path: 'cities', element: <CitiesPage /> },
+      { path: 'help', element: <HelpPage /> },
+      { path: 'privacy', element: <PrivacyPage /> },
+      { path: 'terms', element: <TermsPage /> },
       { path: 'queue/:institutionId', element: <QueuePage /> },
+      {
+        path: 'settings',
+        element: (
+          <ProtectedRoute>
+            <SettingsPage />
+          </ProtectedRoute>
+        ),
+      },
       { 
         path: 'appointments', 
         element: <ProtectedRoute><AppointmentsPage /></ProtectedRoute> 

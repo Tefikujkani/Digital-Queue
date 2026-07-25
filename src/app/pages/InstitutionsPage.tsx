@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useFavorites } from '../contexts/FavoritesContext'
 import api from '../lib/api'
 import type { Institution } from '../types'
+import { getOpenStatus } from '../lib/hours'
 import {
   Building2,
   Hospital,
@@ -283,6 +284,7 @@ const InstitutionsPage: React.FC = () => {
               const wait = stats.estimatedWaitMinutes || 0
               const rating = (institution as any).ratingAvg || 0
               const fav = isFavorite(id)
+              const open = getOpenStatus(institution.workingHours)
 
               return (
                 <div
@@ -307,6 +309,15 @@ const InstitutionsPage: React.FC = () => {
                       <Icon className="w-5 h-5 text-primary" />
                     </div>
                     <div className="flex flex-col items-end gap-2">
+                      <span
+                        className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                          open.isOpen
+                            ? 'wait-low'
+                            : 'bg-destructive/15 text-destructive border border-destructive/25'
+                        }`}
+                      >
+                        {open.isOpen ? '● Hapur' : '● Mbyllur'}
+                      </span>
                       <span
                         className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
                           level === 'low'

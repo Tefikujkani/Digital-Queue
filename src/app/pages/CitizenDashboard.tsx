@@ -19,6 +19,8 @@ import {
   AlertCircle,
   Building2,
   ChevronRight,
+  Download,
+  Settings,
 } from 'lucide-react'
 
 const CitizenDashboard: React.FC = () => {
@@ -67,6 +69,36 @@ const CitizenDashboard: React.FC = () => {
     return service?.name || 'Shërbimi...'
   }
 
+  const exportHistoryCsv = () => {
+    const rows = myTickets.map((ticket) => ({
+      number: ticket.number,
+      status: ticket.status,
+      priority: ticket.priority,
+      institution: getInstitutionName(ticket.institutionId),
+      service: getServiceName(ticket.institutionId, ticket.serviceId),
+      createdAt: ticket.createdAt
+        ? new Date(ticket.createdAt).toISOString()
+        : '',
+      estimatedWait: ticket.estimatedWaitTime,
+    }))
+    if (!rows.length) return
+    const header = Object.keys(rows[0]).join(',')
+    const body = rows
+      .map((r) =>
+        Object.values(r)
+          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+          .join(','),
+      )
+      .join('\n')
+    const blob = new Blob([`${header}\n${body}`], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `smartqueue-historiku-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const hour = new Date().getHours()
   const greeting =
     hour < 12 ? 'Mirëmëngjes' : hour < 18 ? 'Mirëdita' : 'Mirëmbrëma'
@@ -95,9 +127,22 @@ const CitizenDashboard: React.FC = () => {
                 </h1>
               </div>
             </div>
-            <Button className="h-11" onClick={() => navigate('/institutions')}>
-              Merr një numër <ArrowRight className="w-4 h-4" />
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" className="h-11" onClick={() => navigate('/settings')}>
+                <Settings className="w-4 h-4" /> Cilësimet
+              </Button>
+              <Button
+                variant="outline"
+                className="h-11"
+                onClick={exportHistoryCsv}
+                disabled={!myTickets.length}
+              >
+                <Download className="w-4 h-4" /> Eksporto CSV
+              </Button>
+              <Button className="h-11" onClick={() => navigate('/institutions')}>
+                Merr një numër <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>

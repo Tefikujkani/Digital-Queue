@@ -1,25 +1,28 @@
-import Notification from '../models/Notification.js';
-import User from '../models/User.js';
-import { sendEmail, ticketIssuedEmail, ticketCalledEmail, ticketCompletedEmail } from './emailService.js';
-import { sendSMS } from './smsService.js';
+import Notification from '../models/Notification.js'
+import User from '../models/User.js'
+import { sendEmail, ticketIssuedEmail, ticketCalledEmail, ticketCompletedEmail } from './emailService.js'
+import { sendSMS } from './smsService.js'
 
 /**
- * Central notification service — handles in-app, email, SMS
+ * Central notification service — respects user.notificationPrefs
  */
 class NotificationService {
   constructor(io) {
-    this.io = io;
+    this.io = io
   }
 
-  /**
-   * Krijon njoftim dhe e dërgon me të gjitha kanalet
-   */
   async notify(userId, type, title, message, data = {}, channels = {}) {
-    const inApp = channels.inApp !== false; // default true
-    const email = channels.email || false;
-    const sms = channels.sms || false;
+    const user = await User.findById(userId)
+    const prefs = user?.notificationPrefs || {
+      inApp: true,
+      email: true,
+      sms: false,
+    }
 
-    // 1. Ruaj njoftimin në bazë
+    const inApp = channels.inApp !== false && prefs.inApp !== false
+    const email = Boolean(channels.email) && prefs.email !== false
+    const sms = Boolean(channels.sms) && prefs.sms === true
+
     const notification = await Notification.create({
       userId,
       type,
@@ -27,9 +30,8 @@ class NotificationService {
       message,
       data,
       channels: { inApp, email, sms },
-    });
+    })
 
-    // 2. Real-time via Socket.io
     if (inApp && this.io) {
       this.io.to(`user_${userId}`).emit('notification', {
         id: notification._id,
@@ -39,51 +41,48 @@ class NotificationService {
         data,
         read: false,
         createdAt: notification.createdAt,
-      });
+      })
     }
 
-    // 3. Email
-    if (email) {
+    if (email && user?.email) {
       try {
-        const user = await User.findById(userId);
-        if (user?.email) {
-          let emailContent;
-          switch (type) {
-            case 'ticket_issued':
-              emailContent = ticketIssuedEmail(user.name, data.ticketNumber, data.institutionName, data.scheduledAt, data.serviceName);
-              break;
-            case 'ticket_called':
-              emailContent = ticketCalledEmail(user.name, data.ticketNumber, data.counterId);
-              break;
-            case 'ticket_completed':
-              emailContent = ticketCompletedEmail(user.name, data.ticketNumber);
-              break;
-            default:
-              emailContent = { subject: title, html: `<p>${message}</p>` };
-          }
-          await sendEmail(user.email, emailContent.subject, emailContent.html);
+        let emailContent
+        switch (type) {
+          case 'ticket_issued':
+            emailContent = ticketIssuedEmail(
+              user.name,
+              data.ticketNumber,
+              data.institutionName,
+              data.scheduledAt,
+              data.serviceName,
+            )
+            break
+          case 'ticket_called':
+            emailContent = ticketCalledEmail(user.name, data.ticketNumber, data.counterId)
+            break
+          case 'ticket_completed':
+            emailContent = ticketCompletedEmail(user.name, data.ticketNumber)
+            break
+          default:
+            emailContent = { subject: title, html: `<p>${message}</p>` }
         }
+        await sendEmail(user.email, emailContent.subject, emailContent.html)
       } catch (err) {
-        console.error('Email notification failed:', err.message);
+        console.error('Email notification failed:', err.message)
       }
     }
 
-    // 4. SMS
-    if (sms) {
+    if (sms && user?.phone) {
       try {
-        const user = await User.findById(userId);
-        if (user?.phone) {
-          await sendSMS(user.phone, message);
-        }
+        await sendSMS(user.phone, message)
       } catch (err) {
-        console.error('SMS notification failed:', err.message);
+        console.error('SMS notification failed:', err.message)
       }
     }
 
-    return notification;
+    return notification
   }
 
-  // Shorthand: Bileta e re u lëshua
   async ticketIssued(userId, ticket, institutionName, serviceName) {
     return this.notify(
       userId,
@@ -98,11 +97,10 @@ class NotificationService {
         serviceName,
         scheduledAt: ticket.scheduledAt,
       },
-      { inApp: true, email: true, sms: true }
-    );
+      { inApp: true, email: true, sms: true },
+    )
   }
 
-  // Shorthand: Bileta u thirr
   async ticketCalled(userId, ticket, institutionName) {
     return this.notify(
       userId,
@@ -116,11 +114,10 @@ class NotificationService {
         institutionName,
         counterId: ticket.counterId,
       },
-      { inApp: true, email: true, sms: true }
-    );
+      { inApp: true, email: true, sms: true },
+    )
   }
 
-  // Shorthand: Shërbimi u përfundua
   async ticketCompleted(userId, ticket) {
     return this.notify(
       userId,
@@ -131,9 +128,9 @@ class NotificationService {
         ticketId: ticket._id.toString(),
         ticketNumber: ticket.number,
       },
-      { inApp: true, email: true }
-    );
+      { inApp: true, email: true },
+    )
   }
 }
 
-export default NotificationService;
+export default NotificationService

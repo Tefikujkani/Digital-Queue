@@ -314,9 +314,73 @@ const seedData = async () => {
         contact: { phone: '038 200 195', email: 'qra.prishtina@rks-gov.net', website: 'mpb.rks-gov.net' },
         workingHours: { open: '08:00', close: '16:00' },
         services: [
-          { name: 'Vazhdimi i Regjistrimit', description: 'Për të gjitha mjetet motorike', estimatedTime: 15 },
-          { name: 'Ndërrimi i Pronarit', description: 'Kontrata dhe transferi', estimatedTime: 25 },
-          { name: 'Targat (KS/RKS)', description: 'Pajisja me targa të reja', estimatedTime: 20 }
+          { name: 'Vazhdimi i Regjistrimit', description: 'Për të gjitha mjetet motorike', estimatedTime: 15, requiredDocuments: ['Letërnjoftimi', 'Certifikata e sigurimit', 'Fatura e taksave'] },
+          { name: 'Ndërrimi i Pronarit', description: 'Kontrata dhe transferi', estimatedTime: 25, requiredDocuments: ['Letërnjoftimi', 'Kontrata e shitjes', 'Certifikata e regjistrimit'] },
+          { name: 'Targat (KS/RKS)', description: 'Pajisja me targa të reja', estimatedTime: 20, requiredDocuments: ['Letërnjoftimi', 'Vendimi i Gjykatës / Autorizimi'] }
+        ]
+      },
+      {
+        name: 'Komuna e Ferizajt',
+        type: 'municipality',
+        location: { address: 'Sheshi Dëshmorët e Kombit', city: 'Ferizaj', lat: 42.3709, lng: 21.1553 },
+        contact: { phone: '0290 326 100', email: 'info@ferizaj-gov.net', website: 'kk.rks-gov.net/ferizaj' },
+        workingHours: { open: '08:00', close: '16:00' },
+        services: [
+          { name: 'Certifikata të lindjes', description: 'Ekstrakte gjendje civile', estimatedTime: 15, requiredDocuments: ['Letërnjoftimi', 'Numri personal'] },
+          { name: 'Leje ndërtimi', description: 'Aplikime komunale', estimatedTime: 30, requiredDocuments: ['Plan urbanistik', 'Pronësia'] }
+        ]
+      },
+      {
+        name: 'Spitali i Përgjithshëm Ferizaj',
+        type: 'hospital',
+        location: { address: 'Rruga e Spitalit', city: 'Ferizaj', lat: 42.3750, lng: 21.1600 },
+        contact: { phone: '0290 321 122', email: 'spitali.ferizaj@rks-gov.net' },
+        workingHours: { open: '07:00', close: '20:00' },
+        services: [
+          { name: 'Ambulancë', description: 'Kontrollë e përgjithshme', estimatedTime: 20, requiredDocuments: ['Letërnjoftimi', 'Kartela shëndetësore'] },
+          { name: 'Laborator', description: 'Analiza laboratorike', estimatedTime: 15, requiredDocuments: ['Receta / Udhëzimi i mjekut'] }
+        ]
+      },
+      {
+        name: 'Komuna e Gjakovës',
+        type: 'municipality',
+        location: { address: 'Sheshi i Çarshisë', city: 'Gjakovë', lat: 42.3803, lng: 20.4308 },
+        contact: { phone: '0390 320 100', email: 'info@gjakova-gov.net' },
+        workingHours: { open: '08:00', close: '16:00' },
+        services: [
+          { name: 'Dokumente personale', description: 'Certifikata dhe vërtetime', estimatedTime: 15, requiredDocuments: ['Letërnjoftimi'] },
+          { name: 'Taksa komunale', description: 'Pagesa dhe vërtetime', estimatedTime: 10, requiredDocuments: ['Letërnjoftimi', 'Fatura'] }
+        ]
+      },
+      {
+        name: 'Komuna e Podujevës',
+        type: 'municipality',
+        location: { address: 'Qendra e Qytetit', city: 'Podujevë', lat: 42.9106, lng: 21.1931 },
+        contact: { phone: '038 571 100', email: 'info@podujeve-gov.net' },
+        workingHours: { open: '08:00', close: '16:00' },
+        services: [
+          { name: 'Gjendja civile', description: 'Certifikata dhe regjistrime', estimatedTime: 15, requiredDocuments: ['Letërnjoftimi', 'Numri personal'] }
+        ]
+      },
+      {
+        name: 'Komuna e Vushtrrisë',
+        type: 'municipality',
+        location: { address: 'Sheshi i Qytetit', city: 'Vushtrri', lat: 42.8231, lng: 20.9675 },
+        contact: { phone: '028 572 100', email: 'info@vushtrri-gov.net' },
+        workingHours: { open: '08:00', close: '16:00' },
+        services: [
+          { name: 'Shërbime administrative', description: 'Vërtetime dhe aplikime', estimatedTime: 15, requiredDocuments: ['Letërnjoftimi'] }
+        ]
+      },
+      {
+        name: 'Banka Ekonomike — Filiala Ferizaj',
+        type: 'bank',
+        location: { address: 'Rruga e Qendrës', city: 'Ferizaj', lat: 42.3715, lng: 21.1560 },
+        contact: { phone: '038 222 222', email: 'info@bekonomike.com' },
+        workingHours: { open: '08:30', close: '16:30' },
+        services: [
+          { name: 'Hapje llogarie', description: 'Llogari personale', estimatedTime: 25, requiredDocuments: ['Letërnjoftimi', 'Vërtetim adrese'] },
+          { name: 'Kredi personale', description: 'Aplikim kredie', estimatedTime: 40, requiredDocuments: ['Letërnjoftimi', 'Vërtetim page'] }
         ]
       }
     ];

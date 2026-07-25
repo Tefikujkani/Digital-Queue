@@ -21,6 +21,7 @@ const RootLayout: React.FC = () => {
         </main>
         <Toaster position="top-right" expand={true} richColors theme="dark" />
         <Chatbot />
+        {/* Command palette triggered from Navigation / ⌘K */}
 
         <footer className="border-t border-white/6 py-16 mt-8 relative">
           <div className="container mx-auto max-w-6xl px-5">
@@ -98,12 +99,15 @@ const RootLayout: React.FC = () => {
             <div className="border-t border-white/6 mt-14 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground">
               <p>&copy; 2026 SmartQueue Kosova. Të gjitha të drejtat e rezervuara.</p>
               <div className="flex gap-6">
-                <a href="#" className="hover:text-primary transition-colors">
+                <Link to="/help" className="hover:text-primary transition-colors">
+                  Ndihma
+                </Link>
+                <Link to="/privacy" className="hover:text-primary transition-colors">
                   Privatësia
-                </a>
-                <a href="#" className="hover:text-primary transition-colors">
+                </Link>
+                <Link to="/terms" className="hover:text-primary transition-colors">
                   Kushtet e Përdorimit
-                </a>
+                </Link>
               </div>
             </div>
           </div>
