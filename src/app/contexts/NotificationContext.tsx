@@ -61,20 +61,28 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return;
     }
 
-    let currentIndex = 0;
-    let newSocket = io(SOCKET_CANDIDATES[currentIndex], { transports: ['websocket'] });
+    let currentIndex = 0
+    const token = localStorage.getItem('smartqueue_token') || undefined
+    let newSocket = io(SOCKET_CANDIDATES[currentIndex], {
+      transports: ['websocket'],
+      auth: token ? { token } : undefined,
+    })
 
     newSocket.on('connect_error', () => {
       if (currentIndex < SOCKET_CANDIDATES.length - 1) {
         currentIndex++;
         newSocket.close();
-        newSocket = io(SOCKET_CANDIDATES[currentIndex], { transports: ['websocket'] });
+        const t = localStorage.getItem('smartqueue_token') || undefined
+        newSocket = io(SOCKET_CANDIDATES[currentIndex], {
+          transports: ['websocket'],
+          auth: t ? { token: t } : undefined,
+        });
       }
     });
 
     newSocket.on('connect', () => {
-      // Join a private room for this user to receive direct notifications
-      newSocket.emit('join_institution', `user_${user.id || (user as any)._id}`);
+      const uid = user.id || (user as any)._id
+      if (uid) newSocket.emit('join_user', uid)
     });
 
     newSocket.on('notification', (newNotif: AppNotification) => {

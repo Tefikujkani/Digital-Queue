@@ -1,19 +1,22 @@
-import express from 'express';
-import { 
-  issueTicket, 
-  callNextTicket, 
-  updateTicketStatus, 
+import express from 'express'
+import {
+  issueTicket,
+  callNextTicket,
+  updateTicketStatus,
   getTickets,
-  simulateSMSNotification
-} from '../controllers/ticketController.js';
-import { protect, admin } from '../middlewares/authMiddleware.js';
+  checkInTicket,
+  getSlotAvailability,
+} from '../controllers/ticketController.js'
+import { protect, admin } from '../middlewares/authMiddleware.js'
+import { ticketLimiter } from '../middlewares/rateLimiters.js'
 
-const router = express.Router();
+const router = express.Router()
 
-router.get('/', getTickets);
-router.post('/', protect, issueTicket);
-router.post('/call-next', protect, admin, callNextTicket);
-router.put('/:id/status', protect, updateTicketStatus);
-router.post('/simulate-sms', simulateSMSNotification);
+router.get('/', getTickets)
+router.get('/slots', getSlotAvailability)
+router.post('/', protect, ticketLimiter, issueTicket)
+router.post('/call-next', protect, admin, callNextTicket)
+router.post('/check-in', protect, admin, checkInTicket)
+router.put('/:id/status', protect, updateTicketStatus)
 
-export default router;
+export default router

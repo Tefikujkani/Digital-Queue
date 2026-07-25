@@ -1,5 +1,5 @@
 import express from 'express'
-import { protect } from '../middlewares/authMiddleware.js'
+import { protect, admin } from '../middlewares/authMiddleware.js'
 import {
   createOrUpdateRating,
   getInstitutionRatings,
@@ -18,7 +18,7 @@ router.get('/wait-stats', getBatchWaitStats)
 router.get('/wait-stats/:id', getPublicWaitStats)
 router.get('/ratings/:id', getInstitutionRatings)
 router.post('/ratings', protect, createOrUpdateRating)
-router.get('/sms-providers', (_req, res) => {
+router.get('/sms-providers', protect, admin, (_req, res) => {
   res.json(getSmsProviderStatus())
 })
 

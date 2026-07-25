@@ -9,9 +9,11 @@ import express from 'express'
 import http from 'http'
 import { Server } from 'socket.io'
 import cors from 'cors'
+import helmet from 'helmet'
+import jwt from 'jsonwebtoken'
+import mongoose from 'mongoose'
 import connectDB from './config/db.js'
 
-// Route imports
 import authRoutes from './routes/authRoutes.js'
 import institutionRoutes from './routes/institutionRoutes.js'
 import ticketRoutes from './routes/ticketRoutes.js'
@@ -24,43 +26,105 @@ import telegramRoutes from './routes/telegramRoutes.js'
 import NotificationService from './services/notificationService.js'
 import { startAppointmentReminderJob } from './services/reminderJob.js'
 import { startTelegramPoller, isTelegramConfigured } from './services/telegramService.js'
+import { globalLimiter } from './middlewares/rateLimiters.js'
+import { notFound, errorHandler } from './middlewares/errorHandler.js'
+import User from './models/User.js'
+
+const isProd = process.env.NODE_ENV === 'production'
+const clientUrl = process.env.CLIENT_URL || 'http://localhost:5178'
+
+if (isProd) {
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 16) {
+    console.error('❌ JWT_SECRET i dobët — ndalo startin në production')
+    process.exit(1)
+  }
+  if (!process.env.CLIENT_URL) {
+    console.error('❌ CLIENT_URL mungon në production')
+    process.exit(1)
+  }
+}
 
 const app = express()
 let io = null
 let server = null
 
-// Attach io to request object for use in controllers
+app.set('trust proxy', 1)
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  }),
+)
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true)
+      const allowed = [clientUrl, 'http://localhost:5173', 'http://localhost:5178'].filter(Boolean)
+      if (!isProd || allowed.includes(origin)) return cb(null, true)
+      return cb(new Error('CORS i bllokuar'))
+    },
+    credentials: true,
+  }),
+)
+app.use(express.json({ limit: '100kb' }))
+app.use(express.urlencoded({ extended: true, limit: '100kb' }))
+app.use(globalLimiter)
+
 app.use((req, res, next) => {
   req.io = io
   req.notificationService = new NotificationService(io)
   next()
 })
 
-// Middlewares
-app.use(cors())
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
-
 const createSocketServer = (httpServer) => {
   io = new Server(httpServer, {
     cors: {
-      origin: process.env.CLIENT_URL || '*',
+      origin: isProd ? clientUrl : [clientUrl, 'http://localhost:5173', 'http://localhost:5178'],
       methods: ['GET', 'POST', 'PUT', 'DELETE'],
       credentials: true,
     },
   })
 
+  io.use(async (socket, next) => {
+    try {
+      const token =
+        socket.handshake.auth?.token ||
+        socket.handshake.headers?.authorization?.replace('Bearer ', '')
+      if (!token) {
+        socket.data.guest = true
+        return next()
+      }
+      const decoded = jwt.verify(token, process.env.JWT_SECRET)
+      const user = await User.findById(decoded.id).select('-password')
+      if (!user) return next(new Error('Unauthorized'))
+      socket.data.user = user
+      next()
+    } catch {
+      next(new Error('Unauthorized'))
+    }
+  })
+
   io.on('connection', (socket) => {
-    console.log('⚡ Client connected:', socket.id)
+    const user = socket.data.user
+    if (user) {
+      socket.join(`user_${user._id}`)
+      console.log(`⚡ ${user.email} connected:`, socket.id)
+    } else {
+      console.log('⚡ Guest connected:', socket.id)
+    }
 
     socket.on('join_institution', (institutionId) => {
-      socket.join(institutionId)
-      console.log(`👤 User ${socket.id} joined institution: ${institutionId}`)
+      if (!institutionId) return
+      // Ekrani publik i radhës lejohet; dhoma user_ vetëm për veten
+      socket.join(String(institutionId))
+    })
+
+    socket.on('join_user', (userId) => {
+      if (!user || user._id.toString() !== String(userId)) return
+      socket.join(`user_${userId}`)
     })
 
     socket.on('leave_institution', (institutionId) => {
-      socket.leave(institutionId)
-      console.log(`👤 User ${socket.id} left institution: ${institutionId}`)
+      socket.leave(String(institutionId))
     })
 
     socket.on('disconnect', () => {
@@ -69,10 +133,23 @@ const createSocketServer = (httpServer) => {
   })
 }
 
-// Database connection
 connectDB()
 
-// API Routes
+app.get('/health', (_req, res) => {
+  res.json({
+    ok: true,
+    service: 'SmartQueue Kosova API',
+    env: process.env.NODE_ENV || 'development',
+    time: new Date().toISOString(),
+  })
+})
+
+app.get('/ready', async (_req, res) => {
+  const dbOk = mongoose.connection.readyState === 1
+  if (!dbOk) return res.status(503).json({ ok: false, db: 'down' })
+  res.json({ ok: true, db: 'up' })
+})
+
 app.use('/api/auth', authRoutes)
 app.use('/api/institutions', institutionRoutes)
 app.use('/api/tickets', ticketRoutes)
@@ -83,9 +160,17 @@ app.use('/api/favorites', favoriteRoutes)
 app.use('/api/citizen', citizenRoutes)
 app.use('/api/telegram', telegramRoutes)
 
-app.get('/', (req, res) => {
-  res.send('SmartQueue Kosova API - Advanced Backend Running')
+app.get('/', (_req, res) => {
+  res.json({
+    name: 'SmartQueue Kosova API',
+    version: '2.0.0',
+    health: '/health',
+    ready: '/ready',
+  })
 })
+
+app.use(notFound)
+app.use(errorHandler)
 
 const DEFAULT_PORT = Number(process.env.PORT) || 5000
 const MAX_PORT_RETRIES = 5
@@ -101,13 +186,9 @@ const startServer = (port, attempt = 0) => {
       )
       startAppointmentReminderJob(io)
       if (isTelegramConfigured()) {
-        startTelegramPoller().catch((err) =>
-          console.warn('Telegram poller:', err.message),
-        )
+        startTelegramPoller().catch((err) => console.warn('Telegram poller:', err.message))
       } else {
-        console.log(
-          '💡 Telegram OFF — vendos TELEGRAM_BOT_TOKEN (nga @BotFather) për njoftime falas',
-        )
+        console.log('💡 Telegram OFF — vendos TELEGRAM_BOT_TOKEN për njoftime falas')
       }
     })
     .once('error', (error) => {

@@ -51,6 +51,14 @@ const userSchema = mongoose.Schema({
     email: { type: Boolean, default: true },
     sms: { type: Boolean, default: false },
     telegram: { type: Boolean, default: false }
+  },
+  resetPasswordToken: {
+    type: String,
+    select: false
+  },
+  resetPasswordExpires: {
+    type: Date,
+    select: false
   }
 }, {
   timestamps: true
@@ -58,10 +66,11 @@ const userSchema = mongoose.Schema({
 
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) {
-    next();
+    return next();
   }
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
 
 userSchema.methods.matchPassword = async function(enteredPassword) {

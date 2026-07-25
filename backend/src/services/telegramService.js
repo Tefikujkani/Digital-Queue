@@ -232,6 +232,7 @@ export async function startTelegramPoller() {
       await tgApi('setWebhook', {
         url: `${process.env.TELEGRAM_WEBHOOK_URL.replace(/\/$/, '')}/api/telegram/webhook`,
         drop_pending_updates: true,
+        secret_token: process.env.TELEGRAM_WEBHOOK_SECRET || undefined,
       })
       console.log('📱 Telegram webhook aktiv')
       return

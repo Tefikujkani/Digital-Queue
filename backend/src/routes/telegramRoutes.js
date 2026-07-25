@@ -40,8 +40,17 @@ router.post('/unlink', protect, async (req, res) => {
   }
 })
 
-/** Webhook (prod me URL publike) */
+/** Webhook (prod me URL publike) — kërkon secret */
 router.post('/webhook', async (req, res) => {
+  const secret = process.env.TELEGRAM_WEBHOOK_SECRET
+  if (secret) {
+    const header = req.get('X-Telegram-Bot-Api-Secret-Token')
+    if (header !== secret) {
+      return res.sendStatus(401)
+    }
+  } else if (process.env.NODE_ENV === 'production') {
+    return res.status(503).json({ message: 'TELEGRAM_WEBHOOK_SECRET mungon' })
+  }
   res.sendStatus(200)
   try {
     await handleTelegramUpdate(req.body)

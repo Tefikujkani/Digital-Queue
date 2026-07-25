@@ -17,8 +17,12 @@ import {
   CheckCircle,
   XCircle,
   LayoutDashboard,
-  Zap
+  Zap,
+  QrCode,
+  Loader2,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { Input } from '../components/ui/input';
 import { Line, Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -57,6 +61,8 @@ const AdminDashboard: React.FC = () => {
   const [selectedCounter, setSelectedCounter] = useState('');
   const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [qrInput, setQrInput] = useState('');
+  const [checkingIn, setCheckingIn] = useState(false);
 
   const instId = user?.institutionId || (user as any)?._id || (user as any)?.id;
 
@@ -116,6 +122,23 @@ const AdminDashboard: React.FC = () => {
     );
     if (servingTicket) {
       await completeTicket(servingTicket.id || (servingTicket as any)._id!);
+    }
+  };
+
+  const handleCheckIn = async () => {
+    if (!qrInput.trim() || !instId) return;
+    setCheckingIn(true);
+    try {
+      const { data } = await api.post('/tickets/check-in', {
+        qrCode: qrInput.trim(),
+        institutionId: instId,
+      });
+      toast.success(`Check-in OK · ${data.ticket?.number || ''}`);
+      setQrInput('');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Check-in dështoi');
+    } finally {
+      setCheckingIn(false);
     }
   };
 
@@ -250,6 +273,31 @@ const AdminDashboard: React.FC = () => {
                   <CheckCircle className="w-5 h-5 mr-2 text-emerald-500" /> {t('dashboard.completeService')}
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* QR Check-in */}
+          <Card className="border border-sky-500/25 rounded-2xl lg:col-span-3">
+            <CardHeader className="border-b border-border pb-4">
+              <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                <QrCode className="w-5 h-5 text-sky-400" /> Check-in me QR
+              </CardTitle>
+              <CardDescription>
+                Skano ose ngjit kodin QR të biletës së qytetarit për check-in në sportele.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-5 flex flex-col sm:flex-row gap-3">
+              <Input
+                value={qrInput}
+                onChange={(e) => setQrInput(e.target.value)}
+                placeholder="SQK:… ose ngjit kodin QR"
+                className="h-12 rounded-xl flex-1"
+                onKeyDown={(e) => e.key === 'Enter' && handleCheckIn()}
+              />
+              <Button className="h-12 rounded-xl px-6" onClick={handleCheckIn} disabled={checkingIn || !qrInput.trim()}>
+                {checkingIn ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
+                Check-in
+              </Button>
             </CardContent>
           </Card>
 

@@ -12,11 +12,13 @@ const SOCKET_CANDIDATES = [
 ].filter(Boolean) as string[]
 
 const createSocketConnection = () => {
+  const token = localStorage.getItem('smartqueue_token') || undefined
   let currentIndex = 0
   let socket = io(SOCKET_CANDIDATES[currentIndex], {
     transports: ['websocket'],
     reconnection: false,
     autoConnect: false,
+    auth: token ? { token } : undefined,
   })
 
   const connect = () => {
@@ -27,10 +29,12 @@ const createSocketConnection = () => {
     if (currentIndex < SOCKET_CANDIDATES.length - 1) {
       currentIndex += 1
       socket.close()
+      const t = localStorage.getItem('smartqueue_token') || undefined
       socket = io(SOCKET_CANDIDATES[currentIndex], {
         transports: ['websocket'],
         reconnection: false,
         autoConnect: false,
+        auth: t ? { token: t } : undefined,
       })
       connect()
     }
@@ -119,12 +123,24 @@ export const QueueProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [])
 
-  // Fetch initial tickets
+  // Fetch initial tickets (scoped by role)
   useEffect(() => {
     const fetchTickets = async () => {
       try {
-        const response = await api.get('/tickets')
-        const normalizedTickets = response.data.map(normalize)
+        const saved = localStorage.getItem('smartqueue_current_user')
+        const user = saved ? JSON.parse(saved) : null
+        const url =
+          user?.role === 'admin' || user?.role === 'superadmin'
+            ? '/tickets'
+            : user
+              ? '/tickets?mine=1'
+              : null
+        if (!url) {
+          setTickets([])
+          return
+        }
+        const response = await api.get(url)
+        const normalizedTickets = (response.data || []).map(normalize)
         setTickets(normalizedTickets)
       } catch (error) {
         console.error('Failed to fetch tickets:', error)
@@ -249,7 +265,11 @@ export const QueueProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const getWaitingTickets = useCallback(
     (institutionId: string): Ticket[] => {
-      return tickets.filter((t) => t.institutionId === institutionId && t.status === 'waiting')
+      return tickets.filter(
+        (t) =>
+          t.institutionId === institutionId &&
+          (t.status === 'waiting' || (t as any).status === 'checked_in'),
+      )
     },
     [tickets],
   )

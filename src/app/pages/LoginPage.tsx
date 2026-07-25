@@ -102,6 +102,11 @@ const LoginPage: React.FC = () => {
           </div>
 
           <div className="mt-6 space-y-3 text-center">
+            <p className="text-sm">
+              <Link to="/forgot-password" className="text-primary font-medium hover:underline">
+                Harruat fjalëkalimin?
+              </Link>
+            </p>
             <p className="text-sm text-muted-foreground">
               {t('auth.dontHaveAccount')}{' '}
               <Link to="/register" className="text-primary font-semibold hover:underline">

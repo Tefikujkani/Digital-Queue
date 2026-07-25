@@ -21,6 +21,8 @@ import {
   ExternalLink,
   Unplug,
   Loader2,
+  KeyRound,
+  Trash2,
 } from 'lucide-react'
 
 const SettingsPage: React.FC = () => {
@@ -42,6 +44,10 @@ const SettingsPage: React.FC = () => {
   const [linking, setLinking] = useState(false)
   const [unlinking, setUnlinking] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [deletePassword, setDeletePassword] = useState('')
+  const [pwLoading, setPwLoading] = useState(false)
 
   const linked = Boolean(user?.telegramChatId)
 
@@ -104,6 +110,32 @@ const SettingsPage: React.FC = () => {
       toast.error(err?.response?.data?.message || 'Shkëputja dështoi')
     } finally {
       setUnlinking(false)
+    }
+  }
+
+  const changePw = async () => {
+    setPwLoading(true)
+    try {
+      await api.put('/auth/password', { currentPassword, newPassword })
+      toast.success('Fjalëkalimi u ndryshua')
+      setCurrentPassword('')
+      setNewPassword('')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Ndryshimi dështoi')
+    } finally {
+      setPwLoading(false)
+    }
+  }
+
+  const deleteMe = async () => {
+    if (!deletePassword || !confirm('Je i sigurt? Llogaria fshihet përgjithmonë.')) return
+    try {
+      await api.delete('/auth/me', { data: { password: deletePassword } })
+      toast.success('Llogaria u fshi')
+      localStorage.clear()
+      window.location.href = '/'
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Fshirja dështoi')
     }
   }
 
@@ -310,6 +342,56 @@ const SettingsPage: React.FC = () => {
               </Label>
               <Input value={user?.name || ''} disabled className="h-11" />
               <Input value={user?.email || ''} disabled className="h-11" />
+            </div>
+
+            <div className="surface-card rounded-2xl p-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <KeyRound className="w-4 h-4 text-primary" />
+                <h2 className="font-semibold">Ndrysho fjalëkalimin</h2>
+              </div>
+              <Input
+                type="password"
+                placeholder="Fjalëkalimi aktual"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="h-11"
+              />
+              <Input
+                type="password"
+                placeholder="Fjalëkalimi i ri (min. 8)"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="h-11"
+              />
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={changePw}
+                disabled={pwLoading || !currentPassword || newPassword.length < 8}
+              >
+                {pwLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                Ruaj fjalëkalimin
+              </Button>
+            </div>
+
+            <div className="surface-card rounded-2xl p-5 space-y-3 border border-destructive/30">
+              <div className="flex items-center gap-2">
+                <Trash2 className="w-4 h-4 text-destructive" />
+                <h2 className="font-semibold text-destructive">Fshi llogarinë</h2>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Fshin të dhënat personale (LPDP). Terminet aktive anulohen.
+              </p>
+              <Input
+                type="password"
+                placeholder="Konfirmo me fjalëkalimin"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                className="h-11"
+              />
+              <Button variant="destructive" className="w-full" onClick={deleteMe}>
+                <Trash2 className="w-4 h-4" /> Fshi përgjithmonë
+              </Button>
             </div>
 
             <Button className="w-full h-12" onClick={save} disabled={saving}>

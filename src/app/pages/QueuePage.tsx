@@ -23,12 +23,13 @@ import { useAuth } from '../contexts/AuthContext'
 import { useQueue } from '../contexts/QueueContext'
 import api from '../lib/api'
 import type { Institution, Service } from '../types'
-import { QRCodeSVG } from 'qrcode.react'
+import { QRCodeCanvas } from 'qrcode.react'
 import {
   Clock,
   Users,
   Ticket as TicketIcon,
   Download,
+  Printer,
   X,
   ChevronLeft,
   ShieldAlert,
@@ -74,14 +75,16 @@ const QueuePage: React.FC = () => {
   const [ratingScore, setRatingScore] = useState(0)
   const [ratingComment, setRatingComment] = useState('')
   const [docsChecked, setDocsChecked] = useState<Record<string, boolean>>({})
+  const [boardTickets, setBoardTickets] = useState<any[]>([])
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [instRes, servRes, statsRes] = await Promise.all([
+        const [instRes, servRes, statsRes, boardRes] = await Promise.all([
           api.get(`/institutions/${institutionId}`).catch(() => ({ data: null })),
           api.get(`/institutions/${institutionId}/services`).catch(() => ({ data: [] })),
           api.get(`/citizen/wait-stats/${institutionId}`).catch(() => ({ data: null })),
+          api.get(`/tickets?institutionId=${institutionId}`).catch(() => ({ data: [] })),
         ])
         const inst = instRes.data
         setInstitution(inst)
@@ -98,6 +101,7 @@ const QueuePage: React.FC = () => {
           })),
         )
         setWaitStats(statsRes.data)
+        setBoardTickets(boardRes.data || [])
       } catch (error) {
         console.error('Failed to fetch institution details:', error)
       } finally {
@@ -107,7 +111,12 @@ const QueuePage: React.FC = () => {
     if (institutionId) fetchData()
   }, [institutionId])
 
-  const waitingTickets = institutionId ? getWaitingTickets(institutionId) : []
+  const waitingTickets =
+    boardTickets.length > 0
+      ? boardTickets.filter((t) => ['waiting', 'checked_in'].includes(t.status))
+      : institutionId
+        ? getWaitingTickets(institutionId)
+        : []
   const waitMins = waitStats?.estimatedWaitMinutes ?? waitingTickets.length * 5
   const waitClass =
     waitMins < 20 ? 'wait-low' : waitMins < 40 ? 'wait-medium' : 'wait-high'
@@ -238,14 +247,20 @@ const QueuePage: React.FC = () => {
   }
 
   const handleDownloadQR = () => {
-    const canvas = document.querySelector('canvas')
-    if (canvas) {
-      const url = canvas.toDataURL('image/png')
-      const link = document.createElement('a')
-      link.download = `ticket-${currentTicket?.number}.png`
-      link.href = url
-      link.click()
+    const canvas = document.getElementById('ticket-qr-canvas') as HTMLCanvasElement | null
+    if (!canvas || !currentTicket) {
+      toast.error('QR nuk u gjet')
+      return
     }
+    const url = canvas.toDataURL('image/png')
+    const link = document.createElement('a')
+    link.download = `smartqueue-${currentTicket.number}.png`
+    link.href = url
+    link.click()
+  }
+
+  const handlePrintTicket = () => {
+    window.print()
   }
 
   const handleCancelTicket = async () => {
@@ -718,17 +733,20 @@ const QueuePage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-5 rounded-2xl bg-white flex flex-col items-center">
-                <QRCodeSVG value={currentTicket.qrCode} size={160} />
+              <div className="p-5 rounded-2xl bg-white flex flex-col items-center print:shadow-none" id="ticket-print-area">
+                <QRCodeCanvas id="ticket-qr-canvas" value={currentTicket.qrCode || currentTicket.number} size={160} />
                 <p className="text-xs text-gray-500 mt-3 font-medium">
                   {institution.name} · Slot #{currentTicket.number}
                 </p>
               </div>
 
-              <Button variant="outline" className="w-full h-11" onClick={handleDownloadQR}>
+              <Button variant="outline" className="w-full h-11 print:hidden" onClick={handleDownloadQR}>
                 <Download className="w-4 h-4" /> {t('queue.downloadPhoto')}
               </Button>
-              <Button variant="secondary" className="w-full h-11" onClick={shareTicket}>
+              <Button variant="outline" className="w-full h-11 print:hidden" onClick={handlePrintTicket}>
+                <Printer className="w-4 h-4" /> Printo biletën
+              </Button>
+              <Button variant="secondary" className="w-full h-11 print:hidden" onClick={shareTicket}>
                 <Share2 className="w-4 h-4" /> Ndaj / Kopjo ticket-in
               </Button>
 
