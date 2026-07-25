@@ -376,8 +376,6 @@ const SettingsPage: React.FC = () => {
               )}
             </div>
 
-            </div>
-
             {/* Free SMS status */}
             <div className="surface-card rounded-2xl p-5 space-y-3 border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-transparent">
               <div className="flex items-center gap-2">
