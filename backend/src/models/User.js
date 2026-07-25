@@ -34,10 +34,15 @@ const userSchema = mongoose.Schema({
     type: String,
     default: 'Prishtinë'
   },
+  telegramChatId: {
+    type: String,
+    default: ''
+  },
   notificationPrefs: {
     inApp: { type: Boolean, default: true },
     email: { type: Boolean, default: true },
-    sms: { type: Boolean, default: false }
+    sms: { type: Boolean, default: false },
+    telegram: { type: Boolean, default: false }
   }
 }, {
   timestamps: true

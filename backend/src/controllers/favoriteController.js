@@ -47,16 +47,22 @@ export const updateCitizenPrefs = async (req, res) => {
     if (req.body.preferredCity !== undefined) {
       user.preferredCity = String(req.body.preferredCity).slice(0, 80)
     }
+    if (req.body.telegramChatId !== undefined) {
+      user.telegramChatId = String(req.body.telegramChatId).trim().slice(0, 64)
+    }
     if (req.body.notificationPrefs) {
       user.notificationPrefs = {
         inApp: req.body.notificationPrefs.inApp ?? user.notificationPrefs?.inApp ?? true,
         email: req.body.notificationPrefs.email ?? user.notificationPrefs?.email ?? true,
         sms: req.body.notificationPrefs.sms ?? user.notificationPrefs?.sms ?? false,
+        telegram:
+          req.body.notificationPrefs.telegram ?? user.notificationPrefs?.telegram ?? false,
       }
     }
     await user.save()
     res.json({
       preferredCity: user.preferredCity,
+      telegramChatId: user.telegramChatId,
       notificationPrefs: user.notificationPrefs,
       favorites: user.favorites,
     })

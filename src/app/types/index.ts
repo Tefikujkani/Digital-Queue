@@ -31,7 +31,9 @@ export interface User {
     inApp?: boolean
     email?: boolean
     sms?: boolean
+    telegram?: boolean
   }
+  telegramChatId?: string
   createdAt: Date
 }
 

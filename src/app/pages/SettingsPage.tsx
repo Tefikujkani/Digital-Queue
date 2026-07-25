@@ -16,14 +16,26 @@ import {
   Smartphone,
   Save,
   ArrowLeft,
+  Send,
+  Radio,
 } from 'lucide-react'
+
+type ProviderInfo = { configured: boolean; note: string }
 
 const SettingsPage: React.FC = () => {
   const navigate = useNavigate()
   const { user, isAuthenticated, refreshUser } = useAuth()
   const [cities, setCities] = useState<{ name: string }[]>([])
   const [preferredCity, setPreferredCity] = useState('Prishtinë')
-  const [prefs, setPrefs] = useState({ inApp: true, email: true, sms: false })
+  const [telegramChatId, setTelegramChatId] = useState('')
+  const [prefs, setPrefs] = useState({
+    inApp: true,
+    email: true,
+    sms: false,
+    telegram: false,
+  })
+  const [providers, setProviders] = useState<Record<string, ProviderInfo>>({})
+  const [providerOrder, setProviderOrder] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -32,12 +44,18 @@ const SettingsPage: React.FC = () => {
       return
     }
     setPreferredCity(user?.preferredCity || 'Prishtinë')
+    setTelegramChatId((user as any)?.telegramChatId || '')
     setPrefs({
       inApp: user?.notificationPrefs?.inApp !== false,
       email: user?.notificationPrefs?.email !== false,
       sms: user?.notificationPrefs?.sms === true,
+      telegram: (user?.notificationPrefs as any)?.telegram === true,
     })
     api.get('/citizen/cities').then((r) => setCities(r.data?.cities || []))
+    api.get('/citizen/sms-providers').then((r) => {
+      setProviders(r.data?.providers || {})
+      setProviderOrder(r.data?.order || [])
+    })
   }, [isAuthenticated, user, navigate])
 
   const save = async () => {
@@ -45,12 +63,14 @@ const SettingsPage: React.FC = () => {
     try {
       const { data } = await api.put('/favorites/prefs', {
         preferredCity,
+        telegramChatId,
         notificationPrefs: prefs,
       })
       await refreshUser({
         preferredCity: data.preferredCity,
+        telegramChatId: data.telegramChatId,
         notificationPrefs: data.notificationPrefs,
-      })
+      } as any)
       toast.success('Cilësimet u ruajtën')
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'Ruajtja dështoi')
@@ -72,7 +92,9 @@ const SettingsPage: React.FC = () => {
             </div>
             <div>
               <h1 className="text-3xl font-bold">Cilësimet</h1>
-              <p className="text-sm text-muted-foreground">Preferencat e qytetarit për SmartQueue Kosova</p>
+              <p className="text-sm text-muted-foreground">
+                Njoftime SMS multi-provider + Telegram falas
+              </p>
             </div>
           </div>
 
@@ -82,9 +104,6 @@ const SettingsPage: React.FC = () => {
                 <MapPin className="w-4 h-4 text-primary" />
                 <h2 className="font-semibold">Qyteti i preferuar</h2>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Përdoret për filtra të shpejtë dhe sugjerime në home.
-              </p>
               <select
                 value={preferredCity}
                 onChange={(e) => setPreferredCity(e.target.value)}
@@ -104,7 +123,7 @@ const SettingsPage: React.FC = () => {
             <div className="surface-card rounded-2xl p-5 space-y-5">
               <div className="flex items-center gap-2">
                 <Bell className="w-4 h-4 text-primary" />
-                <h2 className="font-semibold">Njoftimet</h2>
+                <h2 className="font-semibold">Kanalet e njoftimeve</h2>
               </div>
 
               <div className="flex items-center justify-between gap-4">
@@ -112,7 +131,7 @@ const SettingsPage: React.FC = () => {
                   <Smartphone className="w-4 h-4 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-sm font-medium">Në aplikacion</p>
-                    <p className="text-xs text-muted-foreground">Zile dhe lista e njoftimeve</p>
+                    <p className="text-xs text-muted-foreground">Zile live</p>
                   </div>
                 </div>
                 <Switch
@@ -139,24 +158,90 @@ const SettingsPage: React.FC = () => {
                 <div className="flex items-start gap-3">
                   <MessageSquare className="w-4 h-4 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium">SMS</p>
+                    <p className="text-sm font-medium">SMS (multi-provider)</p>
                     <p className="text-xs text-muted-foreground">
-                      {user?.phone
-                        ? user.phone
-                        : 'Shto telefon në profil për SMS (opsionale)'}
+                      Infobip · Vonage · Twilio · Gateway · Textbelt
                     </p>
                   </div>
                 </div>
                 <Switch
                   checked={prefs.sms}
-                  disabled={!user?.phone}
                   onCheckedChange={(v) => setPrefs((p) => ({ ...p, sms: v }))}
                 />
+              </div>
+
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <Send className="w-4 h-4 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Telegram (falas)</p>
+                    <p className="text-xs text-muted-foreground">
+                      Merri njoftime pa kosto SMS
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={prefs.telegram}
+                  onCheckedChange={(v) => setPrefs((p) => ({ ...p, telegram: v }))}
+                />
+              </div>
+
+              {prefs.telegram && (
+                <div className="space-y-2 pt-1">
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                    Telegram Chat ID
+                  </Label>
+                  <Input
+                    value={telegramChatId}
+                    onChange={(e) => setTelegramChatId(e.target.value)}
+                    placeholder="p.sh. 123456789"
+                    className="h-11"
+                  />
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    1) Krijo bot te @BotFather → vendos <code>TELEGRAM_BOT_TOKEN</code> në backend
+                    .env · 2) Nis bisedën me botin · 3) Merr Chat ID nga @userinfobot dhe ngjite
+                    këtu.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="surface-card rounded-2xl p-5 space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Radio className="w-4 h-4 text-accent" />
+                <h2 className="font-semibold text-sm">SMS providers (status)</h2>
+              </div>
+              <p className="text-xs text-muted-foreground mb-2">
+                Rendi: {providerOrder.join(' → ') || '—'}
+              </p>
+              <div className="space-y-2">
+                {Object.entries(providers).map(([name, info]) => (
+                  <div
+                    key={name}
+                    className="flex items-start justify-between gap-3 text-xs rounded-xl bg-white/[0.03] border border-white/6 px-3 py-2.5"
+                  >
+                    <div>
+                      <p className="font-semibold capitalize text-foreground">{name}</p>
+                      <p className="text-muted-foreground mt-0.5">{info.note}</p>
+                    </div>
+                    <span
+                      className={`shrink-0 px-2 py-0.5 rounded-full font-bold ${
+                        info.configured
+                          ? 'bg-accent/15 text-accent'
+                          : 'bg-muted text-muted-foreground'
+                      }`}
+                    >
+                      {info.configured ? 'ON' : 'OFF'}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
 
             <div className="surface-card rounded-2xl p-5 space-y-3">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Llogaria</Label>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                Llogaria
+              </Label>
               <Input value={user?.name || ''} disabled className="h-11" />
               <Input value={user?.email || ''} disabled className="h-11" />
             </div>

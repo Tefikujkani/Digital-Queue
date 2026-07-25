@@ -96,6 +96,8 @@ class NotificationService {
           const delivery = await sendAppointmentSMS({
             phone,
             email: user?.email,
+            telegramChatId:
+              prefs.telegram !== false ? user?.telegramChatId : undefined,
             body: message,
             subject: `📱 ${title}`,
           })
@@ -106,6 +108,21 @@ class NotificationService {
         }
       } catch (err) {
         console.error('SMS notification failed:', err.message)
+      }
+    }
+
+    // Telegram opsional edhe pa SMS (falas)
+    if (
+      !sms &&
+      prefs.telegram === true &&
+      user?.telegramChatId &&
+      (type.startsWith('appointment_') || type === 'ticket_called')
+    ) {
+      try {
+        const { sendViaTelegram } = await import('./smsService.js')
+        await sendViaTelegram(user.telegramChatId, message)
+      } catch (err) {
+        console.error('Telegram notify failed:', err.message)
       }
     }
 

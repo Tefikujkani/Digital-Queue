@@ -36,6 +36,7 @@ export const registerUser = async (req, res) => {
         phone: user.phone,
         favorites: user.favorites || [],
         preferredCity: user.preferredCity || 'Prishtinë',
+        telegramChatId: user.telegramChatId || '',
         notificationPrefs: user.notificationPrefs,
         token: generateToken(user._id),
       });
@@ -60,6 +61,7 @@ export const loginUser = async (req, res) => {
         phone: user.phone,
         favorites: user.favorites || [],
         preferredCity: user.preferredCity || 'Prishtinë',
+        telegramChatId: user.telegramChatId || '',
         notificationPrefs: user.notificationPrefs,
         token: generateToken(user._id),
       });
