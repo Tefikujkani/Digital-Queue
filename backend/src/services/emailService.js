@@ -1,50 +1,57 @@
-import nodemailer from 'nodemailer';
+import nodemailer from 'nodemailer'
 
-// Create reusable transporter — Gmail App Password or any SMTP
-const createTransporter = () => {
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+// Lazy transporter — dotenv duhet të jetë ngarkuar para përdorimit
+let transporter = null
+let transporterReady = false
+
+const getTransporter = () => {
+  if (transporterReady) return transporter
+  transporterReady = true
+
+  const user = process.env.SMTP_USER
+  const pass = process.env.SMTP_PASS
 
   if (!user || !pass) {
-    console.warn('⚠️ Email nuk është konfiguruar. Vendos SMTP_USER dhe SMTP_PASS në .env');
-    return null;
+    console.warn('⚠️ Email nuk është konfiguruar. Vendos SMTP_USER dhe SMTP_PASS në .env')
+    transporter = null
+    return null
   }
 
-  return nodemailer.createTransport({
+  transporter = nodemailer.createTransport({
     service: process.env.SMTP_SERVICE || 'gmail',
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: Number(process.env.SMTP_PORT) || 587,
     secure: false,
     auth: { user, pass },
-  });
-};
-
-const transporter = createTransporter();
+  })
+  return transporter
+}
 
 /**
  * Dërgon email njoftimi
  */
 export const sendEmail = async (to, subject, htmlContent) => {
-  if (!transporter) {
-    console.warn('⚠️ Email transporter nuk është i gatshëm');
-    return { success: false, reason: 'Email not configured' };
+  const tx = getTransporter()
+  if (!tx) {
+    console.warn('⚠️ Email transporter nuk është i gatshëm')
+    return { success: false, reason: 'Email not configured' }
   }
 
   try {
-    const info = await transporter.sendMail({
-      from: `"SmartQueue Kosova" <${process.env.SMTP_USER}>`,
+    const info = await tx.sendMail({
+      from: process.env.SMTP_FROM || `"SmartQueue Kosova" <${process.env.SMTP_USER}>`,
       to,
       subject,
       html: htmlContent,
-    });
+    })
 
-    console.log(`✅ Email u dërgua te ${to} — ID: ${info.messageId}`);
-    return { success: true, messageId: info.messageId };
+    console.log(`✅ Email u dërgua te ${to} — ID: ${info.messageId}`)
+    return { success: true, messageId: info.messageId }
   } catch (err) {
-    console.error(`❌ Email Error: ${err.message}`);
-    return { success: false, error: err.message };
+    console.error(`❌ Email Error: ${err.message}`)
+    return { success: false, error: err.message }
   }
-};
+}
 
 /**
  * Template: Bileta e re
