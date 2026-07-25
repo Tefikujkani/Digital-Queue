@@ -17,26 +17,36 @@ import {
   Save,
   ArrowLeft,
   Send,
-  Radio,
+  CheckCircle2,
+  ExternalLink,
+  Unplug,
+  Loader2,
 } from 'lucide-react'
-
-type ProviderInfo = { configured: boolean; note: string }
 
 const SettingsPage: React.FC = () => {
   const navigate = useNavigate()
   const { user, isAuthenticated, refreshUser } = useAuth()
   const [cities, setCities] = useState<{ name: string }[]>([])
   const [preferredCity, setPreferredCity] = useState('Prishtinë')
-  const [telegramChatId, setTelegramChatId] = useState('')
   const [prefs, setPrefs] = useState({
     inApp: true,
     email: true,
     sms: false,
     telegram: false,
   })
-  const [providers, setProviders] = useState<Record<string, ProviderInfo>>({})
-  const [providerOrder, setProviderOrder] = useState<string[]>([])
+  const [tgStatus, setTgStatus] = useState<{
+    configured: boolean
+    botUsername: string | null
+    note?: string
+  }>({ configured: false, botUsername: null })
+  const [linking, setLinking] = useState(false)
+  const [unlinking, setUnlinking] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  const linked = Boolean(user?.telegramChatId)
+
+  const loadTelegram = () =>
+    api.get('/telegram/status').then((r) => setTgStatus(r.data || { configured: false }))
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -44,31 +54,68 @@ const SettingsPage: React.FC = () => {
       return
     }
     setPreferredCity(user?.preferredCity || 'Prishtinë')
-    setTelegramChatId((user as any)?.telegramChatId || '')
     setPrefs({
       inApp: user?.notificationPrefs?.inApp !== false,
       email: user?.notificationPrefs?.email !== false,
       sms: user?.notificationPrefs?.sms === true,
-      telegram: (user?.notificationPrefs as any)?.telegram === true,
+      telegram: user?.notificationPrefs?.telegram === true || Boolean(user?.telegramChatId),
     })
     api.get('/citizen/cities').then((r) => setCities(r.data?.cities || []))
-    api.get('/citizen/sms-providers').then((r) => {
-      setProviders(r.data?.providers || {})
-      setProviderOrder(r.data?.order || [])
-    })
+    loadTelegram()
   }, [isAuthenticated, user, navigate])
+
+  const linkTelegram = async () => {
+    setLinking(true)
+    try {
+      const { data } = await api.post('/telegram/link')
+      if (!data.ok) {
+        toast.error(data.message || 'Lidhja dështoi')
+        return
+      }
+      toast.success('Hape Telegram dhe shtyp Start')
+      window.open(data.deepLink, '_blank', 'noopener,noreferrer')
+      // Poll derisa të lidhet
+      let tries = 0
+      const poll = setInterval(async () => {
+        tries += 1
+        try {
+          await refreshUser()
+        } catch {
+          /* ignore */
+        }
+        if (tries > 40) clearInterval(poll)
+      }, 2500)
+      setTimeout(() => clearInterval(poll), 120000)
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Lidhja dështoi')
+    } finally {
+      setLinking(false)
+    }
+  }
+
+  const unlinkTg = async () => {
+    setUnlinking(true)
+    try {
+      await api.post('/telegram/unlink')
+      await refreshUser({ telegramChatId: '', notificationPrefs: { ...prefs, telegram: false } } as any)
+      setPrefs((p) => ({ ...p, telegram: false }))
+      toast.success('Telegram u shkëput')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Shkëputja dështoi')
+    } finally {
+      setUnlinking(false)
+    }
+  }
 
   const save = async () => {
     setSaving(true)
     try {
       const { data } = await api.put('/favorites/prefs', {
         preferredCity,
-        telegramChatId,
         notificationPrefs: prefs,
       })
       await refreshUser({
         preferredCity: data.preferredCity,
-        telegramChatId: data.telegramChatId,
         notificationPrefs: data.notificationPrefs,
       } as any)
       toast.success('Cilësimet u ruajtën')
@@ -93,12 +140,83 @@ const SettingsPage: React.FC = () => {
             <div>
               <h1 className="text-3xl font-bold">Cilësimet</h1>
               <p className="text-sm text-muted-foreground">
-                Njoftime SMS multi-provider + Telegram falas
+                Njoftime falas me Telegram — kanali kryesor
               </p>
             </div>
           </div>
 
           <div className="space-y-5">
+            {/* TELEGRAM — hero channel */}
+            <div className="surface-card rounded-2xl p-5 space-y-4 border border-sky-500/25 bg-gradient-to-br from-sky-500/10 to-transparent">
+              <div className="flex items-center gap-2">
+                <Send className="w-4 h-4 text-sky-400" />
+                <h2 className="font-semibold">Telegram (rekomanduar)</h2>
+                <span className="ml-auto text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300">
+                  Falas
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Kanali më i mirë për SmartQueue: falas, i menjëhershëm, pa kredi SMS. Merr
+                konfirmime termini, kujtesa dhe thirrjen e radhës direkt në Telegram.
+              </p>
+
+              {linked ? (
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex-1 flex items-center gap-2 text-sm text-accent">
+                    <CheckCircle2 className="w-5 h-5 shrink-0" />
+                    <span>
+                      I lidhur
+                      {tgStatus.botUsername ? (
+                        <>
+                          {' '}
+                          me <strong>@{tgStatus.botUsername}</strong>
+                        </>
+                      ) : null}
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={unlinkTg}
+                    disabled={unlinking}
+                    className="border-white/15"
+                  >
+                    {unlinking ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Unplug className="w-4 h-4" />
+                    )}
+                    Shkëput
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {!tgStatus.configured && (
+                    <p className="text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
+                      Admin: krijo bot te @BotFather → vendos{' '}
+                      <code className="text-amber-200">TELEGRAM_BOT_TOKEN</code> në backend/.env →
+                      rinis serverin.
+                    </p>
+                  )}
+                  <Button
+                    className="w-full h-12 bg-sky-500 hover:bg-sky-400 text-white"
+                    onClick={linkTelegram}
+                    disabled={linking || !tgStatus.configured}
+                  >
+                    {linking ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <ExternalLink className="w-4 h-4" />
+                    )}
+                    Lidhu me Telegram
+                  </Button>
+                  <p className="text-[11px] text-muted-foreground text-center">
+                    Hapët Telegram → shtyp <strong>Start</strong> → lidhja bëhet automatikisht
+                  </p>
+                </div>
+              )}
+            </div>
+
             <div className="surface-card rounded-2xl p-5 space-y-4">
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-primary" />
@@ -156,85 +274,33 @@ const SettingsPage: React.FC = () => {
 
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-start gap-3">
+                  <Send className="w-4 h-4 text-sky-400 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Telegram</p>
+                    <p className="text-xs text-muted-foreground">
+                      {linked ? 'Aktiv · i lidhur' : 'Lidhe më sipër'}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={prefs.telegram}
+                  disabled={!linked}
+                  onCheckedChange={(v) => setPrefs((p) => ({ ...p, telegram: v }))}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
                   <MessageSquare className="w-4 h-4 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium">SMS (multi-provider)</p>
-                    <p className="text-xs text-muted-foreground">
-                      Infobip · Vonage · Twilio · Gateway · Textbelt
-                    </p>
+                    <p className="text-sm font-medium">SMS (opsional)</p>
+                    <p className="text-xs text-muted-foreground">Backup nëse ke kredi provider</p>
                   </div>
                 </div>
                 <Switch
                   checked={prefs.sms}
                   onCheckedChange={(v) => setPrefs((p) => ({ ...p, sms: v }))}
                 />
-              </div>
-
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <Send className="w-4 h-4 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Telegram (falas)</p>
-                    <p className="text-xs text-muted-foreground">
-                      Merri njoftime pa kosto SMS
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  checked={prefs.telegram}
-                  onCheckedChange={(v) => setPrefs((p) => ({ ...p, telegram: v }))}
-                />
-              </div>
-
-              {prefs.telegram && (
-                <div className="space-y-2 pt-1">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                    Telegram Chat ID
-                  </Label>
-                  <Input
-                    value={telegramChatId}
-                    onChange={(e) => setTelegramChatId(e.target.value)}
-                    placeholder="p.sh. 123456789"
-                    className="h-11"
-                  />
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    1) Krijo bot te @BotFather → vendos <code>TELEGRAM_BOT_TOKEN</code> në backend
-                    .env · 2) Nis bisedën me botin · 3) Merr Chat ID nga @userinfobot dhe ngjite
-                    këtu.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="surface-card rounded-2xl p-5 space-y-3">
-              <div className="flex items-center gap-2 mb-1">
-                <Radio className="w-4 h-4 text-accent" />
-                <h2 className="font-semibold text-sm">SMS providers (status)</h2>
-              </div>
-              <p className="text-xs text-muted-foreground mb-2">
-                Rendi: {providerOrder.join(' → ') || '—'}
-              </p>
-              <div className="space-y-2">
-                {Object.entries(providers).map(([name, info]) => (
-                  <div
-                    key={name}
-                    className="flex items-start justify-between gap-3 text-xs rounded-xl bg-white/[0.03] border border-white/6 px-3 py-2.5"
-                  >
-                    <div>
-                      <p className="font-semibold capitalize text-foreground">{name}</p>
-                      <p className="text-muted-foreground mt-0.5">{info.note}</p>
-                    </div>
-                    <span
-                      className={`shrink-0 px-2 py-0.5 rounded-full font-bold ${
-                        info.configured
-                          ? 'bg-accent/15 text-accent'
-                          : 'bg-muted text-muted-foreground'
-                      }`}
-                    >
-                      {info.configured ? 'ON' : 'OFF'}
-                    </span>
-                  </div>
-                ))}
               </div>
             </div>
 

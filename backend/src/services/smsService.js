@@ -56,7 +56,7 @@ export function getSmsProviderStatus() {
       },
       telegram: {
         configured: configured(process.env.TELEGRAM_BOT_TOKEN),
-        note: 'Bot falas — përdoruesi lidh chatId te Cilësimet',
+        note: '⭐ Kanali kryesor falas — lidhe me 1 klik te Cilësimet',
       },
       email_fallback: {
         configured: configured(process.env.SMTP_USER),
@@ -237,28 +237,10 @@ async function sendViaTextbelt(to, body) {
   }
 }
 
-/** Telegram Bot API — 100% falas */
+/** Telegram Bot API — përdor shërbimin e avancuar */
 export async function sendViaTelegram(chatId, body) {
-  const token = process.env.TELEGRAM_BOT_TOKEN
-  if (!configured(token) || !chatId) {
-    return { success: false, provider: 'telegram', reason: 'not_configured' }
-  }
-  try {
-    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: `📱 SmartQueue\n\n${body}`,
-        disable_web_page_preview: true,
-      }),
-    })
-    const data = await res.json()
-    if (data.ok) return { success: true, provider: 'telegram', id: String(data.result?.message_id) }
-    return { success: false, provider: 'telegram', error: data.description || 'failed' }
-  } catch (err) {
-    return { success: false, provider: 'telegram', error: err.message }
-  }
+  const { sendTelegramMessage } = await import('./telegramService.js')
+  return sendTelegramMessage(chatId, `📱 SmartQueue\n\n${body}`)
 }
 
 const PROVIDERS = {

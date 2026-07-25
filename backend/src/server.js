@@ -20,8 +20,10 @@ import notificationRoutes from './routes/notificationRoutes.js'
 import chatRoutes from './routes/chatRoutes.js'
 import favoriteRoutes from './routes/favoriteRoutes.js'
 import citizenRoutes from './routes/citizenRoutes.js'
+import telegramRoutes from './routes/telegramRoutes.js'
 import NotificationService from './services/notificationService.js'
 import { startAppointmentReminderJob } from './services/reminderJob.js'
+import { startTelegramPoller, isTelegramConfigured } from './services/telegramService.js'
 
 const app = express()
 let io = null
@@ -79,6 +81,7 @@ app.use('/api/notifications', notificationRoutes)
 app.use('/api/chat', chatRoutes)
 app.use('/api/favorites', favoriteRoutes)
 app.use('/api/citizen', citizenRoutes)
+app.use('/api/telegram', telegramRoutes)
 
 app.get('/', (req, res) => {
   res.send('SmartQueue Kosova API - Advanced Backend Running')
@@ -97,6 +100,15 @@ const startServer = (port, attempt = 0) => {
         `🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${port}`,
       )
       startAppointmentReminderJob(io)
+      if (isTelegramConfigured()) {
+        startTelegramPoller().catch((err) =>
+          console.warn('Telegram poller:', err.message),
+        )
+      } else {
+        console.log(
+          '💡 Telegram OFF — vendos TELEGRAM_BOT_TOKEN (nga @BotFather) për njoftime falas',
+        )
+      }
     })
     .once('error', (error) => {
       if (error.code === 'EADDRINUSE' && attempt < MAX_PORT_RETRIES) {

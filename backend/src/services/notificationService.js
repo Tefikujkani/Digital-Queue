@@ -28,10 +28,14 @@ class NotificationService {
     const forceSms = channels.forceSms === true
     const inApp = channels.inApp !== false && prefs.inApp !== false
     const email = Boolean(channels.email) && prefs.email !== false
+    const wantsTelegram =
+      Boolean(user?.telegramChatId) && prefs.telegram !== false
     // Transactional appointment SMS can override prefs when forceSms + phone
     const sms =
       (Boolean(channels.sms) && prefs.sms === true) ||
       (forceSms && Boolean(user?.phone || data.phoneOverride))
+    const smartDelivery =
+      type.startsWith('appointment_') && (sms || wantsTelegram || forceSms)
 
     const notification = await Notification.create({
       userId,
@@ -39,7 +43,7 @@ class NotificationService {
       title,
       message,
       data,
-      channels: { inApp, email, sms },
+      channels: { inApp, email, sms: sms || wantsTelegram },
     })
 
     if (inApp && this.io) {
@@ -89,34 +93,35 @@ class NotificationService {
       }
     }
 
-    if (sms) {
+    if (smartDelivery) {
       const phone = data.phoneOverride || user?.phone
       try {
-        if (forceSms || type.startsWith('appointment_')) {
-          const delivery = await sendAppointmentSMS({
-            phone,
-            email: user?.email,
-            telegramChatId:
-              prefs.telegram !== false ? user?.telegramChatId : undefined,
-            body: message,
-            subject: `📱 ${title}`,
-          })
-          notification.delivery = delivery
-          await notification.save()
-        } else if (phone) {
-          await sendSMS(phone, message)
-        }
+        const delivery = await sendAppointmentSMS({
+          phone: sms ? phone : undefined,
+          email: user?.email,
+          telegramChatId: wantsTelegram ? user.telegramChatId : undefined,
+          body: message,
+          subject: `📱 ${title}`,
+        })
+        notification.delivery = delivery
+        await notification.save()
+      } catch (err) {
+        console.error('Smart delivery failed:', err.message)
+      }
+    } else if (sms) {
+      const phone = data.phoneOverride || user?.phone
+      try {
+        if (phone) await sendSMS(phone, message)
       } catch (err) {
         console.error('SMS notification failed:', err.message)
       }
     }
 
-    // Telegram opsional edhe pa SMS (falas)
+    // Telegram për thirrjen e radhës (pa SMS)
     if (
-      !sms &&
-      prefs.telegram === true &&
-      user?.telegramChatId &&
-      (type.startsWith('appointment_') || type === 'ticket_called')
+      !smartDelivery &&
+      wantsTelegram &&
+      type === 'ticket_called'
     ) {
       try {
         const { sendViaTelegram } = await import('./smsService.js')

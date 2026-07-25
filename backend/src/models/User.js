@@ -38,6 +38,14 @@ const userSchema = mongoose.Schema({
     type: String,
     default: ''
   },
+  telegramLinkCode: {
+    type: String,
+    select: false
+  },
+  telegramLinkExpires: {
+    type: Date,
+    select: false
+  },
   notificationPrefs: {
     inApp: { type: Boolean, default: true },
     email: { type: Boolean, default: true },

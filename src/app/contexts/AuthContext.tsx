@@ -32,6 +32,7 @@ function formatUser(userData: any): User {
     institutionId: userData.institutionId,
     favorites: userData.favorites,
     preferredCity: userData.preferredCity,
+    telegramChatId: userData.telegramChatId || '',
     notificationPrefs: userData.notificationPrefs,
     createdAt: userData.createdAt || new Date(),
   }
@@ -107,7 +108,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshUser = useCallback(async (partial?: Partial<User> & Record<string, unknown>) => {
     try {
-      if (partial && (partial.preferredCity || partial.notificationPrefs)) {
+      if (
+        partial &&
+        (partial.preferredCity ||
+          partial.notificationPrefs ||
+          partial.telegramChatId !== undefined)
+      ) {
         setUser((prev) => {
           if (!prev) return prev
           const next = { ...prev, ...partial } as User

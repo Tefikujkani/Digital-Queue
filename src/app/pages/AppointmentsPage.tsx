@@ -208,23 +208,30 @@ const AppointmentsPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-accent/25 bg-accent/5 p-5 space-y-4">
+                <div className="rounded-2xl border border-sky-500/25 bg-sky-500/5 p-5 space-y-4">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-start gap-3">
-                      <Smartphone className="w-5 h-5 text-accent mt-0.5" />
+                      <Smartphone className="w-5 h-5 text-sky-400 mt-0.5" />
                       <div>
-                        <p className="font-semibold text-sm">Njoftim me SMS (falas / cascade)</p>
+                        <p className="font-semibold text-sm">Njoftime (Telegram + SMS)</p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Kur rezervon, merr SMS konfirmimi + kujtesë 24h dhe 2h para. Nëse SMS dështon, dërgohet email backup (Gmail).
+                          {user?.telegramChatId
+                            ? 'Telegram është i lidhur — njoftimi shkon falas aty së pari. SMS është opsional si backup.'
+                            : 'Rekomandohet Telegram (falas) te Cilësimet. Ose aktivizo SMS këtu si backup.'}
                         </p>
                       </div>
                     </div>
                     <Switch checked={notifySms} onCheckedChange={setNotifySms} />
                   </div>
+                  {user?.telegramChatId && (
+                    <p className="text-[11px] text-sky-300/90 flex items-center gap-1.5">
+                      ✓ Telegram aktiv — konfirmimi dhe kujtesat shkojnë aty automatikisht
+                    </p>
+                  )}
                   {notifySms && (
                     <div className="space-y-2">
                       <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                        Numri i telefonit (+383…)
+                        Numri i telefonit (+383…) — SMS backup
                       </Label>
                       <Input
                         value={phone}
