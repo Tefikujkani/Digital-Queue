@@ -181,8 +181,8 @@ export const QueueProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             : translate('toast.ticketSuccess', { number: newTicket.number }),
           {
             description: isAppointment
-              ? options?.notifySms !== false
-                ? 'SMS + email u dërguan (ose email backup nëse SMS dështon)'
+              ? options?.notifySms
+                ? 'SMS u kërkua · email / njoftime në app'
                 : 'Email / njoftim në app u dërgua'
               : translate('toast.ticketPosition', {
                   position: newTicket.positionInQueue || translate('status.waiting'),
@@ -192,7 +192,11 @@ export const QueueProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         return newTicket
       } catch (error: any) {
-        toast.error(translate('toast.ticketFailed'))
+        const msg =
+          error?.response?.data?.message ||
+          error?.message ||
+          translate('toast.ticketFailed')
+        toast.error(msg)
         throw error
       }
     },

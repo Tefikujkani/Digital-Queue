@@ -33,9 +33,11 @@ export interface User {
     sms?: boolean
     telegram?: boolean
     viber?: boolean
+    whatsapp?: boolean
   }
   telegramChatId?: string
   viberId?: string
+  whatsappPhone?: string
   createdAt: Date
 }
 

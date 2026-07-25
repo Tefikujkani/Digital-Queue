@@ -58,6 +58,8 @@ export const updateCitizenPrefs = async (req, res) => {
         telegram:
           req.body.notificationPrefs.telegram ?? user.notificationPrefs?.telegram ?? false,
         viber: req.body.notificationPrefs.viber ?? user.notificationPrefs?.viber ?? false,
+        whatsapp:
+          req.body.notificationPrefs.whatsapp ?? user.notificationPrefs?.whatsapp ?? false,
       }
     }
     await user.save()
@@ -65,6 +67,7 @@ export const updateCitizenPrefs = async (req, res) => {
       preferredCity: user.preferredCity,
       telegramChatId: user.telegramChatId,
       viberId: user.viberId,
+      whatsappPhone: user.whatsappPhone,
       notificationPrefs: user.notificationPrefs,
       favorites: user.favorites,
     })

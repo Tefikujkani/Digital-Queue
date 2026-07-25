@@ -18,10 +18,12 @@ import favoriteRoutes from './routes/favoriteRoutes.js'
 import citizenRoutes from './routes/citizenRoutes.js'
 import telegramRoutes from './routes/telegramRoutes.js'
 import viberRoutes from './routes/viberRoutes.js'
+import whatsappRoutes from './routes/whatsappRoutes.js'
 import NotificationService from './services/notificationService.js'
 import { startAppointmentReminderJob } from './services/reminderJob.js'
 import { startTelegramPoller, isTelegramConfigured } from './services/telegramService.js'
 import { startViberWebhook, isViberConfigured } from './services/viberService.js'
+import { isWhatsAppConfigured } from './services/whatsappService.js'
 import { globalLimiter } from './middlewares/rateLimiters.js'
 import { notFound, errorHandler } from './middlewares/errorHandler.js'
 import User from './models/User.js'
@@ -156,6 +158,7 @@ app.use('/api/favorites', favoriteRoutes)
 app.use('/api/citizen', citizenRoutes)
 app.use('/api/telegram', telegramRoutes)
 app.use('/api/viber', viberRoutes)
+app.use('/api/whatsapp', whatsappRoutes)
 
 app.get('/', (_req, res) => {
   res.json({
@@ -191,6 +194,11 @@ const startServer = (port, attempt = 0) => {
         startViberWebhook().catch((err) => console.warn('Viber webhook:', err.message))
       } else {
         console.log('💡 Viber OFF — vendos VIBER_AUTH_TOKEN + VIBER_BOT_URI (partners.viber.com)')
+      }
+      if (isWhatsAppConfigured()) {
+        console.log('📱 WhatsApp Cloud API ON — iOS & Android (Cilësimet → Lidhu me WhatsApp)')
+      } else {
+        console.log('💡 WhatsApp OFF — vendos WHATSAPP_TOKEN + WHATSAPP_PHONE_NUMBER_ID (Meta)')
       }
     })
     .once('error', (error) => {

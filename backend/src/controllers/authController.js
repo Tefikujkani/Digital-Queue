@@ -22,6 +22,7 @@ function publicUser(user) {
     preferredCity: user.preferredCity || 'Prishtinë',
     telegramChatId: user.telegramChatId || '',
     viberId: user.viberId || '',
+    whatsappPhone: user.whatsappPhone || '',
     notificationPrefs: user.notificationPrefs,
   }
 }

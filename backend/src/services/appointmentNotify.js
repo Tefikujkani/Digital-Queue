@@ -42,8 +42,17 @@ export async function sendAppointmentSMS({
   email,
   telegramChatId,
   viberId,
+  whatsappPhone,
   body,
   subject,
 }) {
-  return deliverSmartMessage({ phone, email, telegramChatId, viberId, body, subject })
+  return deliverSmartMessage({
+    phone,
+    email,
+    telegramChatId,
+    viberId,
+    whatsappPhone,
+    body,
+    subject,
+  })
 }

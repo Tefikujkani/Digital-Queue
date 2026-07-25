@@ -72,6 +72,12 @@ export function getSmsProviderStatus() {
           Boolean((process.env.VIBER_BOT_URI || '').trim()),
         note: 'Viber Bot falas — partners.viber.com + HTTPS webhook',
       },
+      whatsapp: {
+        configured:
+          configured(process.env.WHATSAPP_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN) &&
+          configured(process.env.WHATSAPP_PHONE_NUMBER_ID),
+        note: '⭐ WhatsApp iOS+Android — Meta Cloud API (falas në dritare shërbimi)',
+      },
       email_fallback: {
         configured: configured(process.env.SMTP_USER),
         note: 'Gmail SMTP — gjithmonë si backup',
@@ -103,7 +109,14 @@ export function getFreeNotifyStatus() {
         configured(process.env.VIBER_AUTH_TOKEN) &&
         Boolean((process.env.VIBER_BOT_URI || '').trim()),
       label: 'Viber',
-      note: 'Messenger falas',
+      note: 'Messenger falas · iOS & Android',
+    },
+    whatsapp: {
+      configured:
+        configured(process.env.WHATSAPP_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN) &&
+        configured(process.env.WHATSAPP_PHONE_NUMBER_ID),
+      label: 'WhatsApp',
+      note: 'Messenger falas · iOS & Android',
     },
   }
 }
@@ -330,6 +343,11 @@ export async function sendViaViber(viberId, body) {
   return sendViberMessage(viberId, `📱 SmartQueue\n\n${body}`)
 }
 
+export async function sendViaWhatsApp(phone, body) {
+  const { sendWhatsAppMessage } = await import('./whatsappService.js')
+  return sendWhatsAppMessage(phone, `📱 SmartQueue\n\n${body}`)
+}
+
 const PROVIDERS = {
   textbee: sendViaTextbee,
   textbelt: sendViaTextbelt,
@@ -378,19 +396,24 @@ export async function deliverSmartMessage({
   email,
   telegramChatId,
   viberId,
+  whatsappPhone,
   body,
   subject,
 }) {
   const results = []
 
-  // Telegram së pari (falas)
   if (telegramChatId) {
     const tg = await sendViaTelegram(telegramChatId, body)
     results.push({ channel: 'telegram', ...tg })
     if (tg.success) return { delivered: true, via: 'telegram', results }
   }
 
-  // Viber (falas)
+  if (whatsappPhone) {
+    const wa = await sendViaWhatsApp(whatsappPhone, body)
+    results.push({ channel: 'whatsapp', ...wa })
+    if (wa.success) return { delivered: true, via: 'whatsapp', results }
+  }
+
   if (viberId) {
     const vb = await sendViaViber(viberId, body)
     results.push({ channel: 'viber', ...vb })
@@ -413,7 +436,7 @@ export async function deliverSmartMessage({
         <h2 style="color:#a78bfa;margin:0 0 12px">SmartQueue · Njoftim</h2>
         <p style="font-size:16px;line-height:1.6;white-space:pre-wrap">${body}</p>
         <p style="color:#888;font-size:12px;margin-top:20px">
-          Ky mesazh u dërgua si backup (Telegram/Viber/SMS nuk ishin të disponueshëm).
+          Ky mesazh u dërgua si backup (Telegram/WhatsApp/Viber/SMS nuk ishin të disponueshëm).
         </p>
       </div>`,
     )

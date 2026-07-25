@@ -1,9 +1,14 @@
 import Ticket from '../models/Ticket.js'
 import Institution from '../models/Institution.js'
 import { nextTicketSequence, priorityRank } from '../utils/ticketNumbering.js'
+import {
+  parseKosovoLocal,
+  withinKosovoWorkingHours,
+} from '../utils/kosovoTime.js'
 import crypto from 'crypto'
 
 const MAX_SLOT_BOOKINGS = Number(process.env.MAX_SLOT_BOOKINGS || 8)
+const SLOT_MINUTES = 30
 
 function assertAdminInstitution(user, institutionId) {
   if (user.role === 'superadmin') return true
@@ -13,15 +18,13 @@ function assertAdminInstitution(user, institutionId) {
   return false
 }
 
-function withinWorkingHours(institution, date) {
-  const open = institution?.workingHours?.open || '08:00'
-  const close = institution?.workingHours?.close || '16:00'
-  const [oh, om] = open.split(':').map(Number)
-  const [ch, cm] = close.split(':').map(Number)
-  const mins = date.getHours() * 60 + date.getMinutes()
-  const openM = oh * 60 + (om || 0)
-  const closeM = ch * 60 + (cm || 0)
-  return mins >= openM && mins < closeM
+function findService(institution, serviceId) {
+  if (!serviceId) return null
+  return (
+    institution.services?.find(
+      (s) => s._id?.toString() === serviceId || s.id === serviceId,
+    ) || null
+  )
 }
 
 function publicTicketView(t) {
@@ -64,28 +67,32 @@ export const issueTicket = async (req, res) => {
       return res.status(404).json({ message: 'Institucioni nuk u gjet ose është joaktiv' })
     }
 
+    const serviceObj = findService(institution, serviceId)
+    if (!serviceObj) {
+      return res.status(400).json({ message: 'Shërbimi nuk u gjet për këtë institucion' })
+    }
+    const serviceName = serviceObj.name || 'Shërbim i Përgjithshëm'
+
     let scheduledAt
     if (scheduledDate && scheduledTime) {
-      scheduledAt = new Date(`${scheduledDate}T${scheduledTime}`)
+      const timeNorm = String(scheduledTime).slice(0, 5)
+      scheduledAt = parseKosovoLocal(String(scheduledDate).slice(0, 10), timeNorm)
       if (Number.isNaN(scheduledAt.getTime())) {
         return res.status(400).json({ message: 'Data ose ora e terminit nuk është valide' })
       }
       if (scheduledAt.getTime() < Date.now() - 60_000) {
         return res.status(400).json({ message: 'Termini nuk mund të jetë në të kaluarën' })
       }
-      if (!withinWorkingHours(institution, scheduledAt)) {
+      if (!withinKosovoWorkingHours(institution, scheduledAt)) {
         return res.status(400).json({
           message: `Jashtë orarit të punës (${institution.workingHours?.open || '08:00'}–${institution.workingHours?.close || '16:00'})`,
         })
       }
-      const slotStart = new Date(scheduledAt)
-      slotStart.setMinutes(0, 0, 0)
-      const slotEnd = new Date(slotStart)
-      slotEnd.setHours(slotEnd.getHours() + 1)
+      const slotEnd = new Date(scheduledAt.getTime() + SLOT_MINUTES * 60 * 1000)
       const booked = await Ticket.countDocuments({
         institutionId,
         serviceId,
-        scheduledAt: { $gte: slotStart, $lt: slotEnd },
+        scheduledAt: { $gte: scheduledAt, $lt: slotEnd },
         status: { $nin: ['cancelled'] },
       })
       if (booked >= MAX_SLOT_BOOKINGS) {
@@ -123,45 +130,50 @@ export const issueTicket = async (req, res) => {
       scheduledAt,
     })
 
-    const serviceObj = institution.services.find(
-      (s) => s._id?.toString() === serviceId || s.id === serviceId,
-    )
-    const serviceName = serviceObj ? serviceObj.name : 'Shërbim i Përgjithshëm'
+    req.io?.to(institutionId.toString()).emit('new_ticket', publicTicketView(ticket))
+
+    // Njoftimet nuk duhet të dështojnë rezervimin (ticket tashmë u krijua)
+    let delivery = null
+    try {
+      if (scheduledAt) {
+        delivery = await req.notificationService.appointmentBooked(
+          req.user._id,
+          ticket,
+          institution.name,
+          serviceName,
+          {
+            notifySms: notifySms === true,
+            phone: phone || req.user.phone,
+            enableSms: notifySms === true,
+          },
+        )
+      } else {
+        await req.notificationService.ticketIssued(
+          req.user._id,
+          ticket,
+          institution.name,
+          serviceName,
+        )
+      }
+    } catch (notifyErr) {
+      console.error('Ticket notify failed (ticket still created):', notifyErr.message)
+    }
 
     if (scheduledAt) {
-      const delivery = await req.notificationService.appointmentBooked(
-        req.user._id,
-        ticket,
-        institution.name,
-        serviceName,
-        {
-          notifySms: notifySms !== false,
-          phone: phone || req.user.phone,
-          enableSms: notifySms !== false,
-        },
-      )
-      req.io?.to(institutionId.toString()).emit('new_ticket', publicTicketView(ticket))
       return res.status(201).json({
         ...ticket.toObject(),
         notification: {
           type: 'appointment',
-          smsRequested: notifySms !== false,
+          smsRequested: notifySms === true,
           delivery: delivery?.delivery || null,
         },
       })
     }
 
-    await req.notificationService.ticketIssued(
-      req.user._id,
-      ticket,
-      institution.name,
-      serviceName,
-    )
-
-    req.io?.to(institutionId.toString()).emit('new_ticket', publicTicketView(ticket))
     res.status(201).json(ticket)
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    console.error('issueTicket:', error)
+    res.status(500).json({ message: error.message || 'Gabim gjatë rezervimit' })
   }
 }
 
@@ -347,13 +359,14 @@ export const getSlotAvailability = async (req, res) => {
     const [ch] = close.split(':').map(Number)
 
     const slots = []
+    const now = Date.now()
     for (let h = oh; h < ch; h++) {
       for (const m of [0, 30]) {
-        if (h === ch - 1 && m === 30 && ch === h + 1) break
         const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
-        const slotStart = new Date(`${date}T${time}`)
+        const slotStart = parseKosovoLocal(String(date).slice(0, 10), time)
         if (Number.isNaN(slotStart.getTime())) continue
-        const slotEnd = new Date(slotStart.getTime() + 30 * 60 * 1000)
+        if (!withinKosovoWorkingHours(institution, slotStart)) continue
+        const slotEnd = new Date(slotStart.getTime() + SLOT_MINUTES * 60 * 1000)
         const q = {
           institutionId,
           scheduledAt: { $gte: slotStart, $lt: slotEnd },
@@ -361,11 +374,14 @@ export const getSlotAvailability = async (req, res) => {
         }
         if (serviceId) q.serviceId = serviceId
         const booked = await Ticket.countDocuments(q)
+        const available = Math.max(0, MAX_SLOT_BOOKINGS - booked)
         slots.push({
           time,
           booked,
           capacity: MAX_SLOT_BOOKINGS,
-          available: Math.max(0, MAX_SLOT_BOOKINGS - booked),
+          available,
+          past: slotStart.getTime() < now - 60_000,
+          open: available > 0 && slotStart.getTime() >= now - 60_000,
         })
       }
     }

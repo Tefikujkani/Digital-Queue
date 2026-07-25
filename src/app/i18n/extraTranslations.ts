@@ -70,11 +70,30 @@ export const extraTranslations: Record<Language, Record<string, string>> = {
     'settings.viberOn': 'Aktiv · i lidhur',
     'settings.viberOff': 'Lidhe më sipër',
 
-    'settings.freeSmsTitle': 'SMS falas (TextBee)',
+    'settings.iosAndroid': 'iOS + Android',
+    'settings.waTitle': 'WhatsApp (iOS & Android)',
+    'settings.waBody':
+      'Njoftime falas në WhatsApp — funksionon në iPhone dhe Android. Ruaj numrin ose hap deep link për lidhje.',
+    'settings.waAdminHint':
+      'Admin: Meta Developers → WhatsApp → WHATSAPP_TOKEN + WHATSAPP_PHONE_NUMBER_ID (+ numri i biznesit) në .env.',
+    'settings.linkWhatsApp': 'Hap WhatsApp (lidhje)',
+    'settings.waLinkHint':
+      'Ruaj numrin (më e shpejtë) ose hap WhatsApp dhe dërgo kodin. Funksionon iOS + Android.',
+    'settings.waPhonePlaceholder': '38344XXXXXX',
+    'settings.waSavePhone': 'Ruaj',
+    'settings.openWhatsApp': 'Hape WhatsApp dhe dërgo mesazhin',
+    'settings.waSaved': 'Numri WhatsApp u ruajt',
+    'settings.waUnlinked': 'WhatsApp u shkëput',
+    'settings.waLinkFailed': 'Lidhja me WhatsApp dështoi',
+    'settings.whatsapp': 'WhatsApp',
+    'settings.waOn': 'Aktiv · i lidhur',
+    'settings.waOff': 'Lidhe më sipër',
+
+    'settings.freeSmsTitle': 'SMS falas (TextBee / Textbelt)',
     'settings.freeSmsBody':
-      'SMS reale pa Twilio: TextBee dërgon nga telefoni yt Android. Textbelt jep ~1 SMS/ditë për test.',
+      'SMS reale: TextBee dërgon nga një telefon Android (marrësit mund të jenë iOS ose Android). Textbelt ~1 SMS/ditë për test — çdo telefon.',
     'settings.textbeeSetup':
-      'Setup: textbee.dev → app Android → API key + Device ID → TEXTBEE_API_KEY dhe TEXTBEE_DEVICE_ID në backend/.env → rinis serverin.',
+      'Setup TextBee: textbee.dev → app Android → API key + Device ID → TEXTBEE_API_KEY dhe TEXTBEE_DEVICE_ID në backend/.env → rinis serverin.',
 
     'cities.eyebrow': 'Republika e Kosovës',
     'cities.title': 'Qytetet & Komunat',
@@ -292,11 +311,30 @@ export const extraTranslations: Record<Language, Record<string, string>> = {
     'settings.viberOn': 'On · connected',
     'settings.viberOff': 'Connect above',
 
-    'settings.freeSmsTitle': 'Free SMS (TextBee)',
+    'settings.iosAndroid': 'iOS + Android',
+    'settings.waTitle': 'WhatsApp (iOS & Android)',
+    'settings.waBody':
+      'Free SmartQueue alerts in WhatsApp — works on iPhone and Android. Save your number or open the deep link to connect.',
+    'settings.waAdminHint':
+      'Admin: Meta Developers → WhatsApp → WHATSAPP_TOKEN + WHATSAPP_PHONE_NUMBER_ID (+ business number) in .env.',
+    'settings.linkWhatsApp': 'Open WhatsApp (link)',
+    'settings.waLinkHint':
+      'Save your number (fastest) or open WhatsApp and send the code. Works on iOS + Android.',
+    'settings.waPhonePlaceholder': '38344XXXXXX',
+    'settings.waSavePhone': 'Save',
+    'settings.openWhatsApp': 'Open WhatsApp and send the message',
+    'settings.waSaved': 'WhatsApp number saved',
+    'settings.waUnlinked': 'WhatsApp disconnected',
+    'settings.waLinkFailed': 'WhatsApp link failed',
+    'settings.whatsapp': 'WhatsApp',
+    'settings.waOn': 'On · connected',
+    'settings.waOff': 'Connect above',
+
+    'settings.freeSmsTitle': 'Free SMS (TextBee / Textbelt)',
     'settings.freeSmsBody':
-      'Real SMS without Twilio: TextBee sends from your Android phone. Textbelt gives ~1 SMS/day for tests.',
+      'Real SMS: TextBee sends from an Android phone (recipients can be iOS or Android). Textbelt ~1 SMS/day for tests — any phone.',
     'settings.textbeeSetup':
-      'Setup: textbee.dev → Android app → API key + Device ID → TEXTBEE_API_KEY and TEXTBEE_DEVICE_ID in backend/.env → restart.',
+      'TextBee setup: textbee.dev → Android app → API key + Device ID → TEXTBEE_API_KEY and TEXTBEE_DEVICE_ID in backend/.env → restart server.',
 
     'cities.eyebrow': 'Republic of Kosovo',
     'cities.title': 'Cities & Municipalities',
@@ -509,11 +547,30 @@ export const extraTranslations: Record<Language, Record<string, string>> = {
     'settings.viberOn': 'Aktivno · povezano',
     'settings.viberOff': 'Poveži iznad',
 
-    'settings.freeSmsTitle': 'Besplatan SMS (TextBee)',
+    'settings.iosAndroid': 'iOS + Android',
+    'settings.waTitle': 'WhatsApp (iOS & Android)',
+    'settings.waBody':
+      'Besplatne SmartQueue notifikacije u WhatsApp-u — radi na iPhone i Android. Sačuvaj broj ili otvori deep link.',
+    'settings.waAdminHint':
+      'Admin: Meta Developers → WhatsApp → WHATSAPP_TOKEN + WHATSAPP_PHONE_NUMBER_ID (+ poslovni broj) u .env.',
+    'settings.linkWhatsApp': 'Otvori WhatsApp (poveži)',
+    'settings.waLinkHint':
+      'Sačuvaj broj (najbrže) ili otvori WhatsApp i pošalji kod. Radi na iOS + Android.',
+    'settings.waPhonePlaceholder': '38344XXXXXX',
+    'settings.waSavePhone': 'Sačuvaj',
+    'settings.openWhatsApp': 'Otvori WhatsApp i pošalji poruku',
+    'settings.waSaved': 'WhatsApp broj sačuvan',
+    'settings.waUnlinked': 'WhatsApp prekinut',
+    'settings.waLinkFailed': 'Povezivanje WhatsApp-a nije uspelo',
+    'settings.whatsapp': 'WhatsApp',
+    'settings.waOn': 'Aktivno · povezano',
+    'settings.waOff': 'Poveži iznad',
+
+    'settings.freeSmsTitle': 'Besplatni SMS (TextBee / Textbelt)',
     'settings.freeSmsBody':
-      'Pravi SMS bez Twilija: TextBee šalje sa tvog Androida. Textbelt daje ~1 SMS/dan za test.',
+      'Pravi SMS: TextBee šalje sa Android telefona (primaoci mogu biti iOS ili Android). Textbelt ~1 SMS/dan — bilo koji telefon.',
     'settings.textbeeSetup':
-      'Setup: textbee.dev → Android app → API key + Device ID → TEXTBEE_API_KEY i TEXTBEE_DEVICE_ID u backend/.env → restart.',
+      'TextBee setup: textbee.dev → Android app → API key + Device ID → TEXTBEE_API_KEY i TEXTBEE_DEVICE_ID u backend/.env → restartuj server.',
 
     'cities.eyebrow': 'Republika Kosovo',
     'cities.title': 'Gradovi i opštine',

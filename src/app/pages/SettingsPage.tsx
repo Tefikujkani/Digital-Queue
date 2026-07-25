@@ -14,6 +14,7 @@ import {
   MapPin,
   Mail,
   MessageSquare,
+  MessageCircle,
   Smartphone,
   Save,
   ArrowLeft,
@@ -38,6 +39,7 @@ const SettingsPage: React.FC = () => {
     sms: false,
     telegram: false,
     viber: false,
+    whatsapp: false,
   })
   const [tgStatus, setTgStatus] = useState<{
     configured: boolean
@@ -49,10 +51,17 @@ const SettingsPage: React.FC = () => {
     botUri: string | null
     webhook?: boolean
   }>({ configured: false, botUri: null })
+  const [waStatus, setWaStatus] = useState<{
+    configured: boolean
+    hasBusinessNumber?: boolean
+  }>({ configured: false })
+  const [waPhone, setWaPhone] = useState('')
   const [linking, setLinking] = useState(false)
   const [linkingViber, setLinkingViber] = useState(false)
+  const [linkingWa, setLinkingWa] = useState(false)
   const [unlinking, setUnlinking] = useState(false)
   const [unlinkingViber, setUnlinkingViber] = useState(false)
+  const [unlinkingWa, setUnlinkingWa] = useState(false)
   const [saving, setSaving] = useState(false)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -65,10 +74,12 @@ const SettingsPage: React.FC = () => {
 
   const linked = Boolean(user?.telegramChatId)
   const viberLinked = Boolean(user?.viberId)
+  const waLinked = Boolean(user?.whatsappPhone)
 
   const loadMessengerStatus = () => {
     api.get('/telegram/status').then((r) => setTgStatus(r.data || { configured: false }))
     api.get('/viber/status').then((r) => setVbStatus(r.data || { configured: false }))
+    api.get('/whatsapp/status').then((r) => setWaStatus(r.data || { configured: false }))
     api.get('/citizen/notify-channels').then((r) => setChannels(r.data || {}))
   }
 
@@ -78,12 +89,14 @@ const SettingsPage: React.FC = () => {
       return
     }
     setPreferredCity(user?.preferredCity || 'Prishtinë')
+    setWaPhone(user?.whatsappPhone || user?.phone || '')
     setPrefs({
       inApp: user?.notificationPrefs?.inApp !== false,
       email: user?.notificationPrefs?.email !== false,
       sms: user?.notificationPrefs?.sms === true,
       telegram: user?.notificationPrefs?.telegram === true || Boolean(user?.telegramChatId),
       viber: user?.notificationPrefs?.viber === true || Boolean(user?.viberId),
+      whatsapp: user?.notificationPrefs?.whatsapp === true || Boolean(user?.whatsappPhone),
     })
     api.get('/citizen/cities').then((r) => setCities(r.data?.cities || []))
     loadMessengerStatus()
@@ -174,6 +187,69 @@ const SettingsPage: React.FC = () => {
       toast.error(err?.response?.data?.message || t('settings.viberLinkFailed'))
     } finally {
       setUnlinkingViber(false)
+    }
+  }
+
+  const linkWhatsApp = async () => {
+    setLinkingWa(true)
+    try {
+      const { data } = await api.post('/whatsapp/link')
+      if (!data.ok) {
+        toast.error(data.message || t('settings.waLinkFailed'))
+        return
+      }
+      toast.success(t('settings.openWhatsApp'))
+      window.open(data.deepLink, '_blank', 'noopener,noreferrer')
+      let tries = 0
+      const poll = setInterval(async () => {
+        tries += 1
+        try {
+          await refreshUser()
+        } catch {
+          /* ignore */
+        }
+        if (tries > 40) clearInterval(poll)
+      }, 2500)
+      setTimeout(() => clearInterval(poll), 120000)
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || t('settings.waLinkFailed'))
+    } finally {
+      setLinkingWa(false)
+    }
+  }
+
+  const saveWaPhone = async () => {
+    setLinkingWa(true)
+    try {
+      const { data } = await api.post('/whatsapp/phone', { phone: waPhone })
+      if (!data.ok) {
+        toast.error(data.message || t('settings.waLinkFailed'))
+        return
+      }
+      await refreshUser({
+        whatsappPhone: data.phone,
+        notificationPrefs: { ...prefs, whatsapp: true },
+      } as any)
+      setPrefs((p) => ({ ...p, whatsapp: true }))
+      toast.success(t('settings.waSaved'))
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || t('settings.waLinkFailed'))
+    } finally {
+      setLinkingWa(false)
+    }
+  }
+
+  const unlinkWa = async () => {
+    setUnlinkingWa(true)
+    try {
+      await api.post('/whatsapp/unlink')
+      await refreshUser({ whatsappPhone: '', notificationPrefs: { ...prefs, whatsapp: false } } as any)
+      setPrefs((p) => ({ ...p, whatsapp: false }))
+      toast.success(t('settings.waUnlinked'))
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || t('settings.waLinkFailed'))
+    } finally {
+      setUnlinkingWa(false)
     }
   }
 
@@ -376,6 +452,92 @@ const SettingsPage: React.FC = () => {
               )}
             </div>
 
+            {/* WHATSAPP — iOS + Android */}
+            <div className="surface-card rounded-2xl p-5 space-y-4 border border-emerald-500/25 bg-gradient-to-br from-emerald-500/10 to-transparent">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-4 h-4 text-emerald-300" />
+                <h2 className="font-semibold">{t('settings.waTitle')}</h2>
+                <span className="ml-auto text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-200">
+                  {t('settings.iosAndroid')}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {t('settings.waBody')}
+              </p>
+
+              {waLinked ? (
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex-1 flex items-center gap-2 text-sm text-accent">
+                    <CheckCircle2 className="w-5 h-5 shrink-0" />
+                    <span>
+                      {t('settings.linked')}
+                      {user?.whatsappPhone ? (
+                        <>
+                          {' '}
+                          · <strong>+{String(user.whatsappPhone).replace(/^\+/, '')}</strong>
+                        </>
+                      ) : null}
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={unlinkWa}
+                    disabled={unlinkingWa}
+                    className="border-white/15"
+                  >
+                    {unlinkingWa ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Unplug className="w-4 h-4" />
+                    )}
+                    {t('settings.unlink')}
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {!waStatus.configured && (
+                    <p className="text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
+                      {t('settings.waAdminHint')}
+                    </p>
+                  )}
+                  <div className="flex gap-2">
+                    <Input
+                      value={waPhone}
+                      onChange={(e) => setWaPhone(e.target.value)}
+                      placeholder={t('settings.waPhonePlaceholder')}
+                      className="h-12"
+                      inputMode="tel"
+                    />
+                    <Button
+                      className="h-12 shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white"
+                      onClick={saveWaPhone}
+                      disabled={linkingWa || !waPhone.trim()}
+                    >
+                      {linkingWa ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                      {t('settings.waSavePhone')}
+                    </Button>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full h-11 border-emerald-500/30"
+                    onClick={linkWhatsApp}
+                    disabled={linkingWa || !waStatus.configured}
+                  >
+                    {linkingWa ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <ExternalLink className="w-4 h-4" />
+                    )}
+                    {t('settings.linkWhatsApp')}
+                  </Button>
+                  <p className="text-[11px] text-muted-foreground text-center">
+                    {t('settings.waLinkHint')}
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* Free SMS status */}
             <div className="surface-card rounded-2xl p-5 space-y-3 border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-transparent">
               <div className="flex items-center gap-2">
@@ -500,6 +662,23 @@ const SettingsPage: React.FC = () => {
                   checked={prefs.viber}
                   disabled={!viberLinked}
                   onCheckedChange={(v) => setPrefs((p) => ({ ...p, viber: v }))}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <MessageCircle className="w-4 h-4 text-emerald-300 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">{t('settings.whatsapp')}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {waLinked ? t('settings.waOn') : t('settings.waOff')}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={prefs.whatsapp}
+                  disabled={!waLinked}
+                  onCheckedChange={(v) => setPrefs((p) => ({ ...p, whatsapp: v }))}
                 />
               </div>
 

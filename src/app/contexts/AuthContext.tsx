@@ -35,6 +35,7 @@ function formatUser(userData: any): User {
     preferredCity: userData.preferredCity,
     telegramChatId: userData.telegramChatId || '',
     viberId: userData.viberId || '',
+    whatsappPhone: userData.whatsappPhone || '',
     notificationPrefs: userData.notificationPrefs,
     createdAt: userData.createdAt || new Date(),
   }
@@ -115,7 +116,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         (partial.preferredCity ||
           partial.notificationPrefs ||
           partial.telegramChatId !== undefined ||
-          partial.viberId !== undefined)
+          partial.viberId !== undefined ||
+          partial.whatsappPhone !== undefined)
       ) {
         setUser((prev) => {
           if (!prev) return prev

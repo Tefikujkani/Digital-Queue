@@ -31,13 +31,14 @@ class NotificationService {
     const wantsTelegram =
       Boolean(user?.telegramChatId) && prefs.telegram !== false
     const wantsViber = Boolean(user?.viberId) && prefs.viber !== false
+    const wantsWhatsApp = Boolean(user?.whatsappPhone) && prefs.whatsapp !== false
     // Transactional appointment SMS can override prefs when forceSms + phone
     const sms =
       (Boolean(channels.sms) && prefs.sms === true) ||
       (forceSms && Boolean(user?.phone || data.phoneOverride))
     const smartDelivery =
       type.startsWith('appointment_') &&
-      (sms || wantsTelegram || wantsViber || forceSms)
+      (sms || wantsTelegram || wantsViber || wantsWhatsApp || forceSms)
 
     const notification = await Notification.create({
       userId,
@@ -45,7 +46,11 @@ class NotificationService {
       title,
       message,
       data,
-      channels: { inApp, email, sms: sms || wantsTelegram || wantsViber },
+      channels: {
+        inApp,
+        email,
+        sms: sms || wantsTelegram || wantsViber || wantsWhatsApp,
+      },
     })
 
     if (inApp && this.io) {
@@ -103,6 +108,7 @@ class NotificationService {
           email: user?.email,
           telegramChatId: wantsTelegram ? user.telegramChatId : undefined,
           viberId: wantsViber ? user.viberId : undefined,
+          whatsappPhone: wantsWhatsApp ? user.whatsappPhone : undefined,
           body: message,
           subject: `📱 ${title}`,
         })
@@ -123,8 +129,9 @@ class NotificationService {
     // Messenger falas për thirrjen e radhës (pa SMS)
     if (!smartDelivery && type === 'ticket_called') {
       try {
-        const { sendViaTelegram, sendViaViber } = await import('./smsService.js')
+        const { sendViaTelegram, sendViaViber, sendViaWhatsApp } = await import('./smsService.js')
         if (wantsTelegram) await sendViaTelegram(user.telegramChatId, message)
+        if (wantsWhatsApp) await sendViaWhatsApp(user.whatsappPhone, message)
         if (wantsViber) await sendViaViber(user.viberId, message)
       } catch (err) {
         console.error('Messenger notify failed:', err.message)
@@ -207,7 +214,7 @@ class NotificationService {
         timeStr,
         phoneOverride: opts.phone,
       },
-      { inApp: true, email: true, sms: true, forceSms: opts.notifySms !== false },
+      { inApp: true, email: true, sms: opts.notifySms === true, forceSms: opts.notifySms === true },
     )
   }
 
