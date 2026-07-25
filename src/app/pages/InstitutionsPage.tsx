@@ -8,6 +8,7 @@ import { useFavorites } from '../contexts/FavoritesContext'
 import api from '../lib/api'
 import type { Institution } from '../types'
 import { getOpenStatus } from '../lib/hours'
+import { translate } from '../i18n/translate'
 import {
   Building2,
   Hospital,
@@ -148,14 +149,14 @@ const InstitutionsPage: React.FC = () => {
                 size="sm"
                 onClick={() => setView('grid')}
               >
-                <LayoutGrid className="w-4 h-4" /> Lista
+                <LayoutGrid className="w-4 h-4" /> {t('institution.viewList')}
               </Button>
               <Button
                 variant={view === 'map' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setView('map')}
               >
-                <MapIcon className="w-4 h-4" /> Harta
+                <MapIcon className="w-4 h-4" /> {t('institution.viewMap')}
               </Button>
             </div>
           </div>
@@ -179,7 +180,7 @@ const InstitutionsPage: React.FC = () => {
                   : 'bg-muted/60 text-muted-foreground border border-white/5'
               }`}
             >
-              Të gjitha qytetet
+              {t('institution.allCities')}
             </button>
             {cities.map((c) => (
               <button
@@ -222,7 +223,7 @@ const InstitutionsPage: React.FC = () => {
               }`}
             >
               <Heart className={`w-3.5 h-3.5 ${onlyFavorites ? 'fill-accent' : ''}`} />
-              Të preferuarat
+              {t('institution.favoritesFilter')}
             </button>
           </div>
         </div>
@@ -232,11 +233,13 @@ const InstitutionsPage: React.FC = () => {
         {view === 'map' && (
           <div className="mb-8 rounded-3xl border border-white/10 overflow-hidden bg-[#0c1020]">
             <div className="p-4 border-b border-white/8 flex items-center justify-between">
-              <p className="text-sm font-medium">Harta e institucioneve · OpenStreetMap</p>
-              <span className="text-xs text-muted-foreground">{list.length} lokacione</span>
+              <p className="text-sm font-medium">{t('institution.mapTitle')}</p>
+              <span className="text-xs text-muted-foreground">
+                {t('institution.locationsCount', { n: list.length })}
+              </span>
             </div>
             <iframe
-              title="Harta SmartQueue"
+              title={t('institution.mapTitle')}
               className="w-full h-[420px] grayscale-[20%] contrast-125"
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
@@ -299,7 +302,7 @@ const InstitutionsPage: React.FC = () => {
                       e.stopPropagation()
                       toggleFavorite(id)
                     }}
-                    aria-label="Preferuar"
+                    aria-label={t('institution.favoriteAria')}
                   >
                     <Heart className={`w-4 h-4 ${fav ? 'fill-accent text-accent' : 'text-muted-foreground'}`} />
                   </button>
@@ -316,7 +319,7 @@ const InstitutionsPage: React.FC = () => {
                             : 'bg-destructive/15 text-destructive border border-destructive/25'
                         }`}
                       >
-                        {open.isOpen ? '● Hapur' : '● Mbyllur'}
+                        {open.isOpen ? t('institution.openNow') : t('institution.closedNow')}
                       </span>
                       <span
                         className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
@@ -410,7 +413,7 @@ function UsersIcon({ waiting }: { waiting: number }) {
   return (
     <span className="inline-flex items-center gap-1.5 text-muted-foreground">
       <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-      {waiting} në pritje tani
+      {translate('institution.waitingNow', { n: waiting })}
     </span>
   )
 }

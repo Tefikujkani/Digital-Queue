@@ -1,3 +1,5 @@
+import { translate } from '../i18n/translate'
+
 /** Orari i punës — Kosovë (Europe/Belgrade) */
 export function parseHm(hm: string): number | null {
   if (!hm || !/^\d{1,2}:\d{2}$/.test(hm.trim())) return null
@@ -21,7 +23,6 @@ export function getKosovoNowMinutes(date = new Date()): number {
 }
 
 export function getKosovoWeekday(date = new Date()): number {
-  // 0=Sun … 6=Sat in local Kosovo calendar
   const wd = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Europe/Belgrade',
     weekday: 'short',
@@ -49,21 +50,28 @@ export function getOpenStatus(
   opts?: { closedWeekends?: boolean },
 ): OpenStatus {
   if (!workingHours?.open || !workingHours?.close) {
-    return { isOpen: true, label: 'Orar i panjohur', detail: 'Kontakto institucionin' }
+    return {
+      isOpen: true,
+      label: translate('hours.unknown'),
+      detail: translate('hours.contact'),
+    }
   }
 
   const openM = parseHm(workingHours.open)
   const closeM = parseHm(workingHours.close)
   if (openM == null || closeM == null) {
-    return { isOpen: true, label: 'Orar i panjohur', detail: '' }
+    return { isOpen: true, label: translate('hours.unknown'), detail: '' }
   }
 
   const day = getKosovoWeekday()
   if (opts?.closedWeekends !== false && (day === 0 || day === 6)) {
     return {
       isOpen: false,
-      label: 'Mbyllur (fundjavë)',
-      detail: `Hapet së shpejti · ${workingHours.open}–${workingHours.close}`,
+      label: translate('hours.closedWeekend'),
+      detail: translate('hours.opensSoon', {
+        open: workingHours.open,
+        close: workingHours.close,
+      }),
     }
   }
 
@@ -72,20 +80,23 @@ export function getOpenStatus(
   if (isOpen) {
     return {
       isOpen: true,
-      label: 'Hapur tani',
-      detail: `Deri në ${workingHours.close}`,
+      label: translate('hours.openNow'),
+      detail: translate('hours.until', { time: workingHours.close }),
     }
   }
   if (now < openM) {
     return {
       isOpen: false,
-      label: 'Ende i mbyllur',
-      detail: `Hapet në ${workingHours.open}`,
+      label: translate('hours.stillClosed'),
+      detail: translate('hours.opensAt', { time: workingHours.open }),
     }
   }
   return {
     isOpen: false,
-    label: 'Mbyllur sot',
-    detail: `Orari: ${workingHours.open}–${workingHours.close}`,
+    label: translate('hours.closedToday'),
+    detail: translate('hours.schedule', {
+      open: workingHours.open,
+      close: workingHours.close,
+    }),
   }
 }

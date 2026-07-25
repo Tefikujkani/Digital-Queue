@@ -141,7 +141,7 @@ const CitizenDashboard: React.FC = () => {
                 onClick={exportHistoryCsv}
                 disabled={!myTickets.length}
               >
-                <Download className="w-4 h-4" /> Eksporto CSV
+                <Download className="w-4 h-4" /> {t('citizen.exportCsv')}
               </Button>
               <Button className="h-11" onClick={() => navigate('/institutions')}>
                 {t('citizen.getNumber')} <ArrowRight className="w-4 h-4" />

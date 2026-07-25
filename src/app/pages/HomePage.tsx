@@ -566,11 +566,13 @@ const HomePage: React.FC = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="flex items-end justify-between mb-5 gap-4">
             <div>
-              <p className="text-primary text-xs font-bold uppercase tracking-[0.2em] mb-2">Kosovë</p>
-              <h2 className="text-2xl font-bold">Zgjidh qytetin tënd</h2>
+              <p className="text-primary text-xs font-bold uppercase tracking-[0.2em] mb-2">
+                {t('home.citiesEyebrow')}
+              </p>
+              <h2 className="text-2xl font-bold">{t('home.citiesTitle')}</h2>
             </div>
             <Button variant="outline" size="sm" onClick={() => navigate('/cities')}>
-              Të gjitha qytetet
+              {t('home.allCities')}
               <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
@@ -583,11 +585,13 @@ const HomePage: React.FC = () => {
                 className="shrink-0 px-5 py-3 rounded-2xl surface-card hover:border-primary/40 text-left min-w-[140px]"
               >
                 <p className="font-semibold text-sm">{c.name}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">{c.count} institucione</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {t('home.institutionCount', { n: c.count })}
+                </p>
               </button>
             ))}
             {!cities.length && (
-              <p className="text-sm text-muted-foreground">Duke ngarkuar qytetet…</p>
+              <p className="text-sm text-muted-foreground">{t('home.loadingCities')}</p>
             )}
           </div>
         </div>

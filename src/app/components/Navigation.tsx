@@ -61,7 +61,7 @@ const Navigation: React.FC = () => {
 
   const navLinks = [
     { name: t('nav.institutions'), path: '/institutions', icon: Building2 },
-    { name: 'Qytetet', path: '/cities', icon: MapPin },
+    { name: t('nav.cities'), path: '/cities', icon: MapPin },
     { name: t('nav.appointments'), path: '/appointments', icon: Calendar },
   ]
 
@@ -238,7 +238,7 @@ const Navigation: React.FC = () => {
                   size="icon"
                   className="rounded-xl"
                   onClick={() => navigate('/settings')}
-                  title="Cilësimet"
+                  title={t('nav.settings')}
                 >
                   <Settings className="w-4 h-4" />
                 </Button>
@@ -247,7 +247,7 @@ const Navigation: React.FC = () => {
                   size="icon"
                   className="rounded-xl"
                   onClick={() => navigate('/help')}
-                  title="Ndihma"
+                  title={t('nav.help')}
                 >
                   <HelpCircle className="w-4 h-4" />
                 </Button>

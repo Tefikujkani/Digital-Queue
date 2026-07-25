@@ -26,7 +26,7 @@ const RegisterPage: React.FC = () => {
       return
     }
     if (password.length < 8) {
-      toast.error('Fjalëkalimi duhet të ketë të paktën 8 karaktere')
+      toast.error(t('auth.passwordMinLength'))
       return
     }
     if (password !== confirmPassword) {
