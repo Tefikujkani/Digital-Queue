@@ -213,11 +213,11 @@ const AppointmentsPage: React.FC = () => {
                     <div className="flex items-start gap-3">
                       <Smartphone className="w-5 h-5 text-sky-400 mt-0.5" />
                       <div>
-                        <p className="font-semibold text-sm">Njoftime (Telegram + SMS)</p>
+                        <p className="font-semibold text-sm">{t('appointment.notifyTitle')}</p>
                         <p className="text-xs text-muted-foreground mt-1">
                           {user?.telegramChatId
-                            ? 'Telegram është i lidhur — njoftimi shkon falas aty së pari. SMS është opsional si backup.'
-                            : 'Rekomandohet Telegram (falas) te Cilësimet. Ose aktivizo SMS këtu si backup.'}
+                            ? t('appointment.notifyLinked')
+                            : t('appointment.notifyHint')}
                         </p>
                       </div>
                     </div>
@@ -225,13 +225,13 @@ const AppointmentsPage: React.FC = () => {
                   </div>
                   {user?.telegramChatId && (
                     <p className="text-[11px] text-sky-300/90 flex items-center gap-1.5">
-                      ✓ Telegram aktiv — konfirmimi dhe kujtesat shkojnë aty automatikisht
+                      ✓ {t('appointment.telegramActive')}
                     </p>
                   )}
                   {notifySms && (
                     <div className="space-y-2">
                       <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                        Numri i telefonit (+383…) — SMS backup
+                        {t('appointment.phoneSms')}
                       </Label>
                       <Input
                         value={phone}

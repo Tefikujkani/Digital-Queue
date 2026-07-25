@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useCallback } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react'
 import type { Language } from '../types'
 import { languageLocales, translations } from '../i18n/translations'
+import { toast } from 'sonner'
 
 interface LanguageContextType {
   language: Language
@@ -18,9 +19,19 @@ const languageLabels: Record<Language, string> = {
   sr: 'SR',
 }
 
+const htmlLang: Record<Language, string> = {
+  sq: 'sq',
+  en: 'en',
+  sr: 'sr',
+}
+
 function getStoredLanguage(): Language {
-  const stored = localStorage.getItem('language')
-  if (stored === 'sq' || stored === 'en' || stored === 'sr') return stored
+  try {
+    const stored = localStorage.getItem('smartqueue_language') || localStorage.getItem('language')
+    if (stored === 'sq' || stored === 'en' || stored === 'sr') return stored
+  } catch {
+    /* ignore */
+  }
   return 'sq'
 }
 
@@ -36,9 +47,22 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [language, setLanguageState] = useState<Language>(getStoredLanguage)
 
   const setLanguage = useCallback((lang: Language) => {
+    if (lang !== 'sq' && lang !== 'en' && lang !== 'sr') return
     setLanguageState(lang)
-    localStorage.setItem('language', lang)
+    try {
+      localStorage.setItem('smartqueue_language', lang)
+      localStorage.setItem('language', lang) // legacy key
+    } catch {
+      /* ignore */
+    }
+    const dict = translations[lang]
+    toast.success(dict['lang.changed'] || 'Language changed')
   }, [])
+
+  useEffect(() => {
+    document.documentElement.lang = htmlLang[language]
+    document.documentElement.setAttribute('data-language', language)
+  }, [language])
 
   const t = useCallback(
     (key: string, vars?: Record<string, string | number>): string => {
@@ -52,18 +76,19 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     [language],
   )
 
+  const value = useMemo(
+    () => ({
+      language,
+      setLanguage,
+      languageLabel: languageLabels[language],
+      locale: languageLocales[language],
+      t,
+    }),
+    [language, setLanguage, t],
+  )
+
   return (
-    <LanguageContext.Provider
-      value={{
-        language,
-        setLanguage,
-        languageLabel: languageLabels[language],
-        locale: languageLocales[language],
-        t,
-      }}
-    >
-      {children}
-    </LanguageContext.Provider>
+    <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>
   )
 }
 

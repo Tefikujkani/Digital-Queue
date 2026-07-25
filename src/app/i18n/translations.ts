@@ -1,7 +1,8 @@
 import type { Language } from '../types'
+import { extraTranslations } from './extraTranslations'
 
 /** Shared UI strings for sq / en / sr */
-export const translations: Record<Language, Record<string, string>> = {
+const baseTranslations: Record<Language, Record<string, string>> = {
   sq: {
     'nav.home': 'Ballina',
     'nav.institutions': 'Institucionet',
@@ -949,6 +950,12 @@ export const translations: Record<Language, Record<string, string>> = {
     'toast.serviceCompleted': 'Usluga je završena',
     'toast.completeFailed': 'Završavanje nije uspelo',
   },
+}
+
+export const translations: Record<Language, Record<string, string>> = {
+  sq: { ...baseTranslations.sq, ...extraTranslations.sq },
+  en: { ...baseTranslations.en, ...extraTranslations.en },
+  sr: { ...baseTranslations.sr, ...extraTranslations.sr },
 }
 
 export const languageLocales: Record<Language, string> = {

@@ -148,6 +148,7 @@ const Navigation: React.FC = () => {
                       onClick={() => {
                         setLanguage(lang.code)
                         setShowLangMenu(false)
+                        setIsOpen(false)
                       }}
                     >
                       <span className="w-4 flex justify-center">
@@ -306,7 +307,10 @@ const Navigation: React.FC = () => {
                   <button
                     key={lang.code}
                     type="button"
-                    onClick={() => setLanguage(lang.code)}
+                    onClick={() => {
+                      setLanguage(lang.code)
+                      setIsOpen(false)
+                    }}
                     className={`py-2.5 rounded-xl text-xs font-semibold transition-colors ${
                       language === lang.code
                         ? 'bg-primary/20 text-white border border-primary/40'

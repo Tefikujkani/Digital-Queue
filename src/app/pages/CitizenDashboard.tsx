@@ -133,7 +133,7 @@ const CitizenDashboard: React.FC = () => {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" className="h-11" onClick={() => navigate('/settings')}>
-                <Settings className="w-4 h-4" /> Cilësimet
+                <Settings className="w-4 h-4" /> {t('nav.settings')}
               </Button>
               <Button
                 variant="outline"

@@ -2,36 +2,27 @@ import React from 'react'
 import { Link, useNavigate } from 'react-router'
 import { HelpCircle, MessageCircle, Ticket, Calendar, Bell, MapPin } from 'lucide-react'
 import { Button } from '../components/ui/button'
-
-const faqs = [
-  {
-    q: 'Si e marr një numër digjital?',
-    a: 'Shko te Institucionet → zgjidh institucionin → zgjidh shërbimin → konfirmo dokumentet → Merr Numrin Digjital. Duhet të jesh i kyçur.',
-  },
-  {
-    q: 'Çfarë është prioriteti (të moshuar, emergjencë…)?',
-    a: 'Përdore vetëm nëse ke të drejtë. Prioriteti ndihmon radhën të jetë më e drejtë për rastet urgjente dhe personat me nevoja të veçanta.',
-  },
-  {
-    q: 'Si rezervoj termin?',
-    a: 'Nga Terminet zgjidh institucionin, shërbimin, datën dhe orën. Termini shfaqet si ticket me orar të planifikuar.',
-  },
-  {
-    q: 'A funksionon në të gjithë Kosovën?',
-    a: 'Po — filtro sipas qytetit (Prishtinë, Prizren, Pejë, Gjilan, etj.) ose hap faqen Qytetet.',
-  },
-  {
-    q: 'Si i marr njoftimet?',
-    a: 'Në aplikacion (zile), email dhe opsionalisht SMS. Kontrollo Cilësimet për kanalet që dëshiron.',
-  },
-  {
-    q: 'Ku e shoh historikun e ticket-eve?',
-    a: 'Në Panelin e Qytetarit. Mund të eksportosh historikun si CSV.',
-  },
-]
+import { useLanguage } from '../contexts/LanguageContext'
 
 const HelpPage: React.FC = () => {
   const navigate = useNavigate()
+  const { t } = useLanguage()
+
+  const faqs = [
+    { q: t('help.q1'), a: t('help.a1') },
+    { q: t('help.q2'), a: t('help.a2') },
+    { q: t('help.q3'), a: t('help.a3') },
+    { q: t('help.q4'), a: t('help.a4') },
+    { q: t('help.q5'), a: t('help.a5') },
+    { q: t('help.q6'), a: t('help.a6') },
+  ]
+
+  const quickLinks = [
+    { to: '/institutions', icon: Ticket, label: t('help.getNumber') },
+    { to: '/appointments', icon: Calendar, label: t('help.appointments') },
+    { to: '/cities', icon: MapPin, label: t('help.cities') },
+  ]
+
   return (
     <div className="min-h-screen pb-20">
       <div className="pt-12 px-5">
@@ -41,17 +32,13 @@ const HelpPage: React.FC = () => {
               <HelpCircle className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">Ndihma & FAQ</h1>
-              <p className="text-muted-foreground text-sm">Udhëzues i shkurtër për qytetarët e Kosovës</p>
+              <h1 className="text-3xl font-bold">{t('help.title')}</h1>
+              <p className="text-muted-foreground text-sm">{t('help.subtitle')}</p>
             </div>
           </div>
 
           <div className="grid sm:grid-cols-3 gap-3 mb-10">
-            {[
-              { to: '/institutions', icon: Ticket, label: 'Merr numër' },
-              { to: '/appointments', icon: Calendar, label: 'Termine' },
-              { to: '/cities', icon: MapPin, label: 'Qytetet' },
-            ].map((x) => (
+            {quickLinks.map((x) => (
               <Link
                 key={x.to}
                 to={x.to}
@@ -89,7 +76,7 @@ const HelpPage: React.FC = () => {
               </div>
             </div>
             <Button variant="outline" onClick={() => navigate('/settings')}>
-              <Bell className="w-4 h-4" /> Cilësimet e njoftimeve
+              <Bell className="w-4 h-4" /> {t('nav.settings')}
             </Button>
           </div>
         </div>

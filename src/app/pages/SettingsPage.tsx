@@ -5,6 +5,7 @@ import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Switch } from '../components/ui/switch'
 import { useAuth } from '../contexts/AuthContext'
+import { useLanguage } from '../contexts/LanguageContext'
 import api from '../lib/api'
 import { toast } from 'sonner'
 import {
@@ -27,6 +28,7 @@ import {
 
 const SettingsPage: React.FC = () => {
   const navigate = useNavigate()
+  const { t } = useLanguage()
   const { user, isAuthenticated, refreshUser } = useAuth()
   const [cities, setCities] = useState<{ name: string }[]>([])
   const [preferredCity, setPreferredCity] = useState('Prishtinë')
@@ -75,10 +77,10 @@ const SettingsPage: React.FC = () => {
     try {
       const { data } = await api.post('/telegram/link')
       if (!data.ok) {
-        toast.error(data.message || 'Lidhja dështoi')
+        toast.error(data.message || t('settings.linkFailed'))
         return
       }
-      toast.success('Hape Telegram dhe shtyp Start')
+      toast.success(t('settings.openTelegram'))
       window.open(data.deepLink, '_blank', 'noopener,noreferrer')
       // Poll derisa të lidhet
       let tries = 0
@@ -93,7 +95,7 @@ const SettingsPage: React.FC = () => {
       }, 2500)
       setTimeout(() => clearInterval(poll), 120000)
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Lidhja dështoi')
+      toast.error(err?.response?.data?.message || t('settings.linkFailed'))
     } finally {
       setLinking(false)
     }
@@ -105,9 +107,9 @@ const SettingsPage: React.FC = () => {
       await api.post('/telegram/unlink')
       await refreshUser({ telegramChatId: '', notificationPrefs: { ...prefs, telegram: false } } as any)
       setPrefs((p) => ({ ...p, telegram: false }))
-      toast.success('Telegram u shkëput')
+      toast.success(t('settings.unlinked'))
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Shkëputja dështoi')
+      toast.error(err?.response?.data?.message || t('settings.linkFailed'))
     } finally {
       setUnlinking(false)
     }
@@ -117,25 +119,25 @@ const SettingsPage: React.FC = () => {
     setPwLoading(true)
     try {
       await api.put('/auth/password', { currentPassword, newPassword })
-      toast.success('Fjalëkalimi u ndryshua')
+      toast.success(t('settings.passwordChanged'))
       setCurrentPassword('')
       setNewPassword('')
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Ndryshimi dështoi')
+      toast.error(err?.response?.data?.message || t('settings.passwordFailed'))
     } finally {
       setPwLoading(false)
     }
   }
 
   const deleteMe = async () => {
-    if (!deletePassword || !confirm('Je i sigurt? Llogaria fshihet përgjithmonë.')) return
+    if (!deletePassword || !confirm(t('settings.deleteConfirm'))) return
     try {
       await api.delete('/auth/me', { data: { password: deletePassword } })
-      toast.success('Llogaria u fshi')
+      toast.success(t('settings.deleted'))
       localStorage.clear()
       window.location.href = '/'
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Fshirja dështoi')
+      toast.error(err?.response?.data?.message || t('settings.deleteFailed'))
     }
   }
 
@@ -150,9 +152,9 @@ const SettingsPage: React.FC = () => {
         preferredCity: data.preferredCity,
         notificationPrefs: data.notificationPrefs,
       } as any)
-      toast.success('Cilësimet u ruajtën')
+      toast.success(t('settings.saved'))
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Ruajtja dështoi')
+      toast.error(err?.response?.data?.message || t('settings.saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -163,17 +165,15 @@ const SettingsPage: React.FC = () => {
       <div className="pt-10 px-5">
         <div className="container mx-auto max-w-2xl">
           <Button variant="ghost" className="-ml-2 mb-4" onClick={() => navigate(-1)}>
-            <ArrowLeft className="w-4 h-4" /> Kthehu
+            <ArrowLeft className="w-4 h-4" /> {t('common.back')}
           </Button>
           <div className="flex items-center gap-3 mb-8">
             <div className="w-12 h-12 rounded-2xl btn-gradient flex items-center justify-center">
               <Settings className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">Cilësimet</h1>
-              <p className="text-sm text-muted-foreground">
-                Njoftime falas me Telegram — kanali kryesor
-              </p>
+              <h1 className="text-3xl font-bold">{t('settings.title')}</h1>
+              <p className="text-sm text-muted-foreground">{t('settings.subtitle')}</p>
             </div>
           </div>
 
@@ -182,14 +182,13 @@ const SettingsPage: React.FC = () => {
             <div className="surface-card rounded-2xl p-5 space-y-4 border border-sky-500/25 bg-gradient-to-br from-sky-500/10 to-transparent">
               <div className="flex items-center gap-2">
                 <Send className="w-4 h-4 text-sky-400" />
-                <h2 className="font-semibold">Telegram (rekomanduar)</h2>
+                <h2 className="font-semibold">{t('settings.telegramTitle')}</h2>
                 <span className="ml-auto text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300">
-                  Falas
+                  {t('settings.free')}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Kanali më i mirë për SmartQueue: falas, i menjëhershëm, pa kredi SMS. Merr
-                konfirmime termini, kujtesa dhe thirrjen e radhës direkt në Telegram.
+                {t('settings.telegramBody')}
               </p>
 
               {linked ? (
@@ -197,7 +196,7 @@ const SettingsPage: React.FC = () => {
                   <div className="flex-1 flex items-center gap-2 text-sm text-accent">
                     <CheckCircle2 className="w-5 h-5 shrink-0" />
                     <span>
-                      I lidhur
+                      {t('settings.linked')}
                       {tgStatus.botUsername ? (
                         <>
                           {' '}
@@ -218,16 +217,14 @@ const SettingsPage: React.FC = () => {
                     ) : (
                       <Unplug className="w-4 h-4" />
                     )}
-                    Shkëput
+                    {t('settings.unlink')}
                   </Button>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {!tgStatus.configured && (
                     <p className="text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
-                      Admin: krijo bot te @BotFather → vendos{' '}
-                      <code className="text-amber-200">TELEGRAM_BOT_TOKEN</code> në backend/.env →
-                      rinis serverin.
+                      {t('settings.adminBotHint')}
                     </p>
                   )}
                   <Button
@@ -240,10 +237,10 @@ const SettingsPage: React.FC = () => {
                     ) : (
                       <ExternalLink className="w-4 h-4" />
                     )}
-                    Lidhu me Telegram
+                    {t('settings.linkTelegram')}
                   </Button>
                   <p className="text-[11px] text-muted-foreground text-center">
-                    Hapët Telegram → shtyp <strong>Start</strong> → lidhja bëhet automatikisht
+                    {t('settings.linkHint')}
                   </p>
                 </div>
               )}
@@ -252,7 +249,7 @@ const SettingsPage: React.FC = () => {
             <div className="surface-card rounded-2xl p-5 space-y-4">
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-primary" />
-                <h2 className="font-semibold">Qyteti i preferuar</h2>
+                <h2 className="font-semibold">{t('settings.preferredCity')}</h2>
               </div>
               <select
                 value={preferredCity}
@@ -273,15 +270,15 @@ const SettingsPage: React.FC = () => {
             <div className="surface-card rounded-2xl p-5 space-y-5">
               <div className="flex items-center gap-2">
                 <Bell className="w-4 h-4 text-primary" />
-                <h2 className="font-semibold">Kanalet e njoftimeve</h2>
+                <h2 className="font-semibold">{t('settings.channels')}</h2>
               </div>
 
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-start gap-3">
                   <Smartphone className="w-4 h-4 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium">Në aplikacion</p>
-                    <p className="text-xs text-muted-foreground">Zile live</p>
+                    <p className="text-sm font-medium">{t('settings.inApp')}</p>
+                    <p className="text-xs text-muted-foreground">{t('settings.inAppHint')}</p>
                   </div>
                 </div>
                 <Switch
@@ -294,7 +291,7 @@ const SettingsPage: React.FC = () => {
                 <div className="flex items-start gap-3">
                   <Mail className="w-4 h-4 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium">Email</p>
+                    <p className="text-sm font-medium">{t('settings.email')}</p>
                     <p className="text-xs text-muted-foreground">{user?.email}</p>
                   </div>
                 </div>
@@ -308,9 +305,9 @@ const SettingsPage: React.FC = () => {
                 <div className="flex items-start gap-3">
                   <Send className="w-4 h-4 text-sky-400 mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium">Telegram</p>
+                    <p className="text-sm font-medium">{t('settings.telegram')}</p>
                     <p className="text-xs text-muted-foreground">
-                      {linked ? 'Aktiv · i lidhur' : 'Lidhe më sipër'}
+                      {linked ? t('settings.telegramOn') : t('settings.telegramOff')}
                     </p>
                   </div>
                 </div>
@@ -325,8 +322,8 @@ const SettingsPage: React.FC = () => {
                 <div className="flex items-start gap-3">
                   <MessageSquare className="w-4 h-4 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium">SMS (opsional)</p>
-                    <p className="text-xs text-muted-foreground">Backup nëse ke kredi provider</p>
+                    <p className="text-sm font-medium">{t('settings.smsOptional')}</p>
+                    <p className="text-xs text-muted-foreground">{t('settings.smsHint')}</p>
                   </div>
                 </div>
                 <Switch
@@ -338,7 +335,7 @@ const SettingsPage: React.FC = () => {
 
             <div className="surface-card rounded-2xl p-5 space-y-3">
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                Llogaria
+                {t('settings.account')}
               </Label>
               <Input value={user?.name || ''} disabled className="h-11" />
               <Input value={user?.email || ''} disabled className="h-11" />
@@ -347,18 +344,18 @@ const SettingsPage: React.FC = () => {
             <div className="surface-card rounded-2xl p-5 space-y-3">
               <div className="flex items-center gap-2">
                 <KeyRound className="w-4 h-4 text-primary" />
-                <h2 className="font-semibold">Ndrysho fjalëkalimin</h2>
+                <h2 className="font-semibold">{t('settings.changePassword')}</h2>
               </div>
               <Input
                 type="password"
-                placeholder="Fjalëkalimi aktual"
+                placeholder={t('settings.currentPassword')}
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 className="h-11"
               />
               <Input
                 type="password"
-                placeholder="Fjalëkalimi i ri (min. 8)"
+                placeholder={t('settings.newPassword')}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="h-11"
@@ -370,33 +367,31 @@ const SettingsPage: React.FC = () => {
                 disabled={pwLoading || !currentPassword || newPassword.length < 8}
               >
                 {pwLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
-                Ruaj fjalëkalimin
+                {t('settings.savePassword')}
               </Button>
             </div>
 
             <div className="surface-card rounded-2xl p-5 space-y-3 border border-destructive/30">
               <div className="flex items-center gap-2">
                 <Trash2 className="w-4 h-4 text-destructive" />
-                <h2 className="font-semibold text-destructive">Fshi llogarinë</h2>
+                <h2 className="font-semibold text-destructive">{t('settings.deleteAccount')}</h2>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Fshin të dhënat personale (LPDP). Terminet aktive anulohen.
-              </p>
+              <p className="text-xs text-muted-foreground">{t('settings.deleteHint')}</p>
               <Input
                 type="password"
-                placeholder="Konfirmo me fjalëkalimin"
+                placeholder={t('settings.confirmPassword')}
                 value={deletePassword}
                 onChange={(e) => setDeletePassword(e.target.value)}
                 className="h-11"
               />
               <Button variant="destructive" className="w-full" onClick={deleteMe}>
-                <Trash2 className="w-4 h-4" /> Fshi përgjithmonë
+                <Trash2 className="w-4 h-4" /> {t('settings.deleteForever')}
               </Button>
             </div>
 
             <Button className="w-full h-12" onClick={save} disabled={saving}>
               <Save className="w-4 h-4" />
-              {saving ? 'Duke ruajtur…' : 'Ruaj cilësimet'}
+              {saving ? t('settings.saving') : t('settings.save')}
             </Button>
           </div>
         </div>

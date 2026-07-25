@@ -7,15 +7,18 @@ import { useLanguage } from '../contexts/LanguageContext'
 import { Ticket } from 'lucide-react'
 
 const RootLayout: React.FC = () => {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 relative overflow-x-hidden">
+    <div
+      className="min-h-screen bg-background text-foreground selection:bg-primary/30 relative overflow-x-hidden"
+      data-lang={language}
+    >
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:bg-primary focus:text-primary-foreground focus:px-4 focus:py-2 focus:rounded-lg"
       >
-        Kalo te përmbajtja
+        {t('a11y.skipContent')}
       </a>
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden>
         <div className="ambient-orb w-[500px] h-[500px] bg-primary/20 -top-40 left-1/2 -translate-x-1/2 animate-pulse-slow" />
@@ -25,11 +28,11 @@ const RootLayout: React.FC = () => {
 
       <div className="relative z-10">
         <Navigation />
-        <main id="main-content" className="pt-[72px]">
+        <main id="main-content" className="pt-[72px]" key={`page-${language}`}>
           <Outlet />
         </main>
         <Toaster position="top-right" expand={true} richColors theme="dark" />
-        <Chatbot />
+        <Chatbot key={`chat-${language}`} />
         {/* Command palette triggered from Navigation / ⌘K */}
 
         <footer className="border-t border-white/6 py-16 mt-8 relative">
@@ -56,7 +59,7 @@ const RootLayout: React.FC = () => {
                   </li>
                   <li>
                     <Link to="/cities" className="hover:text-primary transition-colors">
-                      Qytetet
+                      {t('footer.cities')}
                     </Link>
                   </li>
                   <li>
@@ -109,7 +112,7 @@ const RootLayout: React.FC = () => {
               <p>&copy; 2026 SmartQueue Kosova. {t('footer.rights')}</p>
               <div className="flex gap-6">
                 <Link to="/help" className="hover:text-primary transition-colors">
-                  Ndihma
+                  {t('footer.help')}
                 </Link>
                 <Link to="/privacy" className="hover:text-primary transition-colors">
                   {t('footer.privacy')}

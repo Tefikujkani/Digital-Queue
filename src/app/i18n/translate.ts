@@ -2,8 +2,12 @@ import type { Language } from '../types'
 import { translations } from './translations'
 
 export function getCurrentLanguage(): Language {
-  const stored = localStorage.getItem('language')
-  if (stored === 'sq' || stored === 'en' || stored === 'sr') return stored
+  try {
+    const stored = localStorage.getItem('smartqueue_language') || localStorage.getItem('language')
+    if (stored === 'sq' || stored === 'en' || stored === 'sr') return stored
+  } catch {
+    /* ignore */
+  }
   return 'sq'
 }
 

@@ -19,10 +19,12 @@ import {
   Settings,
   Search,
 } from 'lucide-react'
+import { useLanguage } from '../contexts/LanguageContext'
 
 type Inst = { _id: string; name: string; location?: { city?: string }; type?: string }
 
 const CommandPalette: React.FC = () => {
+  const { t } = useLanguage()
   const [open, setOpen] = useState(false)
   const [institutions, setInstitutions] = useState<Inst[]>([])
   const [cities, setCities] = useState<{ name: string; count: number }[]>([])
@@ -60,10 +62,10 @@ const CommandPalette: React.FC = () => {
         type="button"
         onClick={() => setOpen(true)}
         className="hidden md:inline-flex items-center gap-2 h-9 px-3 rounded-xl border border-white/10 bg-white/5 text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
-        aria-label="Kërko"
+        aria-label={t('cmd.placeholder')}
       >
         <Search className="w-3.5 h-3.5" />
-        Kërko…
+        {t('cmd.placeholder')}
         <kbd className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-black/40 border border-white/10">
           ⌘K
         </kbd>
@@ -72,34 +74,34 @@ const CommandPalette: React.FC = () => {
       <CommandDialog
         open={open}
         onOpenChange={setOpen}
-        title="Kërkim SmartQueue"
-        description="Gjej institucione, qytete dhe faqe"
+        title={t('cmd.placeholder')}
+        description={t('cmd.placeholder')}
       >
-        <CommandInput placeholder="Kërko institucion, qytet ose faqe…" />
+        <CommandInput placeholder={t('cmd.placeholder')} />
         <CommandList>
-          <CommandEmpty>Asnjë rezultat</CommandEmpty>
-          <CommandGroup heading="Navigim">
+          <CommandEmpty>{t('cities.empty')}</CommandEmpty>
+          <CommandGroup heading={t('cmd.pages')}>
             <CommandItem onSelect={() => go('/institutions')}>
-              <Building2 /> Institucionet
+              <Building2 /> {t('nav.institutions')}
             </CommandItem>
             <CommandItem onSelect={() => go('/cities')}>
-              <MapPin /> Qytetet
+              <MapPin /> {t('nav.cities')}
             </CommandItem>
             <CommandItem onSelect={() => go('/appointments')}>
-              <Calendar /> Terminet
+              <Calendar /> {t('nav.appointments')}
             </CommandItem>
             <CommandItem onSelect={() => go('/dashboard/citizen')}>
-              <LayoutDashboard /> Paneli im
+              <LayoutDashboard /> {t('nav.dashboard')}
             </CommandItem>
             <CommandItem onSelect={() => go('/settings')}>
-              <Settings /> Cilësimet
+              <Settings /> {t('nav.settings')}
             </CommandItem>
             <CommandItem onSelect={() => go('/help')}>
-              <HelpCircle /> Ndihma / FAQ
+              <HelpCircle /> {t('nav.help')}
             </CommandItem>
           </CommandGroup>
           <CommandSeparator />
-          <CommandGroup heading="Qytetet">
+          <CommandGroup heading={t('nav.cities')}>
             {cities.slice(0, 10).map((c) => (
               <CommandItem
                 key={c.name}
@@ -112,7 +114,7 @@ const CommandPalette: React.FC = () => {
             ))}
           </CommandGroup>
           <CommandSeparator />
-          <CommandGroup heading="Institucionet">
+          <CommandGroup heading={t('cmd.institutions')}>
             {institutions.slice(0, 25).map((i) => (
               <CommandItem
                 key={i._id}

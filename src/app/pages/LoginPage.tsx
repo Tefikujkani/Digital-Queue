@@ -104,7 +104,7 @@ const LoginPage: React.FC = () => {
           <div className="mt-6 space-y-3 text-center">
             <p className="text-sm">
               <Link to="/forgot-password" className="text-primary font-medium hover:underline">
-                Harruat fjalëkalimin?
+                {t('auth.forgotPassword')}
               </Link>
             </p>
             <p className="text-sm text-muted-foreground">

@@ -4,11 +4,13 @@ import { motion } from 'motion/react'
 import { MapPin, Building2, ArrowRight, Sparkles } from 'lucide-react'
 import api from '../lib/api'
 import { Button } from '../components/ui/button'
+import { useLanguage } from '../contexts/LanguageContext'
 
 type City = { name: string; count: number; types?: string[]; lat?: number; lng?: number }
 
 const CitiesPage: React.FC = () => {
   const navigate = useNavigate()
+  const { t } = useLanguage()
   const [cities, setCities] = useState<City[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -29,12 +31,12 @@ const CitiesPage: React.FC = () => {
         <div className="absolute inset-0 bg-gradient-to-b from-primary/15 via-transparent to-transparent pointer-events-none" />
         <div className="container mx-auto max-w-6xl relative">
           <p className="text-primary text-xs font-bold uppercase tracking-[0.2em] mb-3 inline-flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5" /> Republika e Kosovës
+            <Sparkles className="w-3.5 h-3.5" /> {t('cities.eyebrow')}
           </p>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-3">Qytetet & Komunat</h1>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-3">{t('cities.title')}</h1>
           <p className="text-muted-foreground max-w-2xl text-base md:text-lg">
-            Zgjidh qytetin tënd dhe gjej institucione publike e private me radhë digjitale —{' '}
-            <strong className="text-foreground">{total}</strong> institucione aktive.
+            {t('cities.subtitle')}{' '}
+            <strong className="text-foreground">{total}</strong> {t('cities.activeInstitutions')}.
           </p>
         </div>
       </section>
@@ -46,6 +48,8 @@ const CitiesPage: React.FC = () => {
               <div key={i} className="h-36 rounded-2xl bg-muted/50 animate-pulse" />
             ))}
           </div>
+        ) : cities.length === 0 ? (
+          <p className="text-center text-muted-foreground py-16">{t('cities.empty')}</p>
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {cities.map((city, i) => (
@@ -63,7 +67,7 @@ const CitiesPage: React.FC = () => {
                     <MapPin className="w-5 h-5 text-primary" />
                   </div>
                   <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-accent/10 text-accent">
-                    {city.count} institucione
+                    {city.count} {t('cities.activeInstitutions')}
                   </span>
                 </div>
                 <h2 className="text-xl font-semibold group-hover:text-primary transition-colors">
@@ -71,10 +75,10 @@ const CitiesPage: React.FC = () => {
                 </h2>
                 <p className="text-xs text-muted-foreground mt-2 inline-flex items-center gap-1.5">
                   <Building2 className="w-3.5 h-3.5" />
-                  {(city.types || []).slice(0, 3).join(' · ') || 'Shërbime publike'}
+                  {(city.types || []).slice(0, 3).join(' · ') || t('cities.publicServices')}
                 </p>
                 <span className="mt-4 inline-flex items-center gap-1 text-sm text-primary font-medium">
-                  Hap institucionet <ArrowRight className="w-4 h-4" />
+                  {t('cities.viewInstitutions')} <ArrowRight className="w-4 h-4" />
                 </span>
               </motion.button>
             ))}

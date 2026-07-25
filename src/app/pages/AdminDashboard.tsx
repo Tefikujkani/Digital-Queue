@@ -133,10 +133,10 @@ const AdminDashboard: React.FC = () => {
         qrCode: qrInput.trim(),
         institutionId: instId,
       });
-      toast.success(`Check-in OK · ${data.ticket?.number || ''}`);
+      toast.success(`${t('admin.checkInOk')} · ${data.ticket?.number || ''}`);
       setQrInput('');
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Check-in dështoi');
+      toast.error(err?.response?.data?.message || t('admin.checkInFailed'));
     } finally {
       setCheckingIn(false);
     }
@@ -280,10 +280,10 @@ const AdminDashboard: React.FC = () => {
           <Card className="border border-sky-500/25 rounded-2xl lg:col-span-3">
             <CardHeader className="border-b border-border pb-4">
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <QrCode className="w-5 h-5 text-sky-400" /> Check-in me QR
+                <QrCode className="w-5 h-5 text-sky-400" /> {t('admin.checkInTitle')}
               </CardTitle>
               <CardDescription>
-                Skano ose ngjit kodin QR të biletës së qytetarit për check-in në sportele.
+                {t('admin.checkInDesc')}
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-5 flex flex-col sm:flex-row gap-3">
@@ -296,7 +296,7 @@ const AdminDashboard: React.FC = () => {
               />
               <Button className="h-12 rounded-xl px-6" onClick={handleCheckIn} disabled={checkingIn || !qrInput.trim()}>
                 {checkingIn ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
-                Check-in
+                {t('admin.checkIn')}
               </Button>
             </CardContent>
           </Card>

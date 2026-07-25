@@ -25,15 +25,6 @@ type UiMessage = ChatMessage & {
   streaming?: boolean
 }
 
-const TOOL_LABELS: Record<string, string> = {
-  search_institutions: 'Duke kërkuar institucione…',
-  get_institution_details: 'Duke lexuar detajet…',
-  get_queue_status: 'Duke kontrolluar radhën…',
-  get_my_tickets: 'Duke ngarkuar ticket-et…',
-  get_platform_guide: 'Duke hapur udhëzuesin…',
-  suggest_best_time: 'Duke analizuar kohën më të mirë…',
-}
-
 function extractLinks(text: string): string[] {
   const matches = text.match(/\/(?:queue\/[a-f0-9]+|institutions|appointments|login|register|dashboard\/citizen)/gi)
   return [...new Set(matches || [])]
@@ -104,6 +95,15 @@ const Chatbot: React.FC = () => {
   const bottomRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  const toolLabels: Record<string, string> = {
+    search_institutions: t('chat.tool.search'),
+    get_institution_details: t('chat.tool.details'),
+    get_queue_status: t('chat.tool.queue'),
+    get_my_tickets: t('chat.tool.tickets'),
+    get_platform_guide: t('chat.tool.guide'),
+    suggest_best_time: t('chat.tool.bestTime'),
+  }
 
   const hideOnAuthPages = ['/login', '/register'].includes(location.pathname)
   const hideOnAdmin =
@@ -397,7 +397,7 @@ const Chatbot: React.FC = () => {
               {activeTool && (
                 <div className="flex items-center gap-2 text-xs text-accent pl-9">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  {TOOL_LABELS[activeTool] || activeTool}
+                  {toolLabels[activeTool] || activeTool}
                 </div>
               )}
 

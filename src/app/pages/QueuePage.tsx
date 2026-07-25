@@ -213,7 +213,7 @@ const QueuePage: React.FC = () => {
     }
     if (!openStatus.isOpen) {
       const ok = window.confirm(
-        `Institucioni duket ${openStatus.label}. A dëshiron të vazhdosh me ticket / termin?`,
+        t('queue.openConfirm', { status: openStatus.label }),
       )
       if (!ok) return
     }
@@ -744,7 +744,7 @@ const QueuePage: React.FC = () => {
                 <Download className="w-4 h-4" /> {t('queue.downloadPhoto')}
               </Button>
               <Button variant="outline" className="w-full h-11 print:hidden" onClick={handlePrintTicket}>
-                <Printer className="w-4 h-4" /> Printo biletën
+                <Printer className="w-4 h-4" /> {t('queue.printTicket')}
               </Button>
               <Button variant="secondary" className="w-full h-11 print:hidden" onClick={shareTicket}>
                 <Share2 className="w-4 h-4" /> Ndaj / Kopjo ticket-in
