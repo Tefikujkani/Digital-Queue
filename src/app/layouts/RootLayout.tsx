@@ -1,6 +1,7 @@
 import React from 'react'
 import { Outlet, Link } from 'react-router'
 import Navigation from '../components/Navigation'
+import Chatbot from '../components/Chatbot'
 import { Toaster } from '../components/ui/sonner'
 import { Ticket } from 'lucide-react'
 
@@ -19,6 +20,7 @@ const RootLayout: React.FC = () => {
           <Outlet />
         </main>
         <Toaster position="top-right" expand={true} richColors theme="dark" />
+        <Chatbot />
 
         <footer className="border-t border-white/6 py-16 mt-8 relative">
           <div className="container mx-auto max-w-6xl px-5">

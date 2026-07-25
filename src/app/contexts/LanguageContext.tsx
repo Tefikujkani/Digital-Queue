@@ -135,6 +135,20 @@ const translations: Record<Language, Record<string, string>> = {
     'wait.low': 'Ulët',
     'wait.medium': 'Mesatare',
     'wait.high': 'Lartë',
+
+    // Chatbot
+    'chat.title': 'Asistenti SmartQueue',
+    'chat.subtitle': 'Ndihmës inteligjent për qytetarët',
+    'chat.greetingUser': 'Përshëndetje, {name} — si mund të ndihmoj?',
+    'chat.welcomeTitle': 'Si mund të ndihmoj sot?',
+    'chat.welcomeBody':
+      'Mund të kërkoj institucione, të kontrolloj radhën live, të të udhëzoj për ticket/termine, dhe të shoh ticket-et e tua nëse je i kyçur.',
+    'chat.placeholder': 'Shkruaj pyetjen tënde…',
+    'chat.thinking': 'Duke menduar…',
+    'chat.reset': 'Fillo bisedë të re',
+    'chat.error': 'Diçka shkoi keq. Provo përsëri.',
+    'chat.poweredBy': 'Fuqizuar nga Grok · xAI · të dhëna live nga SmartQueue',
+    'chat.openQueue': 'Hap radhën',
   },
   en: {
     // Navigation
@@ -259,6 +273,20 @@ const translations: Record<Language, Record<string, string>> = {
     'wait.low': 'Low',
     'wait.medium': 'Medium',
     'wait.high': 'High',
+
+    // Chatbot
+    'chat.title': 'SmartQueue Assistant',
+    'chat.subtitle': 'Intelligent help for citizens',
+    'chat.greetingUser': 'Hi {name} — how can I help?',
+    'chat.welcomeTitle': 'How can I help today?',
+    'chat.welcomeBody':
+      'I can search institutions, check live queues, guide you through tickets & appointments, and show your tickets when logged in.',
+    'chat.placeholder': 'Ask anything about SmartQueue…',
+    'chat.thinking': 'Thinking…',
+    'chat.reset': 'New conversation',
+    'chat.error': 'Something went wrong. Please try again.',
+    'chat.poweredBy': 'Powered by Grok · xAI · live SmartQueue data',
+    'chat.openQueue': 'Open queue',
   },
   sr: {
     // Navigation
@@ -383,6 +411,20 @@ const translations: Record<Language, Record<string, string>> = {
     'wait.low': 'Nisko',
     'wait.medium': 'Srednje',
     'wait.high': 'Visoko',
+
+    // Chatbot
+    'chat.title': 'SmartQueue Asistent',
+    'chat.subtitle': 'Inteligentna pomoć za građane',
+    'chat.greetingUser': 'Zdravo {name} — kako mogu da pomognem?',
+    'chat.welcomeTitle': 'Kako mogu da pomognem danas?',
+    'chat.welcomeBody':
+      'Mogu da pretražim institucije, proverim živi red, objasnim tikete i termine, i pokažem tvoje tikete ako si prijavljen.',
+    'chat.placeholder': 'Postavi pitanje o SmartQueue…',
+    'chat.thinking': 'Razmišljam…',
+    'chat.reset': 'Novi razgovor',
+    'chat.error': 'Nešto nije u redu. Pokušaj ponovo.',
+    'chat.poweredBy': 'Pokreće Grok · xAI · živi podaci SmartQueue',
+    'chat.openQueue': 'Otvori red',
   },
 };
 

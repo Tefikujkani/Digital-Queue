@@ -1,5 +1,9 @@
 import dotenv from 'dotenv'
-dotenv.config()
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+dotenv.config({ path: path.join(__dirname, '../.env') })
 
 import express from 'express'
 import http from 'http'
@@ -13,6 +17,7 @@ import institutionRoutes from './routes/institutionRoutes.js'
 import ticketRoutes from './routes/ticketRoutes.js'
 import analyticsRoutes from './routes/analyticsRoutes.js'
 import notificationRoutes from './routes/notificationRoutes.js'
+import chatRoutes from './routes/chatRoutes.js'
 import NotificationService from './services/notificationService.js'
 
 const app = express()
@@ -68,6 +73,7 @@ app.use('/api/institutions', institutionRoutes)
 app.use('/api/tickets', ticketRoutes)
 app.use('/api/analytics', analyticsRoutes)
 app.use('/api/notifications', notificationRoutes)
+app.use('/api/chat', chatRoutes)
 
 app.get('/', (req, res) => {
   res.send('SmartQueue Kosova API - Advanced Backend Running')
