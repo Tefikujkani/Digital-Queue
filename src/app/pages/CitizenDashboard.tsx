@@ -116,34 +116,34 @@ const CitizenDashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen pb-20">
-      <div className="pt-8 pb-6 px-5">
+    <div className="min-h-screen pb-6">
+      <div className="pt-6 sm:pt-8 pb-5 sm:pb-6 px-4 sm:px-5">
         <div className="container mx-auto max-w-6xl">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl btn-gradient flex items-center justify-center text-xl font-bold text-white glow-primary-sm">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl btn-gradient flex items-center justify-center text-xl font-bold text-white glow-primary-sm shrink-0">
                 {(user?.name || 'Q')[0].toUpperCase()}
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm text-muted-foreground">{greeting}</p>
-                <h1 className="text-2xl md:text-3xl font-bold">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold truncate">
                   {user?.name}
                 </h1>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" className="h-11" onClick={() => navigate('/settings')}>
+            <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 w-full md:w-auto">
+              <Button variant="outline" className="h-11 w-full sm:w-auto" onClick={() => navigate('/settings')}>
                 <Settings className="w-4 h-4" /> {t('nav.settings')}
               </Button>
               <Button
                 variant="outline"
-                className="h-11"
+                className="h-11 w-full sm:w-auto"
                 onClick={exportHistoryCsv}
                 disabled={!myTickets.length}
               >
                 <Download className="w-4 h-4" /> {t('citizen.exportCsv')}
               </Button>
-              <Button className="h-11" onClick={() => navigate('/institutions')}>
+              <Button className="h-11 w-full sm:w-auto" onClick={() => navigate('/institutions')}>
                 {t('citizen.getNumber')} <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
@@ -151,7 +151,7 @@ const CitizenDashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="container mx-auto max-w-6xl px-5">
+      <div className="container mx-auto max-w-6xl px-4 sm:px-5">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           {[
             { label: t('citizen.stat.active'), value: activeTicket ? 1 : 0, icon: Ticket, tone: 'text-primary' },
@@ -164,24 +164,24 @@ const CitizenDashboard: React.FC = () => {
             { label: t('citizen.stat.appointments'), value: 0, icon: Calendar, tone: 'text-secondary' },
             { label: t('citizen.stat.notifications'), value: 3, icon: Bell, tone: 'text-warning' },
           ].map((stat, i) => (
-            <div key={i} className="surface-card rounded-2xl p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+            <div key={i} className="surface-card rounded-2xl p-3 sm:p-4 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-[11px] font-medium text-muted-foreground uppercase tracking-wider leading-tight">
                     {stat.label}
                   </p>
-                  <p className="text-2xl font-bold mt-1">{stat.value}</p>
+                  <p className="text-xl sm:text-2xl font-bold mt-1">{stat.value}</p>
                 </div>
-                <stat.icon className={`w-5 h-5 ${stat.tone}`} />
+                <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.tone} shrink-0`} />
               </div>
             </div>
           ))}
         </div>
 
         {activeTicket ? (
-          <div className="surface-card rounded-2xl p-6 mb-6 border-primary/30 relative overflow-hidden">
+          <div className="surface-card rounded-2xl p-4 sm:p-6 mb-6 border-primary/30 relative overflow-hidden">
             <div className="absolute -top-16 -right-16 w-40 h-40 bg-primary/20 rounded-full blur-3xl" />
-            <div className="flex items-center justify-between mb-6 relative">
+            <div className="flex items-center justify-between gap-3 mb-6 relative">
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <span className="w-2.5 h-2.5 bg-primary rounded-full animate-pulse" />
                 {t('citizen.activeTicket')}

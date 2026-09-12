@@ -29,7 +29,7 @@ const DownloadApp: React.FC = () => {
   }
 
   return (
-    <section id="shkarko" className="px-5 py-12 lg:py-16 bg-[#0c4f91]/[0.04] border-y border-border">
+    <section id="shkarko" className="px-4 sm:px-5 py-10 sm:py-12 lg:py-16 bg-[#0c4f91]/[0.04] border-y border-border">
       <div className="container mx-auto max-w-6xl">
         <div className="rounded-2xl bg-white border border-border shadow-sm p-6 md:p-10">
           <div className="flex flex-col md:flex-row md:items-center gap-6">

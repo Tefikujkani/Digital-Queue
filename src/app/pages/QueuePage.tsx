@@ -302,8 +302,8 @@ const QueuePage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen pb-20">
-      <div className="pt-8 pb-6 px-5">
+    <div className="min-h-screen pb-6">
+      <div className="pt-5 sm:pt-8 pb-5 sm:pb-6 px-4 sm:px-5">
         <div className="container mx-auto max-w-6xl">
           <Button
             variant="ghost"
@@ -344,7 +344,7 @@ const QueuePage: React.FC = () => {
                   </span>
                 )}
               </div>
-              <h1 className="text-3xl md:text-4xl font-bold">{institution.name}</h1>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold break-words">{institution.name}</h1>
               <p className="text-muted-foreground mt-2 max-w-2xl text-sm">
                 {institution.location?.city} · {institution.location?.address}
               </p>
@@ -362,7 +362,7 @@ const QueuePage: React.FC = () => {
                       : ''
                   }`}
                 />
-                {t('queue.favorite')}
+                <span className="hidden sm:inline">{t('queue.favorite')}</span>
               </Button>
               <div className="hidden md:flex items-center gap-2 text-success text-sm font-medium">
                 <span className="w-2 h-2 bg-success rounded-full animate-pulse" />
@@ -373,16 +373,16 @@ const QueuePage: React.FC = () => {
         </div>
       </div>
 
-      <div className="container mx-auto max-w-6xl px-5">
-        <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+      <div className="container mx-auto max-w-6xl px-4 sm:px-5">
+        <div className="grid lg:grid-cols-3 gap-5 sm:gap-6">
+          <div className="lg:col-span-2 space-y-5 sm:space-y-6">
             {/* Live Monitor */}
-            <div className="surface-card rounded-2xl p-6">
-              <div className="flex items-center gap-2 mb-6">
+            <div className="surface-card rounded-2xl p-4 sm:p-6">
+              <div className="flex items-center gap-2 mb-4 sm:mb-6">
                 <Activity className="w-5 h-5 text-primary" />
-                <h2 className="font-semibold text-lg">{t('queue.liveMonitor')}</h2>
+                <h2 className="font-semibold text-base sm:text-lg">{t('queue.liveMonitor')}</h2>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
                 {[
                   {
                     icon: TicketIcon,
@@ -406,14 +406,16 @@ const QueuePage: React.FC = () => {
                     bg: 'bg-warning/15',
                   },
                 ].map((stat, i) => (
-                  <div key={i} className="text-center p-4 rounded-2xl bg-white/[0.03] border border-white/5">
+                  <div key={i} className="text-center p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white/[0.03] border border-white/5 min-w-0">
                     <div
-                      className={`w-11 h-11 rounded-xl ${stat.bg} flex items-center justify-center mx-auto mb-3`}
+                      className={`w-8 h-8 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl ${stat.bg} flex items-center justify-center mx-auto mb-2 sm:mb-3`}
                     >
-                      <stat.icon className={`w-5 h-5 ${stat.color}`} />
+                      <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.color}`} />
                     </div>
-                    <div className="text-2xl md:text-3xl font-bold">{stat.value}</div>
-                    <p className="text-[11px] text-muted-foreground mt-1 font-medium">{stat.label}</p>
+                    <div className="text-lg sm:text-2xl md:text-3xl font-bold truncate">{stat.value}</div>
+                    <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-1 font-medium leading-tight">
+                      {stat.label}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -456,7 +458,7 @@ const QueuePage: React.FC = () => {
             </div>
 
             {/* Booking form */}
-            <div className="surface-card rounded-2xl p-6 border-primary/25">
+            <div className="surface-card rounded-2xl p-4 sm:p-6 border-primary/25">
               <h2 className="font-semibold text-lg mb-1">{t('queue.getTicket')}</h2>
               <p className="text-sm text-muted-foreground mb-6">
                 {t('queue.formHint')}
@@ -477,7 +479,7 @@ const QueuePage: React.FC = () => {
                           key={service.id || service._id}
                           value={service.id || service._id!}
                         >
-                          <div className="flex justify-between w-full gap-8">
+                          <div className="flex justify-between w-full gap-3 min-w-0">
                             <span>{service.name}</span>
                             <Badge variant="outline" className="opacity-50">
                               ~{service.estimatedTime} min
@@ -634,14 +636,14 @@ const QueuePage: React.FC = () => {
                       key={sid}
                       type="button"
                       onClick={() => setSelectedService(sid)}
-                      className={`w-full flex justify-between items-center p-3 rounded-xl text-sm text-left transition-colors ${
+                      className={`w-full flex justify-between items-center gap-3 p-3 rounded-xl text-sm text-left transition-colors ${
                         active
                           ? 'bg-[#0c4f91]/10 border border-[#f5c400]/50'
                           : 'hover:bg-white/5 border border-transparent'
                       }`}
                     >
-                      <span className="font-medium">{service.name}</span>
-                      <span className="text-xs text-muted-foreground px-2 py-1 rounded-full bg-muted">
+                      <span className="font-medium min-w-0 truncate">{service.name}</span>
+                      <span className="text-xs text-muted-foreground px-2 py-1 rounded-full bg-muted shrink-0">
                         ~{service.estimatedTime} min
                       </span>
                     </button>
@@ -690,7 +692,7 @@ const QueuePage: React.FC = () => {
 
       {/* QR Ticket Dialog — FuelFlow style */}
       <Dialog open={showTicketDialog} onOpenChange={setShowTicketDialog}>
-        <DialogContent className="max-w-md rounded-3xl p-0 overflow-hidden border-primary/25 bg-[#12121c]">
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-md rounded-2xl sm:rounded-3xl p-0 overflow-hidden border-primary/25 bg-[#12121c]">
           <div className="h-1.5 btn-gradient" />
 
           <DialogHeader className="pt-8 px-6">

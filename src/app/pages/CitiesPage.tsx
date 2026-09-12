@@ -26,14 +26,14 @@ const CitiesPage: React.FC = () => {
   }, [])
 
   return (
-    <div className="min-h-screen pb-20">
-      <section className="relative pt-14 pb-10 px-5 overflow-hidden">
+    <div className="min-h-screen pb-6">
+      <section className="relative pt-8 sm:pt-14 pb-8 sm:pb-10 px-4 sm:px-5 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/8 via-transparent to-transparent pointer-events-none" />
         <div className="container mx-auto max-w-6xl relative">
           <p className="text-primary text-xs font-bold uppercase tracking-[0.2em] mb-3 inline-flex items-center gap-2">
             <Sparkles className="w-3.5 h-3.5" /> {t('cities.eyebrow')}
           </p>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-3">{t('cities.title')}</h1>
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-3">{t('cities.title')}</h1>
           <p className="text-muted-foreground max-w-2xl text-base md:text-lg">
             {t('cities.subtitle')}{' '}
             <strong className="text-foreground">{total}</strong> {t('cities.activeInstitutions')}.
@@ -41,7 +41,7 @@ const CitiesPage: React.FC = () => {
         </div>
       </section>
 
-      <div className="container mx-auto max-w-6xl px-5">
+      <div className="container mx-auto max-w-6xl px-4 sm:px-5">
         {loading ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -60,7 +60,7 @@ const CitiesPage: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.04 }}
                 onClick={() => navigate(`/institutions?city=${encodeURIComponent(city.name)}`)}
-                className="surface-card rounded-xl p-5 text-left hover:border-primary/40 transition-colors group flex flex-col min-h-[200px]"
+                className="surface-card rounded-xl p-5 text-left hover:border-primary/40 transition-colors group flex flex-col min-h-[180px] sm:min-h-[200px]"
               >
                 <div className="flex items-start justify-between gap-3 mb-4">
                   <div className="w-11 h-11 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -92,16 +92,18 @@ const CitiesPage: React.FC = () => {
           </div>
         )}
 
-        <div className="mt-10 rounded-3xl border border-primary/20 bg-primary/5 p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="mt-8 sm:mt-10 rounded-2xl sm:rounded-3xl border border-primary/20 bg-primary/5 p-5 sm:p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <h3 className="text-lg font-semibold mb-1">{t('cities.notFoundTitle')}</h3>
             <p className="text-sm text-muted-foreground">{t('cities.notFoundBody')}</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => navigate('/institutions')}>
+          <div className="flex flex-col sm:flex-row w-full md:w-auto gap-2">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate('/institutions')}>
               {t('institution.filter.all')}
             </Button>
-            <Button onClick={() => navigate('/institutions')}>{t('cities.searchNow')}</Button>
+            <Button className="w-full sm:w-auto" onClick={() => navigate('/institutions')}>
+              {t('cities.searchNow')}
+            </Button>
           </div>
         </div>
       </div>

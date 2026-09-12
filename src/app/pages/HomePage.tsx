@@ -368,43 +368,45 @@ const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen">
       <section className="relative overflow-hidden bg-white">
-        <div className="gov-skyline absolute inset-x-0 bottom-0 h-36 opacity-70 pointer-events-none" />
-        <div className="container mx-auto max-w-6xl relative z-10 px-5 pt-8 pb-14 lg:pt-14 lg:pb-24">
+        <div className="gov-skyline absolute inset-x-0 bottom-0 h-24 sm:h-36 opacity-50 sm:opacity-70 pointer-events-none hidden sm:block" />
+        <div className="container mx-auto max-w-6xl relative z-10 px-4 sm:px-5 pt-5 pb-10 sm:pt-8 sm:pb-14 lg:pt-14 lg:pb-24">
           <motion.p
             initial={false}
             animate={{ opacity: 1, y: 0 }}
-            className="text-sm font-semibold text-primary mb-3"
+            className="text-xs sm:text-sm font-semibold text-primary mb-2 sm:mb-3"
           >
             SmartQueue {t('brand.region')}
           </motion.p>
           <motion.h1
             initial={false}
             animate={{ opacity: 1, y: 0 }}
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.4rem] font-bold text-primary max-w-3xl leading-[1.2]"
+            className="text-[1.65rem] sm:text-4xl md:text-5xl lg:text-[3.4rem] font-bold text-primary max-w-3xl leading-[1.2]"
           >
             {t('home.title')}
           </motion.h1>
           <motion.p
             initial={false}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-5 text-base md:text-lg text-muted-foreground max-w-2xl leading-relaxed"
+            className="mt-3 sm:mt-5 text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl leading-relaxed"
           >
             {t('home.description')}
           </motion.p>
           <motion.div
             initial={false}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-8 flex flex-col sm:flex-row gap-3"
+            className="mt-5 sm:mt-8 flex flex-col sm:flex-row gap-2.5 sm:gap-3"
           >
             <Button
               size="lg"
               variant="outline"
+              className="w-full sm:w-auto h-12"
               onClick={() => navigate(isAuthenticated ? '/institutions' : '/register')}
             >
               {t('auth.register')}
             </Button>
             <Button
               size="lg"
+              className="w-full sm:w-auto h-12"
               onClick={() => navigate(isAuthenticated ? '/institutions' : '/login')}
             >
               {t('home.getStarted')}
@@ -413,18 +415,19 @@ const HomePage: React.FC = () => {
             <Button
               size="lg"
               variant="secondary"
+              className="w-full sm:w-auto h-12"
               onClick={() => document.getElementById('shkarko')?.scrollIntoView({ behavior: 'smooth' })}
             >
               <Download className="w-5 h-5" />
               {t('pwa.shkarko')}
             </Button>
           </motion.div>
-          <p className="mt-5 text-sm text-primary font-medium">{t('voice.homeHint')}</p>
+          <p className="mt-4 sm:mt-5 text-xs sm:text-sm text-primary font-medium">{t('voice.homeHint')}</p>
         </div>
       </section>
 
-      <section className="bg-white border-y border-border px-5 py-10">
-        <div className="container mx-auto max-w-6xl grid grid-cols-2 md:grid-cols-4 gap-6">
+      <section className="bg-white border-y border-border px-4 sm:px-5 py-7 sm:py-10">
+        <div className="container mx-auto max-w-6xl grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
           {[
             {
               label: t('home.stat.institutions'),
@@ -441,28 +444,32 @@ const HomePage: React.FC = () => {
             },
             { label: t('home.stat.timeSaved'), value: '1M+', icon: TrendingUp, tile: 'gov-tile-purple bg-[#7e57c2]' },
           ].map((s, i) => (
-            <div key={i} className="flex flex-col items-center text-center">
-              <div className={`w-14 h-14 rounded-lg ${s.tile} flex items-center justify-center mb-3`}>
-                <s.icon className="w-6 h-6 text-white" />
+            <div key={i} className="flex flex-col items-center text-center min-w-0">
+              <div className={`w-11 h-11 sm:w-14 sm:h-14 rounded-lg ${s.tile} flex items-center justify-center mb-2 sm:mb-3`}>
+                <s.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div className="text-2xl md:text-3xl font-bold text-primary">{s.value}</div>
-              <div className="text-xs text-muted-foreground mt-1 font-medium">{s.label}</div>
+              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-primary">{s.value}</div>
+              <div className="text-[11px] sm:text-xs text-muted-foreground mt-1 font-medium leading-tight">
+                {s.label}
+              </div>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="px-5 py-12">
+      <section className="px-4 sm:px-5 py-8 sm:py-12">
         <div className="container mx-auto max-w-6xl">
-          <div className="surface-card rounded-xl p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
+          <div className="surface-card rounded-xl p-4 sm:p-6">
+            <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
+              <div className="min-w-0">
                 <p className="text-xs text-muted-foreground font-medium">
                   {t(greetingKey(new Date().getHours()))}
                 </p>
-                <p className="font-semibold text-lg text-foreground">{t('home.liveQueues')}</p>
+                <p className="font-semibold text-base sm:text-lg text-foreground truncate">
+                  {t('home.liveQueues')}
+                </p>
               </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full wait-low text-xs font-semibold">
+              <div className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-full wait-low text-[11px] sm:text-xs font-semibold shrink-0">
                 <span
                   className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-success' : 'bg-muted-foreground'} ${isLive ? 'animate-pulse' : ''}`}
                 />
@@ -486,7 +493,7 @@ const HomePage: React.FC = () => {
                   key={item.id}
                   type="button"
                   onClick={() => selectTab(item.id, true)}
-                  className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                  className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 sm:py-1.5 rounded-md text-xs font-semibold transition-colors ${
                     tab === item.id
                       ? 'btn-gradient text-primary-foreground'
                       : 'bg-muted text-muted-foreground hover:text-foreground'
@@ -516,7 +523,7 @@ const HomePage: React.FC = () => {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.25, delay: i * 0.04 }}
-                      className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border border-border hover:border-primary/40 transition-colors cursor-pointer"
+                      className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3.5 sm:p-4 rounded-lg bg-muted/50 border border-border hover:border-primary/40 transition-colors cursor-pointer"
                       onClick={() => navigate(`/queue/${s.id}`)}
                       onDoubleClick={(e) => {
                         e.stopPropagation()
@@ -524,7 +531,7 @@ const HomePage: React.FC = () => {
                       }}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-11 h-11 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
                           <Building2 className="w-5 h-5 text-primary" />
                         </div>
                         <div className="min-w-0">
@@ -536,7 +543,7 @@ const HomePage: React.FC = () => {
                         </div>
                       </div>
                       <span
-                        className={`text-xs font-semibold px-3 py-1.5 rounded-full shrink-0 ml-3 ${
+                        className={`text-xs font-semibold px-3 py-1.5 rounded-full shrink-0 self-start sm:self-auto sm:ml-3 ${
                           s.level === 'low'
                             ? 'wait-low'
                             : s.level === 'medium'
@@ -561,16 +568,16 @@ const HomePage: React.FC = () => {
       </section>
 
       {/* Kosovo cities */}
-      <section className="py-10 px-5">
+      <section className="py-8 sm:py-10 px-4 sm:px-5">
         <div className="container mx-auto max-w-6xl">
-          <div className="flex items-end justify-between mb-5 gap-4">
-            <div>
+          <div className="flex items-end justify-between mb-5 gap-3">
+            <div className="min-w-0">
               <p className="text-primary text-xs font-bold uppercase tracking-[0.2em] mb-2">
                 {t('home.citiesEyebrow')}
               </p>
-              <h2 className="text-2xl font-bold">{t('home.citiesTitle')}</h2>
+              <h2 className="text-xl sm:text-2xl font-bold">{t('home.citiesTitle')}</h2>
             </div>
-            <Button variant="outline" size="sm" onClick={() => navigate('/cities')}>
+            <Button variant="outline" size="sm" className="shrink-0" onClick={() => navigate('/cities')}>
               {t('home.allCities')}
               <ArrowRight className="w-4 h-4" />
             </Button>
@@ -596,13 +603,13 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      <section className="py-20 px-5 bg-white">
+      <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-5 bg-white">
         <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-14">
+          <div className="text-center mb-8 sm:mb-14">
             <p className="text-primary text-xs font-bold uppercase tracking-[0.2em] mb-3">
               {t('home.featuresEyebrow')}
             </p>
-            <h2 className="text-3xl md:text-4xl font-bold mb-3">{t('home.features')}</h2>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3">{t('home.features')}</h2>
             <p className="text-muted-foreground max-w-md mx-auto text-sm md:text-base">
               {t('home.featuresSubtitle')}
             </p>
@@ -629,14 +636,14 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      <section className="py-20 px-5 relative">
+      <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-5 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.04] to-transparent pointer-events-none" />
         <div className="container mx-auto max-w-6xl relative">
-          <div className="text-center mb-14">
+          <div className="text-center mb-8 sm:mb-14">
             <p className="text-primary text-xs font-bold uppercase tracking-[0.2em] mb-3">
               {t('home.howItWorksEyebrow')}
             </p>
-            <h2 className="text-3xl md:text-4xl font-bold">{t('home.howItWorks')}</h2>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold">{t('home.howItWorks')}</h2>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
@@ -647,7 +654,7 @@ const HomePage: React.FC = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="relative text-center p-8"
+                className="relative text-center p-5 sm:p-8"
               >
                 <div className="w-16 h-16 rounded-lg btn-gradient flex items-center justify-center mx-auto mb-6">
                   <step.icon className="w-7 h-7 text-primary-foreground" />
@@ -668,20 +675,20 @@ const HomePage: React.FC = () => {
 
       <DownloadApp />
 
-      <section className="py-20 px-5">
+      <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-5">
         <div className="container mx-auto max-w-4xl">
-          <div className="relative overflow-hidden rounded-xl bg-primary p-10 md:p-16 text-center">
+          <div className="relative overflow-hidden rounded-xl bg-primary p-6 sm:p-10 md:p-16 text-center">
             <div className="relative z-10">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 text-white">
                 {t('home.ctaTitle')}
               </h2>
-              <p className="text-white/80 max-w-lg mx-auto mb-8 text-sm md:text-base">
+              <p className="text-white/80 max-w-lg mx-auto mb-6 sm:mb-8 text-sm md:text-base">
                 {t('home.ctaBody')}
               </p>
               <Button
                 size="lg"
                 variant="secondary"
-                className="h-14 px-10"
+                className="h-12 sm:h-14 px-8 sm:px-10 w-full sm:w-auto"
                 onClick={() => navigate(isAuthenticated ? '/institutions' : '/register')}
               >
                 {t('home.ctaRegister')}

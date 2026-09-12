@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 import { AnimatePresence, motion } from 'motion/react'
 import { Mic, MicOff, Volume2, X, FileText, Clock, MapPin, ArrowRight, Loader2 } from 'lucide-react'
 import { useLanguage } from '../contexts/LanguageContext'
@@ -10,6 +10,7 @@ import {
   speakText,
   stopSpeaking,
 } from '../lib/speech'
+import { isAuthPath, useAssistantExclusive, useKeyboardInset } from '../lib/assistantUi'
 import { Button } from './ui/button'
 import { cn } from './ui/utils'
 
@@ -22,7 +23,10 @@ type Props = {
 const VoiceAssistant: React.FC<Props> = ({ institutionId, serviceId, compact }) => {
   const { t, language } = useLanguage()
   const navigate = useNavigate()
+  const location = useLocation()
   const [open, setOpen] = useState(false)
+  const keyboardInset = useKeyboardInset()
+  const peerOpen = useAssistantExclusive('voice', open, setOpen)
   const [listening, setListening] = useState(false)
   const [busy, setBusy] = useState(false)
   const [interim, setInterim] = useState('')
@@ -38,6 +42,21 @@ const VoiceAssistant: React.FC<Props> = ({ institutionId, serviceId, compact }) 
       stopSpeaking()
     }
   }, [])
+
+  useEffect(() => {
+    setOpen(false)
+    stopListen()
+    stopSpeaking()
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (!open) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previous
+    }
+  }, [open])
 
   const runIntent = useCallback(
     async (transcript: string) => {
@@ -106,6 +125,8 @@ const VoiceAssistant: React.FC<Props> = ({ institutionId, serviceId, compact }) 
     t('voice.example3'),
   ]
 
+  if (isAuthPath(location.pathname)) return null
+
   return (
     <>
       <AnimatePresence>
@@ -114,12 +135,13 @@ const VoiceAssistant: React.FC<Props> = ({ institutionId, serviceId, compact }) 
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 12 }}
-            className="fixed bottom-[calc(9.5rem+env(safe-area-inset-bottom))] lg:bottom-24 right-3 sm:right-6 z-[61] w-[min(100vw-1.5rem,420px)] max-h-[min(62vh,680px)] overflow-y-auto rounded-xl border border-border bg-white shadow-xl"
+            className="fixed inset-0 z-[130] lg:inset-auto lg:bottom-24 lg:right-6 lg:w-[420px] lg:max-h-[min(72vh,680px)] flex flex-col bg-white shadow-xl border-border lg:rounded-xl lg:border overflow-hidden"
+            style={{ paddingBottom: keyboardInset }}
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-primary text-white">
-              <div>
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border bg-primary text-white pt-[calc(0.75rem+env(safe-area-inset-top))] lg:pt-3 shrink-0">
+              <div className="min-w-0">
                 <p className="text-sm font-semibold">{t('voice.title')}</p>
-                <p className="text-[11px] text-white/75">{t('voice.subtitle')}</p>
+                <p className="text-[11px] text-white/75 truncate">{t('voice.subtitle')}</p>
               </div>
               <button
                 type="button"
@@ -128,19 +150,19 @@ const VoiceAssistant: React.FC<Props> = ({ institutionId, serviceId, compact }) 
                   stopListen()
                   stopSpeaking()
                 }}
-                className="w-8 h-8 rounded-md hover:bg-white/10 flex items-center justify-center"
+                className="w-10 h-10 rounded-md hover:bg-white/10 flex items-center justify-center shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-4 space-y-4">
+            <div className="p-4 space-y-4 overflow-y-auto flex-1 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <button
                 type="button"
                 onClick={listening ? stopListen : startListen}
                 disabled={!supported || busy}
                 className={cn(
-                  'w-full h-24 rounded-xl border flex flex-col items-center justify-center gap-2 transition-colors',
+                  'w-full h-28 sm:h-24 rounded-xl border flex flex-col items-center justify-center gap-2 transition-colors',
                   listening
                     ? 'bg-primary text-white border-primary'
                     : 'bg-muted border-border text-primary hover:border-primary',
@@ -220,10 +242,11 @@ const VoiceAssistant: React.FC<Props> = ({ institutionId, serviceId, compact }) 
                     </p>
                   )}
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <Button
                       size="sm"
                       variant="outline"
+                      className="w-full sm:w-auto"
                       onClick={() => guide.speak && speakText(guide.speak)}
                     >
                       <Volume2 className="w-4 h-4" />
@@ -232,7 +255,11 @@ const VoiceAssistant: React.FC<Props> = ({ institutionId, serviceId, compact }) 
                     {guide.institution?.deepLink && (
                       <Button
                         size="sm"
-                        onClick={() => navigate(guide.institution!.deepLink)}
+                        className="w-full sm:w-auto"
+                        onClick={() => {
+                          setOpen(false)
+                          navigate(guide.institution!.deepLink)
+                        }}
                       >
                         {t('voice.goService')}
                         <ArrowRight className="w-4 h-4" />
@@ -268,29 +295,24 @@ const VoiceAssistant: React.FC<Props> = ({ institutionId, serviceId, compact }) 
         )}
       </AnimatePresence>
 
-      <motion.button
-        type="button"
-        aria-label={t('voice.title')}
-        onClick={() => {
-          if (open) {
-            setOpen(false)
-            stopListen()
-            stopSpeaking()
-          } else if (compact) {
-            startListen()
-          } else {
-            setOpen(true)
-          }
-        }}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        className={cn(
-          'fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] lg:bottom-5 right-[4.75rem] sm:right-24 z-[60] h-14 w-14 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center shadow-lg',
-          listening && 'ring-4 ring-primary/30',
-        )}
-      >
-        <Mic className="w-6 h-6" />
-      </motion.button>
+      {!open && !peerOpen && (
+        <motion.button
+          type="button"
+          aria-label={t('voice.title')}
+          onClick={() => {
+            if (compact) startListen()
+            else setOpen(true)
+          }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className={cn(
+            'fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] lg:bottom-5 left-4 lg:left-auto lg:right-24 z-[60] h-14 w-14 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center shadow-lg',
+            listening && 'ring-4 ring-primary/30',
+          )}
+        >
+          <Mic className="w-6 h-6" />
+        </motion.button>
+      )}
     </>
   )
 }

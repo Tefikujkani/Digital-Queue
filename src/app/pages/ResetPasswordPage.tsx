@@ -49,8 +49,8 @@ const ResetPasswordPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-5 py-16">
-      <div className="w-full max-w-md surface-card rounded-xl p-8 space-y-6">
+    <div className="min-h-[calc(100dvh-8.5rem)] flex items-center justify-center px-4 py-8 sm:px-5 sm:py-16">
+      <div className="w-full max-w-md surface-card rounded-xl p-5 sm:p-8 space-y-6">
         <Link to="/login" className="inline-flex items-center gap-2 text-sm text-muted-foreground">
           <ArrowLeft className="w-4 h-4" /> {t('auth.backToLogin')}
         </Link>

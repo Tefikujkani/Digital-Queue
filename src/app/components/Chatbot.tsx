@@ -18,6 +18,7 @@ import { getSpeechRecognition, isSpeechRecognitionSupported } from '../lib/speec
 import { useAuth } from '../contexts/AuthContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { streamChat, fetchChatSuggestions, type ChatMessage } from '../lib/chatApi'
+import { isAuthPath, useAssistantExclusive, useKeyboardInset } from '../lib/assistantUi'
 import { Button } from './ui/button'
 import { cn } from './ui/utils'
 
@@ -107,7 +108,9 @@ const Chatbot: React.FC = () => {
     suggest_best_time: t('chat.tool.bestTime'),
   }
 
-  const hideOnAuthPages = ['/login', '/register'].includes(location.pathname)
+  const keyboardInset = useKeyboardInset()
+  const peerOpen = useAssistantExclusive('chat', open, setOpen)
+  const hideOnAuthPages = isAuthPath(location.pathname)
   const hideOnAdmin =
     location.pathname.startsWith('/dashboard/admin') ||
     location.pathname.startsWith('/dashboard/superadmin')
@@ -123,6 +126,19 @@ const Chatbot: React.FC = () => {
 
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 200)
+  }, [open])
+
+  useEffect(() => {
+    setOpen(false)
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (!open) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previous
+    }
   }, [open])
 
   const resetChat = useCallback(() => {
@@ -254,26 +270,27 @@ const Chatbot: React.FC = () => {
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: 24, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.96 }}
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
             transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-            className="fixed bottom-[calc(9.5rem+env(safe-area-inset-bottom))] lg:bottom-24 right-3 sm:right-6 z-[60] w-[min(100vw-1.5rem,420px)] h-[min(62vh,640px)] lg:h-[min(72vh,640px)] flex flex-col rounded-xl overflow-hidden border border-border bg-white shadow-xl"
+            className="fixed inset-0 z-[130] lg:inset-auto lg:bottom-24 lg:right-6 lg:w-[420px] lg:h-[min(72vh,640px)] flex flex-col bg-white shadow-xl border-border lg:rounded-xl lg:border overflow-hidden"
+            style={{ paddingBottom: keyboardInset }}
             role="dialog"
             aria-label={t('chat.title')}
           >
-            <div className="relative px-4 py-3.5 border-b border-[var(--border)]">
+            <div className="relative px-4 py-3 border-b border-[var(--border)] pt-[calc(0.75rem+env(safe-area-inset-top))] lg:pt-3.5">
               <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="w-11 h-11 rounded-lg btn-gradient flex items-center justify-center">
+                <div className="relative shrink-0">
+                  <div className="w-10 h-10 lg:w-11 lg:h-11 rounded-lg btn-gradient flex items-center justify-center">
                     <Bot className="w-5 h-5 text-primary-foreground" />
                   </div>
                   <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-success border-2 border-card" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <h2 className="font-semibold text-sm tracking-tight truncate">{t('chat.title')}</h2>
-                    <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded-md">
+                    <span className="hidden sm:inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded-md shrink-0">
                       <Sparkles className="w-3 h-3" />
                       Grok
                     </span>
@@ -299,7 +316,7 @@ const Chatbot: React.FC = () => {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 rounded-xl text-muted-foreground hover:text-foreground"
+                    className="h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground"
                     onClick={() => setOpen(false)}
                     aria-label={t('common.close')}
                   >
@@ -424,7 +441,7 @@ const Chatbot: React.FC = () => {
               <div ref={bottomRef} />
             </div>
 
-            <div className="p-3 border-t border-border bg-muted/40">
+            <div className="p-3 border-t border-border bg-muted/40 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:pb-3">
               <div className="flex items-end gap-2 rounded-xl border border-border bg-white px-2.5 py-2 focus-within:border-primary transition-colors">
                 <textarea
                   ref={inputRef}
@@ -434,7 +451,8 @@ const Chatbot: React.FC = () => {
                   onKeyDown={onKeyDown}
                   placeholder={t('chat.placeholder')}
                   disabled={busy}
-                  className="flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground/70 max-h-28 py-1.5 px-1"
+                  enterKeyHint="send"
+                  className="flex-1 resize-none bg-transparent text-base md:text-sm outline-none placeholder:text-muted-foreground/70 max-h-28 py-1.5 px-1"
                 />
                 {isSpeechRecognitionSupported() && (
                   <Button
@@ -467,41 +485,21 @@ const Chatbot: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <motion.button
-        type="button"
-        aria-label={t('chat.title')}
-        onClick={() => setOpen((v) => !v)}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        className={cn(
-          'fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] lg:bottom-5 right-3 sm:right-6 z-[60] h-14 w-14 rounded-lg btn-gradient flex items-center justify-center shadow-lg',
-          open && 'ring-2 ring-accent/50',
-        )}
-      >
-        <AnimatePresence mode="wait" initial={false}>
-          {open ? (
-            <motion.span
-              key="close"
-              initial={{ rotate: -90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: 90, opacity: 0 }}
-            >
-              <X className="w-6 h-6 text-white" />
-            </motion.span>
-          ) : (
-            <motion.span
-              key="open"
-              initial={{ rotate: 90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: -90, opacity: 0 }}
-              className="relative"
-            >
-              <MessageCircle className="w-6 h-6 text-white" />
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-accent animate-pulse" />
-            </motion.span>
-          )}
-        </AnimatePresence>
-      </motion.button>
+      {!open && !peerOpen && (
+        <motion.button
+          type="button"
+          aria-label={t('chat.title')}
+          onClick={() => setOpen(true)}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] lg:bottom-5 right-4 sm:right-6 z-[60] h-14 w-14 rounded-2xl btn-gradient flex items-center justify-center shadow-lg"
+        >
+          <span className="relative">
+            <MessageCircle className="w-6 h-6 text-white" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-accent animate-pulse" />
+          </span>
+        </motion.button>
+      )}
     </>
   )
 }

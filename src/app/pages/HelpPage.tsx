@@ -24,15 +24,15 @@ const HelpPage: React.FC = () => {
   ]
 
   return (
-    <div className="min-h-screen pb-20">
-      <div className="pt-12 px-5">
+    <div className="min-h-screen pb-6">
+      <div className="pt-8 sm:pt-12 px-4 sm:px-5">
         <div className="container mx-auto max-w-3xl">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-2xl bg-primary/15 flex items-center justify-center">
+          <div className="flex items-center gap-3 mb-6 sm:mb-8">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-primary/15 flex items-center justify-center shrink-0">
               <HelpCircle className="w-6 h-6 text-primary" />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold">{t('help.title')}</h1>
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold">{t('help.title')}</h1>
               <p className="text-muted-foreground text-sm">{t('help.subtitle')}</p>
             </div>
           </div>

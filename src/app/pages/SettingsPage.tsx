@@ -340,18 +340,18 @@ const SettingsPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen pb-20">
-      <div className="pt-10 px-5">
+    <div className="min-h-screen pb-6">
+      <div className="pt-6 sm:pt-10 px-4 sm:px-5">
         <div className="container mx-auto max-w-2xl">
           <Button variant="ghost" className="-ml-2 mb-4" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-4 h-4" /> {t('common.back')}
           </Button>
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-lg btn-gradient flex items-center justify-center">
+          <div className="flex items-center gap-3 mb-6 sm:mb-8">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-lg btn-gradient flex items-center justify-center shrink-0">
               <Settings className="w-5 h-5 text-primary-foreground" />
             </div>
-            <div>
-              <h1 className="font-serif text-3xl font-semibold">{t('settings.title')}</h1>
+            <div className="min-w-0">
+              <h1 className="font-serif text-2xl sm:text-3xl font-semibold">{t('settings.title')}</h1>
               <p className="text-sm text-muted-foreground">{t('settings.subtitle')}</p>
             </div>
           </div>

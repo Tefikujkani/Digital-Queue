@@ -20,7 +20,8 @@ const RegisterPage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleRegister = async () => {
+  const handleRegister = async (e?: React.FormEvent) => {
+    e?.preventDefault()
     if (!name || !email || !password) {
       toast.error(t('auth.fillRequired'))
       return
@@ -51,19 +52,23 @@ const RegisterPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-[calc(100vh-72px)] flex items-center justify-center p-5 relative">
-      <div className="w-full max-w-lg relative z-10">
-        <div className="surface-card rounded-xl p-8 md:p-10">
-          <div className="text-center mb-8">
-            <div className="w-14 h-14 btn-gradient rounded-lg flex items-center justify-center mx-auto mb-5">
-              <Ticket className="w-7 h-7 text-primary-foreground" />
+    <div className="flex justify-center px-4 py-4 sm:py-8">
+      <form
+        className="w-full max-w-lg"
+        onSubmit={handleRegister}
+        noValidate
+      >
+        <div className="surface-card rounded-xl p-4 sm:p-8 md:p-10">
+          <div className="text-center mb-5 sm:mb-8">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 btn-gradient rounded-lg flex items-center justify-center mx-auto mb-4">
+              <Ticket className="w-6 h-6 sm:w-7 sm:h-7 text-primary-foreground" />
             </div>
-            <h1 className="text-2xl font-bold text-primary">{t('auth.createAccount')}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-primary">{t('auth.createAccount')}</h1>
             <p className="text-muted-foreground mt-1 text-sm">{t('auth.joinSubtitle')}</p>
           </div>
 
-          <div className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
+          <div className="space-y-3.5 sm:space-y-4">
+            <div className="grid grid-cols-1 gap-3.5 sm:gap-4">
               <div className="space-y-2">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {t('auth.name')} *
@@ -71,10 +76,13 @@ const RegisterPage: React.FC = () => {
                 <div className="relative">
                   <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
+                    name="name"
+                    autoComplete="name"
+                    autoCapitalize="words"
                     placeholder={t('auth.namePlaceholder')}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="pl-11 h-12 rounded-xl bg-muted/50 border-white/8"
+                    className="pl-11 h-12 rounded-xl bg-muted/50 border-white/8 text-base"
                   />
                 </div>
               </div>
@@ -86,10 +94,13 @@ const RegisterPage: React.FC = () => {
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     type="email"
+                    name="email"
+                    autoComplete="email"
+                    inputMode="email"
                     placeholder={t('auth.emailPlaceholder')}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-11 h-12 rounded-xl bg-muted/50 border-white/8"
+                    className="pl-11 h-12 rounded-xl bg-muted/50 border-white/8 text-base"
                   />
                 </div>
               </div>
@@ -102,50 +113,56 @@ const RegisterPage: React.FC = () => {
               <div className="relative">
                 <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
+                  type="tel"
+                  name="tel"
+                  autoComplete="tel"
+                  inputMode="tel"
                   placeholder="+383 XX XXX XXX"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="pl-11 h-12 rounded-xl bg-muted/50 border-white/8"
+                  className="pl-11 h-12 rounded-xl bg-muted/50 border-white/8 text-base"
                 />
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {t('auth.password')} *
-                </Label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-11 h-12 rounded-xl bg-muted/50 border-white/8"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {t('auth.confirmPassword')} *
-                </Label>
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {t('auth.password')} *
+              </Label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   type="password"
+                  name="new-password"
+                  autoComplete="new-password"
                   placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="h-12 rounded-xl bg-muted/50 border-white/8"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-11 h-12 rounded-xl bg-muted/50 border-white/8 text-base"
                 />
               </div>
             </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {t('auth.confirmPassword')} *
+              </Label>
+              <Input
+                type="password"
+                name="confirm-password"
+                autoComplete="new-password"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="h-12 rounded-xl bg-muted/50 border-white/8 text-base"
+              />
+            </div>
 
-            <Button className="w-full h-12 text-base mt-2" onClick={handleRegister} disabled={loading}>
+            <Button type="submit" className="w-full h-12 text-base mt-1" disabled={loading}>
               {loading ? t('common.loading') : t('auth.register')}
             </Button>
           </div>
 
-          <div className="mt-6 space-y-3 text-center">
+          <div className="mt-5 sm:mt-6 space-y-3 text-center">
             <p className="text-sm text-muted-foreground">
               {t('auth.alreadyHaveAccount')}{' '}
               <Link to="/login" className="text-primary font-semibold hover:underline">
@@ -153,6 +170,7 @@ const RegisterPage: React.FC = () => {
               </Link>
             </p>
             <Button
+              type="button"
               variant="ghost"
               className="w-full h-10 text-sm text-muted-foreground"
               onClick={() => navigate('/')}
@@ -161,7 +179,7 @@ const RegisterPage: React.FC = () => {
             </Button>
           </div>
         </div>
-      </div>
+      </form>
     </div>
   )
 }

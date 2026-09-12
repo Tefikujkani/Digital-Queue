@@ -231,7 +231,7 @@ const AppointmentsPage: React.FC = () => {
     <div className="min-h-screen bg-background relative overflow-hidden">
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent -z-10" />
 
-      <div className="pt-10 pb-8 px-4 relative z-10">
+      <div className="pt-6 sm:pt-10 pb-4 sm:pb-8 px-4 relative z-10">
         <div className="container mx-auto max-w-6xl">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -243,7 +243,7 @@ const AppointmentsPage: React.FC = () => {
                 <CalendarIcon className="w-3.5 h-3.5 mr-2" />
                 {t('appointment.systemBadge')}
               </span>
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight">{t('nav.appointments')}</h1>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">{t('nav.appointments')}</h1>
               <p className="text-muted-foreground max-w-2xl text-sm md:text-base">
                 {t('appointment.pageSubtitle')}
               </p>
@@ -252,27 +252,27 @@ const AppointmentsPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="container mx-auto max-w-6xl px-4 py-12 relative z-10">
-        <div className="grid lg:grid-cols-3 gap-12">
+      <div className="container mx-auto max-w-6xl px-4 py-6 sm:py-12 relative z-10">
+        <div className="grid lg:grid-cols-3 gap-6 lg:gap-12">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             className="lg:col-span-2 space-y-8"
           >
-            <Card className="glass border-white/5 overflow-hidden rounded-[2.5rem] shadow-2xl">
-              <CardHeader className="border-b border-white/5 bg-white/[0.02] p-8">
-                <CardTitle className="text-2xl font-black">{t('appointment.book')}</CardTitle>
-                <CardDescription className="text-lg">{t('appointment.fillDetails')}</CardDescription>
+            <Card className="glass border-white/5 overflow-hidden rounded-2xl sm:rounded-[2.5rem] shadow-2xl">
+              <CardHeader className="border-b border-white/5 bg-white/[0.02] p-5 sm:p-8">
+                <CardTitle className="text-xl sm:text-2xl font-black">{t('appointment.book')}</CardTitle>
+                <CardDescription className="text-sm sm:text-lg">{t('appointment.fillDetails')}</CardDescription>
               </CardHeader>
-              <CardContent className="p-8 space-y-8">
-                <div className="grid md:grid-cols-2 gap-8">
+              <CardContent className="p-5 sm:p-8 space-y-6 sm:space-y-8">
+                <div className="grid md:grid-cols-2 gap-6 sm:gap-8">
                   <div className="space-y-6">
                     <div className="space-y-3">
                       <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">
                         {t('institution.selectInstitution')} *
                       </Label>
                       <Select value={selectedInstitution} onValueChange={setSelectedInstitution}>
-                        <SelectTrigger className="h-14 rounded-2xl glass border-white/10 text-lg font-bold">
+                        <SelectTrigger className="h-12 sm:h-14 rounded-2xl glass border-white/10 text-base sm:text-lg font-bold">
                           <SelectValue placeholder={t('institution.selectInstitution')} />
                         </SelectTrigger>
                         <SelectContent className="glass border-white/10">
@@ -297,7 +297,7 @@ const AppointmentsPage: React.FC = () => {
                         onValueChange={setSelectedService}
                         disabled={!selectedInstitution}
                       >
-                        <SelectTrigger className="h-14 rounded-2xl glass border-white/10 text-lg font-bold">
+                        <SelectTrigger className="h-12 sm:h-14 rounded-2xl glass border-white/10 text-base sm:text-lg font-bold">
                           <SelectValue placeholder={t('institution.selectService')} />
                         </SelectTrigger>
                         <SelectContent className="glass border-white/10">
@@ -327,7 +327,7 @@ const AppointmentsPage: React.FC = () => {
                     <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">
                       {t('appointment.selectDate')} *
                     </Label>
-                    <div className="glass rounded-2xl p-2 border-white/5">
+                    <div className="glass rounded-2xl p-1 sm:p-2 border-white/5 overflow-x-auto">
                       <Calendar
                         mode="single"
                         selected={selectedDate}
@@ -337,7 +337,7 @@ const AppointmentsPage: React.FC = () => {
                           today.setHours(0, 0, 0, 0)
                           return date < today
                         }}
-                        className="rounded-xl border-0"
+                        className="rounded-xl border-0 w-full max-w-full"
                       />
                     </div>
                   </div>
@@ -356,7 +356,7 @@ const AppointmentsPage: React.FC = () => {
                       {t('appointment.noSlots')}
                     </p>
                   ) : (
-                    <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-3">
                       {visibleSlots.map((slot) => (
                         <Button
                           key={slot.time}
@@ -377,7 +377,7 @@ const AppointmentsPage: React.FC = () => {
                 </div>
 
                 <div className="rounded-2xl border border-[#25D366]/35 bg-[#25D366]/8 p-5 space-y-4">
-                  <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-start sm:items-center justify-between gap-3 sm:gap-4">
                     <div className="flex items-start gap-3">
                       <MessageCircle className="w-5 h-5 text-[#128C7E] mt-0.5" />
                       <div>
@@ -414,7 +414,7 @@ const AppointmentsPage: React.FC = () => {
                 </div>
 
                 <Button
-                  className="w-full h-16 text-xl rounded-2xl shadow-xl shadow-primary/20"
+                  className="w-full h-12 sm:h-16 text-base sm:text-xl rounded-2xl shadow-xl shadow-primary/20"
                   onClick={handleBook}
                   disabled={bookingLoading || !selectedService || !selectedTime}
                 >
@@ -452,8 +452,8 @@ const AppointmentsPage: React.FC = () => {
                           key={appointment.id || (appointment as any)._id}
                           className="p-5 glass border-white/5 rounded-2xl space-y-4 hover:bg-white/5 transition-all group"
                         >
-                          <div className="flex items-center justify-between">
-                            <p className="font-black text-foreground group-hover:text-primary transition-colors">
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="font-black text-foreground group-hover:text-primary transition-colors min-w-0 break-words">
                               {institutions.find(
                                 (i) => (i.id || (i as any)._id) === appointment.institutionId,
                               )?.name || t('common.institution')}

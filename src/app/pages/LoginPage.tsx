@@ -17,7 +17,8 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleLogin = async () => {
+  const handleLogin = async (e?: React.FormEvent) => {
+    e?.preventDefault()
     if (!email || !password) {
       toast.error(t('auth.fillAllFields'))
       return
@@ -44,18 +45,18 @@ const LoginPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-[calc(100vh-72px)] flex items-center justify-center p-5 relative">
-      <div className="w-full max-w-md relative z-10">
-        <div className="surface-card rounded-xl p-8 md:p-10">
-          <div className="text-center mb-8">
-            <div className="w-14 h-14 btn-gradient rounded-lg flex items-center justify-center mx-auto mb-5">
-              <Ticket className="w-7 h-7 text-primary-foreground" />
+    <div className="flex justify-center px-4 py-4 sm:py-8">
+      <form className="w-full max-w-md" onSubmit={handleLogin} noValidate>
+        <div className="surface-card rounded-xl p-4 sm:p-8 md:p-10">
+          <div className="text-center mb-5 sm:mb-8">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 btn-gradient rounded-lg flex items-center justify-center mx-auto mb-4">
+              <Ticket className="w-6 h-6 sm:w-7 sm:h-7 text-primary-foreground" />
             </div>
-            <h1 className="text-2xl font-bold text-primary">SmartQueue</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-primary">SmartQueue</h1>
             <p className="text-muted-foreground mt-1 text-sm">{t('auth.login')}</p>
           </div>
 
-          <div className="space-y-5">
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {t('auth.email')}
@@ -64,11 +65,13 @@ const LoginPage: React.FC = () => {
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   type="email"
+                  name="email"
+                  autoComplete="email"
+                  inputMode="email"
                   placeholder={t('auth.emailPlaceholder')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-11 h-12 rounded-xl bg-muted/50 border-white/8"
-                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                  className="pl-11 h-12 rounded-xl bg-muted/50 border-white/8 text-base"
                 />
               </div>
             </div>
@@ -80,15 +83,16 @@ const LoginPage: React.FC = () => {
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   type="password"
+                  name="password"
+                  autoComplete="current-password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-11 h-12 rounded-xl bg-muted/50 border-white/8"
-                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                  className="pl-11 h-12 rounded-xl bg-muted/50 border-white/8 text-base"
                 />
               </div>
             </div>
-            <Button className="w-full h-12 text-base" onClick={handleLogin} disabled={loading}>
+            <Button type="submit" className="w-full h-12 text-base" disabled={loading}>
               {loading ? (
                 t('common.loading')
               ) : (
@@ -99,7 +103,7 @@ const LoginPage: React.FC = () => {
             </Button>
           </div>
 
-          <div className="mt-6 space-y-3 text-center">
+          <div className="mt-5 sm:mt-6 space-y-3 text-center">
             <p className="text-sm">
               <Link to="/forgot-password" className="text-primary font-medium hover:underline">
                 {t('auth.forgotPassword')}
@@ -112,6 +116,7 @@ const LoginPage: React.FC = () => {
               </Link>
             </p>
             <Button
+              type="button"
               variant="ghost"
               className="w-full h-10 text-sm text-muted-foreground"
               onClick={() => navigate('/')}
@@ -121,7 +126,7 @@ const LoginPage: React.FC = () => {
             </Button>
           </div>
         </div>
-      </div>
+      </form>
     </div>
   )
 }

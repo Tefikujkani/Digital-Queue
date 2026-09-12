@@ -130,23 +130,24 @@ const InstitutionsPage: React.FC = () => {
   }, [institutions, onlyFavorites, isFavorite])
 
   return (
-    <div className="min-h-screen pb-20">
-      <div className="pt-10 pb-8 px-5">
+    <div className="min-h-screen pb-6">
+      <div className="pt-6 sm:pt-10 pb-6 sm:pb-8 px-4 sm:px-5">
         <div className="container mx-auto max-w-7xl">
-          <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-5">
+          <div className="mb-5 sm:mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-5">
             <div>
               <p className="text-primary text-xs font-bold uppercase tracking-[0.2em] mb-2">
                 {t('institution.discover')}
               </p>
-              <h1 className="text-3xl md:text-4xl font-bold mb-2">{t('nav.institutions')}</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">{t('nav.institutions')}</h1>
+              <p className="text-muted-foreground text-sm sm:text-base">
                 {t('institution.pageSubtitle')}
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 sm:flex gap-2">
               <Button
                 variant={view === 'grid' ? 'default' : 'outline'}
                 size="sm"
+                className="w-full sm:w-auto"
                 onClick={() => setView('grid')}
               >
                 <LayoutGrid className="w-4 h-4" /> {t('institution.viewList')}
@@ -154,6 +155,7 @@ const InstitutionsPage: React.FC = () => {
               <Button
                 variant={view === 'map' ? 'default' : 'outline'}
                 size="sm"
+                className="w-full sm:w-auto"
                 onClick={() => setView('map')}
               >
                 <MapIcon className="w-4 h-4" /> {t('institution.viewMap')}
@@ -161,20 +163,20 @@ const InstitutionsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="relative mb-5 max-w-2xl">
+          <div className="relative mb-4 sm:mb-5 max-w-2xl">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
             <Input
               placeholder={t('institution.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-12 h-14 rounded-2xl bg-muted/60 border-white/8 text-base focus-visible:ring-primary/40"
+              className="pl-12 h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-muted/60 border-white/8 text-base focus-visible:ring-primary/40"
             />
           </div>
 
-          <div className="flex flex-wrap gap-3 mb-4">
+          <div className="chip-row mb-3">
             <button
               onClick={() => setSelectedCity('all')}
-              className={`px-5 py-2.5 rounded-lg text-sm font-semibold tracking-normal ${
+              className={`px-4 py-2 rounded-lg text-sm font-semibold tracking-normal ${
                 selectedCity === 'all'
                   ? 'btn-gradient text-primary-foreground'
                   : 'bg-muted text-muted-foreground border border-border hover:bg-muted/80'
@@ -186,7 +188,7 @@ const InstitutionsPage: React.FC = () => {
               <button
                 key={c.name}
                 onClick={() => setSelectedCity(c.name)}
-                className={`px-5 py-2.5 rounded-lg text-sm font-semibold tracking-normal ${
+                className={`px-4 py-2 rounded-lg text-sm font-semibold tracking-normal ${
                   selectedCity === c.name
                     ? 'btn-gradient text-primary-foreground'
                     : 'bg-muted text-muted-foreground border border-border hover:bg-muted/80'
@@ -197,12 +199,12 @@ const InstitutionsPage: React.FC = () => {
             ))}
           </div>
 
-          <div className="flex flex-wrap gap-3 items-center">
+          <div className="chip-row items-center">
             {types.map((id) => (
               <button
                 key={id}
                 onClick={() => setSelectedType(id)}
-                className={`px-5 py-2.5 rounded-lg text-sm font-semibold tracking-normal transition-colors ${
+                className={`px-4 py-2 rounded-lg text-sm font-semibold tracking-normal transition-colors ${
                   selectedType === id
                     ? 'btn-gradient text-primary-foreground'
                     : 'bg-muted text-muted-foreground hover:bg-white hover:text-foreground border border-border'
@@ -216,7 +218,7 @@ const InstitutionsPage: React.FC = () => {
                 if (!isAuthenticated) return navigate('/login')
                 setOnlyFavorites((v) => !v)
               }}
-              className={`px-5 py-2.5 rounded-lg text-sm font-semibold tracking-normal inline-flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-lg text-sm font-semibold tracking-normal inline-flex items-center gap-2 ${
                 onlyFavorites
                   ? 'bg-accent/15 text-accent border border-accent/40'
                   : 'bg-muted text-muted-foreground border border-border'
@@ -229,10 +231,10 @@ const InstitutionsPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="container mx-auto max-w-7xl px-5">
+      <div className="container mx-auto max-w-7xl px-4 sm:px-5">
         {view === 'map' && (
-          <div className="mb-8 rounded-3xl border border-white/10 overflow-hidden bg-[#0c1020]">
-            <div className="p-4 border-b border-white/8 flex items-center justify-between">
+          <div className="mb-8 rounded-2xl sm:rounded-3xl border border-white/10 overflow-hidden bg-[#0c1020]">
+            <div className="p-4 border-b border-white/8 flex items-center justify-between gap-3">
               <p className="text-sm font-medium">{t('institution.mapTitle')}</p>
               <span className="text-xs text-muted-foreground">
                 {t('institution.locationsCount', { n: list.length })}
@@ -240,7 +242,7 @@ const InstitutionsPage: React.FC = () => {
             </div>
             <iframe
               title={t('institution.mapTitle')}
-              className="w-full h-[420px] grayscale-[20%] contrast-125"
+              className="w-full h-[260px] sm:h-[420px] grayscale-[20%] contrast-125"
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
               src={`https://www.openstreetmap.org/export/embed.html?bbox=19.9%2C41.8%2C21.8%2C43.3&layer=mapnik&marker=${
@@ -292,12 +294,12 @@ const InstitutionsPage: React.FC = () => {
               return (
                 <div
                   key={id}
-                  className="surface-card rounded-2xl p-5 cursor-pointer group hover:border-primary/40 transition-all duration-300 hover:-translate-y-1 flex flex-col h-full relative"
+                  className="surface-card rounded-2xl p-4 sm:p-5 cursor-pointer group hover:border-primary/40 transition-all duration-300 sm:hover:-translate-y-1 flex flex-col h-full relative"
                   onClick={() => navigate(`/queue/${id}`)}
                 >
                   <button
                     type="button"
-                    className="absolute top-4 right-4 z-10 w-9 h-9 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center hover:bg-accent/20"
+                    className="absolute top-3 right-3 z-10 w-9 h-9 rounded-xl bg-white border border-border shadow-sm flex items-center justify-center hover:bg-accent/10"
                     onClick={(e) => {
                       e.stopPropagation()
                       toggleFavorite(id)
@@ -307,7 +309,7 @@ const InstitutionsPage: React.FC = () => {
                     <Heart className={`w-4 h-4 ${fav ? 'fill-accent text-accent' : 'text-muted-foreground'}`} />
                   </button>
 
-                  <div className="flex items-start justify-between mb-4 pr-10">
+                  <div className="flex items-start justify-between mb-4 pr-10 gap-3">
                     <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center group-hover:glow-primary-sm transition-all">
                       <Icon className="w-5 h-5 text-primary" />
                     </div>
@@ -340,7 +342,7 @@ const InstitutionsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <h3 className="text-lg font-semibold group-hover:text-primary transition-colors mb-1 line-clamp-2 min-h-[3.5rem]">
+                  <h3 className="text-base sm:text-lg font-semibold group-hover:text-primary transition-colors mb-1 line-clamp-2 min-h-[2.75rem] sm:min-h-[3.5rem]">
                     {institution.name}
                   </h3>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">

@@ -6,9 +6,9 @@ const PrivacyPage: React.FC = () => {
   const { t } = useLanguage()
 
   return (
-    <div className="min-h-screen pb-20 pt-12 px-5">
+    <div className="min-h-screen pb-6 pt-8 sm:pt-12 px-4 sm:px-5">
       <div className="container mx-auto max-w-3xl">
-        <h1 className="text-3xl font-bold mb-2">{t('privacy.title')}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2">{t('privacy.title')}</h1>
         <p className="text-muted-foreground mb-8 text-sm">{t('privacy.updated')}</p>
         <div className="space-y-5 text-sm text-muted-foreground leading-relaxed">
           <section className="space-y-2">

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useLanguage } from '../contexts/LanguageContext'
+import { isAuthPath } from '../lib/assistantUi'
 import type { Language } from '../types'
 
 const languages: { code: Language; label: string; native: string }[] = [
@@ -42,24 +43,26 @@ const MobileTabBar: React.FC = () => {
   const accountActive =
     location.pathname.startsWith('/dashboard') || location.pathname === '/login'
 
+  if (isAuthPath(location.pathname)) return null
+
   const tabs = [
-    { to: '/', icon: Home, label: t('nav.home'), active: location.pathname === '/' },
+    { to: '/', icon: Home, label: t('nav.tab.home'), active: location.pathname === '/' },
     {
       to: '/institutions',
       icon: Building2,
-      label: t('nav.institutions'),
+      label: t('nav.tab.institutions'),
       active: location.pathname.startsWith('/institutions') || location.pathname.startsWith('/queue'),
     },
     {
       to: '/appointments',
       icon: Calendar,
-      label: t('nav.appointments'),
+      label: t('nav.tab.appointments'),
       active: location.pathname.startsWith('/appointments'),
     },
     {
       to: accountPath,
       icon: isAuthenticated ? LayoutDashboard : LogIn,
-      label: isAuthenticated ? t('nav.dashboard') : t('nav.login'),
+      label: isAuthenticated ? t('nav.tab.dashboard') : t('nav.tab.login'),
       active: accountActive,
     },
   ]
@@ -74,7 +77,7 @@ const MobileTabBar: React.FC = () => {
             aria-label={t('common.close')}
             onClick={() => setMoreOpen(false)}
           />
-          <div className="absolute bottom-0 left-0 right-0 rounded-t-2xl bg-white border-t border-border p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl">
+          <div className="absolute bottom-0 left-0 right-0 max-h-[min(88dvh,640px)] overflow-y-auto rounded-t-2xl bg-white border-t border-border p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <p className="font-semibold text-base">{t('nav.more')}</p>
               <button
@@ -174,31 +177,31 @@ const MobileTabBar: React.FC = () => {
         className="lg:hidden fixed bottom-0 left-0 right-0 z-[110] bg-white/95 backdrop-blur-md border-t border-border"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        <div className="grid grid-cols-5 h-16">
+        <div className="grid grid-cols-5 h-[3.75rem]">
           {tabs.map((tab) => (
             <Link
               key={tab.to}
               to={tab.to}
-              className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold ${
+              className={`min-w-0 flex flex-col items-center justify-center gap-0.5 px-0.5 text-[10px] font-semibold ${
                 tab.active ? 'text-primary' : 'text-muted-foreground'
               }`}
             >
-              <tab.icon className="w-5 h-5" />
-              <span className="leading-tight px-0.5 text-center line-clamp-1">{tab.label}</span>
+              <tab.icon className="w-5 h-5 shrink-0" />
+              <span className="leading-tight text-center truncate w-full">{tab.label}</span>
             </Link>
           ))}
           <button
             type="button"
             onClick={() => setMoreOpen(true)}
-            className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold ${
+            className={`min-w-0 flex flex-col items-center justify-center gap-0.5 px-0.5 text-[10px] font-semibold ${
               moreOpen ||
               ['/cities', '/help', '/settings', '/privacy', '/terms'].includes(location.pathname)
                 ? 'text-primary'
                 : 'text-muted-foreground'
             }`}
           >
-            <MoreHorizontal className="w-5 h-5" />
-            <span>{t('nav.more')}</span>
+            <MoreHorizontal className="w-5 h-5 shrink-0" />
+            <span className="leading-tight text-center truncate w-full">{t('nav.tab.more')}</span>
           </button>
         </div>
       </nav>

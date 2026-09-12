@@ -1,5 +1,5 @@
 import React from 'react'
-import { Outlet, Link } from 'react-router'
+import { Outlet, Link, useLocation } from 'react-router'
 import Navigation from '../components/Navigation'
 import MobileTabBar from '../components/MobileTabBar'
 import InstallBanner from '../components/InstallBanner'
@@ -7,14 +7,17 @@ import Chatbot from '../components/Chatbot'
 import VoiceAssistant from '../components/VoiceAssistant'
 import { Toaster } from '../components/ui/sonner'
 import { useLanguage } from '../contexts/LanguageContext'
+import { isAuthPath } from '../lib/assistantUi'
 import { Ticket } from 'lucide-react'
 
 const RootLayout: React.FC = () => {
   const { t, language } = useLanguage()
+  const location = useLocation()
+  const authPage = isAuthPath(location.pathname)
 
   return (
     <div
-      className="min-h-screen bg-background text-foreground selection:bg-primary/30 relative overflow-x-hidden"
+      className="min-h-screen bg-background text-foreground selection:bg-primary/30 relative"
       data-lang={language}
     >
       <a
@@ -27,14 +30,18 @@ const RootLayout: React.FC = () => {
         <Navigation />
         <main
           id="main-content"
-          className="pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-[108px] pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-0"
+          className={`overflow-x-clip pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-[108px] ${
+            authPage
+              ? 'pb-6 lg:pb-0'
+              : 'pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-0'
+          }`}
           key={`page-${language}`}
         >
           <InstallBanner />
           <Outlet />
         </main>
         <MobileTabBar />
-        <Toaster position="top-right" expand={true} richColors theme="light" />
+        <Toaster position="top-center" expand={false} richColors theme="light" />
         <Chatbot key={`chat-${language}`} />
         <VoiceAssistant key={`voice-${language}`} />
 

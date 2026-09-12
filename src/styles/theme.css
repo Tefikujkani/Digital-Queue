@@ -115,6 +115,10 @@
     overscroll-behavior-y: none;
   }
 
+  #root {
+    max-width: 100%;
+  }
+
   h1,
   h2,
   h3 {
@@ -210,4 +214,29 @@
   .gov-tile-green { background: #7cb342; }
   .gov-tile-purple { background: #7e57c2; }
   .gov-tile-red { background: #ef5350; }
+
+  .chip-row {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+  }
+
+  .chip-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .chip-row > * {
+    flex-shrink: 0;
+  }
+
+  @media (min-width: 1024px) {
+    .chip-row {
+      flex-wrap: wrap;
+      overflow: visible;
+    }
+  }
 }
