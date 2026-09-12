@@ -1,5 +1,5 @@
 /* SmartQueue offline shell — network-first HTML so installed apps get updates */
-const CACHE = 'smartqueue-v3'
+const CACHE = 'smartqueue-v23'
 const ASSETS = ['/', '/manifest.webmanifest', '/pwa-icon.svg', '/pwa-icon-192.png', '/apple-touch-icon.png']
 
 self.addEventListener('install', (event) => {

@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const DEFAULT_API_URL = 'http://localhost:5001/api'
-const API_URL =
+export const API_URL =
   typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL
     ? import.meta.env.VITE_API_URL
     : DEFAULT_API_URL
@@ -13,10 +13,14 @@ const api = axios.create({
   },
 })
 
+function isLocalToken(token?: string | null) {
+  return Boolean(token && String(token).startsWith('local-'))
+}
+
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('smartqueue_token')
-    if (token) {
+    if (token && !isLocalToken(token)) {
       config.headers.Authorization = `Bearer ${token}`
     }
     return config
@@ -33,9 +37,12 @@ api.interceptors.response.use(
       const isAuthRoute =
         config?.url?.includes('/auth/login') ||
         config?.url?.includes('/auth/register') ||
+        config?.url?.includes('/auth/google') ||
         config?.url?.includes('/auth/forgot') ||
         config?.url?.includes('/auth/reset')
-      if (!isAuthRoute) {
+      const token = localStorage.getItem('smartqueue_token')
+      const hasLocalUser = Boolean(localStorage.getItem('smartqueue_current_user'))
+      if (!isAuthRoute && !isLocalToken(token) && !hasLocalUser) {
         localStorage.removeItem('smartqueue_token')
         localStorage.removeItem('smartqueue_current_user')
         if (!window.location.pathname.includes('/login')) {

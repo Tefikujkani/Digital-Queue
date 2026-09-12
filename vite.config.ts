@@ -28,9 +28,16 @@ export default defineConfig({
     alias: {
       // Alias @ to the src directory
       '@': path.resolve(__dirname, './src'),
+      '@huggingface/transformers': path.resolve(
+        __dirname,
+        'node_modules/@huggingface/transformers/dist/transformers.web.js',
+      ),
     },
   },
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
+  optimizeDeps: {
+    exclude: ['@huggingface/transformers'],
+  },
 })

@@ -2,6 +2,7 @@ import express from 'express'
 import {
   registerUser,
   loginUser,
+  loginWithGoogle,
   getUserProfile,
   getAllUsers,
   updateProfile,
@@ -18,6 +19,7 @@ const router = express.Router()
 
 router.post('/register', authLimiter, registerUser)
 router.post('/login', authLimiter, loginUser)
+router.post('/google', authLimiter, loginWithGoogle)
 router.post('/forgot-password', authLimiter, forgotPassword)
 router.post('/reset-password', authLimiter, resetPassword)
 router.get('/profile', protect, getUserProfile)

@@ -424,7 +424,7 @@ export async function buildServiceGuide({
           ? 'I could not find that institution. Try saying the city and service, for example passport in Prishtina.'
           : lang === 'sr'
             ? 'Nisam našao tu instituciju. Recite grad i uslugu, npr. lična karta u Prištini.'
-            : 'Nuk e gjeta institucionin. Thuaj qytetin dhe shërbimin, p.sh. letërnjoftim në Prishtinë.',
+            : 'S’e gjeta këtë institucion. Thuaj qytetin edhe shërbimin, p.sh. leternjoftim n’Prishtinë.',
       suggestions:
         lang === 'en'
           ? ['ID card in Prishtina', 'When to go to the hospital', 'Documents for a birth certificate']
@@ -528,7 +528,7 @@ export async function handleVoiceIntent({ transcript, institutionId, serviceId, 
           ? 'I did not hear you. Try again, e.g. what documents are needed for an ID card.'
           : normLang(language) === 'sr'
             ? 'Nisam vas čuo. Pokušajte ponovo, npr. koja dokumenta treba za ličnu kartu.'
-            : 'Nuk ju dëgjova. Provoni përsëri, p.sh. çfarë dokumentesh duhen për letërnjoftim.',
+            : 'S’të kuptova. Provo prap, p.sh. qka dokumente duhen për leternjoftim.',
     }
   }
   return buildServiceGuide({

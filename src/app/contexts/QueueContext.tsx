@@ -4,6 +4,7 @@ import api from '../lib/api'
 import { toast } from 'sonner'
 import { io, Socket } from 'socket.io-client'
 import { translate } from '../i18n/translate'
+import { isNetworkError, localCancelTicket, localIssueTicket, readLocalTickets } from '../lib/offlineData'
 
 const SOCKET_CANDIDATES = [
   (import.meta as any).env?.VITE_SOCKET_URL as string | undefined,
@@ -136,13 +137,17 @@ export const QueueProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               ? '/tickets?mine=1'
               : null
         if (!url) {
-          setTickets([])
+          setTickets(readLocalTickets().map(normalize))
           return
         }
         const response = await api.get(url)
-        const normalizedTickets = (response.data || []).map(normalize)
-        setTickets(normalizedTickets)
+        const remote = (response.data || []).map(normalize)
+        const local = readLocalTickets()
+          .map(normalize)
+          .filter((t) => String(t.id).startsWith('local-'))
+        setTickets([...remote, ...local])
       } catch (error) {
+        setTickets(readLocalTickets().map(normalize))
         console.error('Failed to fetch tickets:', error)
       }
     }
@@ -197,6 +202,30 @@ export const QueueProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         return newTicket
       } catch (error: any) {
+        if (isNetworkError(error)) {
+          const saved = localStorage.getItem('smartqueue_current_user')
+          const user = saved ? JSON.parse(saved) : {}
+          const localTicket = normalize(
+            localIssueTicket({
+              institutionId,
+              serviceId,
+              userId: user.id || user._id || 'local-user',
+              userName,
+              priority,
+              scheduledDate,
+              scheduledTime,
+            }),
+          )
+          setTickets((prev) => [...prev, localTicket])
+          setCurrentTicket(localTicket)
+          const isAppointment = Boolean(scheduledDate && scheduledTime)
+          toast.success(
+            isAppointment
+              ? `${translate('appointment.bookSuccess')} · ${localTicket.number}`
+              : translate('toast.ticketSuccess', { number: localTicket.number }),
+          )
+          return localTicket
+        }
         const msg =
           error?.response?.data?.message ||
           error?.message ||
@@ -211,7 +240,11 @@ export const QueueProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const cancelTicket = useCallback(
     async (ticketId: string) => {
       try {
-        await api.put(`/tickets/${ticketId}/status`, { status: 'cancelled' })
+        if (String(ticketId).startsWith('local-')) {
+          localCancelTicket(ticketId)
+        } else {
+          await api.put(`/tickets/${ticketId}/status`, { status: 'cancelled' })
+        }
         setTickets((prev) =>
           prev.map((t) =>
             t.id === ticketId || (t as any)._id === ticketId ? { ...t, status: 'cancelled' } : t,
@@ -221,6 +254,15 @@ export const QueueProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           setCurrentTicket(null)
         }
       } catch (error) {
+        if (isNetworkError(error)) {
+          localCancelTicket(ticketId)
+          setTickets((prev) =>
+            prev.map((t) =>
+              t.id === ticketId || (t as any)._id === ticketId ? { ...t, status: 'cancelled' } : t,
+            ),
+          )
+          return
+        }
         toast.error(translate('toast.cancelFailed'))
       }
     },

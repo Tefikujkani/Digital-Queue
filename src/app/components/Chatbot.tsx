@@ -14,7 +14,11 @@ import {
   User as UserIcon,
   Mic,
 } from 'lucide-react'
-import { getSpeechRecognition, isSpeechRecognitionSupported } from '../lib/speech'
+import { getSpeechRecognition, isBrowserSpeechReliable, unlockSpeechPlayback } from '../lib/speech'
+import { blobLooksSilent, canRecordAudio, createVoiceRecorder, type VoiceRecorder } from '../lib/audioRecord'
+import { transcribeAudio } from '../lib/voiceApi'
+import { requestMicrophone, stopMicStream } from '../lib/micPermission'
+import { playMicDenied, playMicHeard, playMicStart, playMicStop, unlockMicAudio } from '../lib/micSounds'
 import { useAuth } from '../contexts/AuthContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { streamChat, fetchChatSuggestions, type ChatMessage } from '../lib/chatApi'
@@ -95,9 +99,13 @@ const Chatbot: React.FC = () => {
   const [busy, setBusy] = useState(false)
   const [activeTool, setActiveTool] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [listening, setListening] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const recorderRef = useRef<VoiceRecorder | null>(null)
+  const speechOk = isBrowserSpeechReliable()
+  const canVoice = speechOk || canRecordAudio()
 
   const toolLabels: Record<string, string> = {
     search_institutions: t('chat.tool.search'),
@@ -145,6 +153,10 @@ const Chatbot: React.FC = () => {
     document.body.style.overflow = 'hidden'
     return () => {
       document.body.style.overflow = previous
+      void recorderRef.current?.stop().catch(() => {})
+      recorderRef.current = null
+      setListening(false)
+      stopMicStream()
     }
   }, [open])
 
@@ -257,17 +269,84 @@ const Chatbot: React.FC = () => {
     }
   }
 
-  const listenAndSend = () => {
-    const rec = getSpeechRecognition(language)
-    if (!rec) return
-    rec.onresult = (event: any) => {
-      let text = ''
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) text += event.results[i][0].transcript
+  const listenAndSend = async () => {
+    if (recorderRef.current) {
+      const recorder = recorderRef.current
+      recorderRef.current = null
+      setListening(false)
+      playMicStop()
+      try {
+        const blob = await recorder.stop()
+        if (blobLooksSilent(blob)) {
+          setError(t('voice.noSpeech'))
+          return
+        }
+        const { transcript } = await transcribeAudio(blob, language)
+        playMicHeard()
+        sendMessage(transcript)
+      } catch {
+        setError(t('voice.sttError'))
       }
-      if (text.trim()) sendMessage(text.trim())
+      return
     }
-    rec.start()
+
+    unlockMicAudio()
+    unlockSpeechPlayback()
+
+    if (speechOk) {
+      const rec = getSpeechRecognition(language)
+      if (!rec) return
+      rec.onresult = (event: any) => {
+        let text = ''
+        let live = ''
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const chunk = event.results[i][0].transcript
+          if (event.results[i].isFinal) text += chunk
+          else live += chunk
+        }
+        const spoken = (text || live).trim()
+        if (spoken && (text.trim() || event.results[event.results.length - 1]?.isFinal)) {
+          sendMessage(spoken)
+        }
+      }
+      rec.onerror = (event: any) => {
+        if (event?.error === 'not-allowed') {
+          playMicDenied()
+          setError(t('voice.micError'))
+        }
+      }
+      rec.onend = () => {
+        playMicStop()
+        setListening(false)
+      }
+      playMicStart()
+      setListening(true)
+      rec.start()
+      return
+    }
+
+    const perm = await requestMicrophone({ keep: true })
+    if (!perm.ok) {
+      playMicDenied()
+      setError(t('voice.micError'))
+      return
+    }
+
+    if (!perm.stream || !canRecordAudio()) {
+      setError(t('voice.unsupported'))
+      return
+    }
+    const recorder = createVoiceRecorder({
+      maxMs: 12000,
+      onAutoStop: () => {
+        if (recorderRef.current === recorder) void listenAndSend()
+      },
+    })
+    recorderRef.current = recorder
+    await recorder.start(perm.stream)
+    setListening(true)
+    setError(null)
+    playMicStart()
   }
 
   if (hideOnAuthPages || hideOnAdmin) return null
@@ -461,13 +540,13 @@ const Chatbot: React.FC = () => {
                   enterKeyHint="send"
                   className="flex-1 resize-none bg-transparent text-base md:text-sm outline-none placeholder:text-muted-foreground/70 max-h-28 py-1.5 px-1"
                 />
-                {isSpeechRecognitionSupported() && (
+                {canVoice && (
                   <Button
                     type="button"
                     size="icon"
-                    variant="outline"
+                    variant={listening ? 'default' : 'outline'}
                     disabled={busy}
-                    onClick={listenAndSend}
+                    onClick={() => void listenAndSend()}
                     className="h-9 w-9 shrink-0"
                     title={t('voice.tapToSpeak')}
                   >

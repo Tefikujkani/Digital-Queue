@@ -3,6 +3,7 @@ import fs from 'fs/promises'
 import os from 'os'
 import path from 'path'
 import { EdgeTTS } from 'node-edge-tts'
+import { toKosovoAccent } from './kosovoAccent.js'
 
 const MAX_CHARS = 1400
 const cache = new Map()
@@ -86,10 +87,10 @@ async function googleSqSpeak(text) {
 }
 
 export async function synthesizeSpeech(rawText, rawLang = 'sq') {
-  const text = String(rawText || '').replace(/\s+/g, ' ').trim().slice(0, MAX_CHARS)
-  if (!text) throw new Error('Teksti mungon')
   const raw = String(rawLang || 'sq').toLowerCase()
   const lang = raw.startsWith('en') ? 'en' : raw.startsWith('sr') ? 'sr' : 'sq'
+  const prepared = lang === 'sq' ? toKosovoAccent(rawText) : rawText
+  const text = String(prepared || '').replace(/\s+/g, ' ').trim().slice(0, MAX_CHARS)
   const key = cacheKey(text, lang)
   if (cache.has(key)) return cache.get(key)
 

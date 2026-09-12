@@ -7,10 +7,12 @@ import { useAuth } from '../contexts/AuthContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { toast } from 'sonner'
 import { ArrowLeft, Mail, Lock, LogIn, Ticket } from 'lucide-react'
+import { GoogleAuthButton } from '../components/GoogleAuthButton'
+import type { GoogleSession } from '../lib/googleAuth'
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, loginWithGoogle } = useAuth()
   const { t } = useLanguage()
 
   const [email, setEmail] = useState('')
@@ -44,6 +46,19 @@ const LoginPage: React.FC = () => {
     }
   }
 
+  const afterGoogle = async (session: GoogleSession) => {
+    setLoading(true)
+    try {
+      const signedIn = await loginWithGoogle(session)
+      toast.success(t('auth.welcomeBack'))
+      if (signedIn.role === 'admin') navigate('/dashboard/admin', { replace: true })
+      else if (signedIn.role === 'superadmin') navigate('/institutions', { replace: true })
+      else navigate('/dashboard/citizen', { replace: true })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="flex justify-center px-4 py-4 sm:py-8 pb-10 relative z-20">
       <form className="w-full max-w-md" onSubmit={handleLogin} noValidate>
@@ -57,6 +72,14 @@ const LoginPage: React.FC = () => {
           </div>
 
           <div className="space-y-4">
+            <GoogleAuthButton disabled={loading} onCredential={afterGoogle} />
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                {t('auth.orEmail')}
+              </span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
             <div className="space-y-2">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {t('auth.email')}

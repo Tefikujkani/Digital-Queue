@@ -1,5 +1,6 @@
-import api from './api'
+import api, { API_URL } from './api'
 import { localVoiceIntent } from './offlineData'
+import { repairVoiceTranscript, transcribeOnDevice } from './transcribeLocal'
 
 export type VoiceGuide = {
   ok: boolean
@@ -58,4 +59,44 @@ export async function postVoiceIntent(body: {
     /* use on-device guide when API is unreachable */
   }
   return localVoiceIntent(body)
+}
+
+export async function transcribeAudio(blob: Blob, language = 'sq'): Promise<{ transcript: string }> {
+  const token = localStorage.getItem('smartqueue_token')
+  const headers: Record<string, string> = {
+    'Content-Type': blob.type || 'application/octet-stream',
+  }
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  const urls: string[] = []
+  if (import.meta.env.PROD) urls.push(`/api/voice/transcribe?language=${encodeURIComponent(language)}`)
+  if (API_URL && !(import.meta.env.PROD && API_URL.includes('localhost'))) {
+    urls.push(`${API_URL.replace(/\/$/, '')}/voice/transcribe?language=${encodeURIComponent(language)}`)
+  }
+
+  let lastError = new Error('transcribe failed')
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { method: 'POST', headers, body: blob })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        lastError = new Error(data?.message || 'transcribe failed')
+        continue
+      }
+      const transcript = repairVoiceTranscript(String(data?.transcript || ''))
+      if (transcript) return { transcript }
+      lastError = new Error('empty transcript')
+    } catch (err) {
+      lastError = err instanceof Error ? err : lastError
+    }
+  }
+
+  try {
+    const transcript = repairVoiceTranscript(await transcribeOnDevice(blob, language))
+    if (transcript) return { transcript }
+    lastError = new Error('empty transcript')
+  } catch (err) {
+    lastError = err instanceof Error ? err : lastError
+  }
+  throw lastError
 }

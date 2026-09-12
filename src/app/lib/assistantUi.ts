@@ -13,15 +13,34 @@ export function broadcastAssistant(kind: 'chat' | 'voice' | 'none') {
   window.dispatchEvent(new CustomEvent(ASSISTANT_EVENT, { detail: kind }))
 }
 
-export function openAssistant(kind: 'chat' | 'voice') {
-  if (typeof window === 'undefined') return
-  window.dispatchEvent(new CustomEvent(OPEN_ASSISTANT_EVENT, { detail: kind }))
+export type OpenAssistantDetail = {
+  kind: 'chat' | 'voice'
+  listen?: boolean
 }
 
-export function useOpenAssistant(self: 'chat' | 'voice', setOpen: (value: boolean) => void) {
+export function openAssistant(kind: 'chat' | 'voice', opts?: { listen?: boolean }) {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(
+    new CustomEvent(OPEN_ASSISTANT_EVENT, { detail: { kind, listen: Boolean(opts?.listen) } }),
+  )
+}
+
+export function useOpenAssistant(
+  self: 'chat' | 'voice',
+  setOpen: (value: boolean) => void,
+  onOpen?: (opts?: { listen?: boolean }) => void,
+) {
+  const onOpenRef = useRef(onOpen)
+  onOpenRef.current = onOpen
+
   useEffect(() => {
     const onEvent = (event: Event) => {
-      if ((event as CustomEvent<'chat' | 'voice'>).detail === self) setOpen(true)
+      const raw = (event as CustomEvent<OpenAssistantDetail | 'chat' | 'voice'>).detail
+      const kind = typeof raw === 'string' ? raw : raw?.kind
+      const listen = typeof raw === 'object' ? Boolean(raw?.listen) : false
+      if (kind !== self) return
+      setOpen(true)
+      onOpenRef.current?.({ listen })
     }
     window.addEventListener(OPEN_ASSISTANT_EVENT, onEvent)
     return () => window.removeEventListener(OPEN_ASSISTANT_EVENT, onEvent)

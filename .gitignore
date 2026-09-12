@@ -5,5 +5,7 @@ dist/
 .DS_Store
 .wa-session/
 backend/.wa-session/
+backend-py/.venv/
+backend-py/__pycache__/
 .vercel
 .env*

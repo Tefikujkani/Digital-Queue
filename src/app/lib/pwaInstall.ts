@@ -20,7 +20,15 @@ export function isStandaloneApp() {
 
 export function isIosDevice() {
   if (typeof navigator === 'undefined') return false
-  return /iphone|ipad|ipod/i.test(navigator.userAgent)
+  if (/iphone|ipad|ipod/i.test(navigator.userAgent)) return true
+  return navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
+}
+
+export function applyIosAppClass() {
+  if (typeof document === 'undefined') return
+  const root = document.documentElement
+  if (isIosDevice()) root.classList.add('sq-ios')
+  if (isStandaloneApp()) root.classList.add('sq-standalone')
 }
 
 export function listenForInstallPrompt() {

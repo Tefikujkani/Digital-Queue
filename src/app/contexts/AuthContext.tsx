@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import React, { createContext, useContext, useState, useCallback } from 'react'
 import type { User, UserRole } from '../types'
 import api from '../lib/api'
-import { isNetworkError, localLogin, localRegister } from '../lib/offlineData'
+import { isNetworkError, localGoogleLogin, localLogin, localRegister } from '../lib/offlineData'
+import { postGoogleAuth, type GoogleSession } from '../lib/googleAuth'
 import { toast } from 'sonner'
 import { translate } from '../i18n/translate'
 
@@ -9,6 +10,7 @@ interface AuthContextType {
   user: User | null
   isAuthenticated: boolean
   login: (email: string, password: string) => Promise<any>
+  loginWithGoogle: (session: GoogleSession) => Promise<any>
   register: (
     name: string,
     email: string,
@@ -22,6 +24,18 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export function readSavedUser(): User | null {
+  try {
+    const raw = localStorage.getItem('smartqueue_current_user')
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (!parsed?.email && !parsed?.id && !parsed?._id) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
 
 function formatUser(userData: any): User {
   return {
@@ -43,14 +57,7 @@ function formatUser(userData: any): User {
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null)
-
-  useEffect(() => {
-    const savedUser = localStorage.getItem('smartqueue_current_user')
-    if (savedUser) {
-      setUser(JSON.parse(savedUser))
-    }
-  }, [])
+  const [user, setUser] = useState<User | null>(readSavedUser)
 
   const persist = (formatted: User, token?: string) => {
     if (token) localStorage.setItem('smartqueue_token', token)
@@ -77,6 +84,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
       toast.error(error.response?.data?.message || translate('auth.loginFailed'))
+      throw error
+    }
+  }, [])
+
+  const loginWithGoogle = useCallback(async (session: GoogleSession) => {
+    try {
+      const localUser = localGoogleLogin(session)
+      persist(localUser, `local-${localUser.id}`)
+      void postGoogleAuth(session).then((data) => {
+        if (!data?.email) return
+        persist(formatUser(data), data.token)
+      })
+      return localUser
+    } catch (error: any) {
+      toast.error(error?.message || translate('auth.googleFailed'))
       throw error
     }
   }, [])
@@ -156,7 +178,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated: !!user, login, register, logout, refreshUser }}
+      value={{ user, isAuthenticated: !!user, login, loginWithGoogle, register, logout, refreshUser }}
     >
       {children}
     </AuthContext.Provider>

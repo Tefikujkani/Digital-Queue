@@ -1,10 +1,11 @@
-import type { Institution, User } from '../types'
+import type { Institution, Ticket, TicketPriority, User } from '../types'
 import type { ChatMessage } from './chatApi'
 import type { VoiceGuide } from './voiceApi'
 
 const USERS_KEY = 'smartqueue_local_users'
+const TICKETS_KEY = 'smartqueue_local_tickets'
 
-type LocalUser = User & { passwordHash: string }
+type LocalUser = User & { passwordHash: string; googleId?: string }
 
 async function hashPassword(password: string) {
   const bytes = new TextEncoder().encode(password)
@@ -50,6 +51,85 @@ export async function localRegister(input: {
     role: 'citizen',
     createdAt: new Date(),
     passwordHash: await hashPassword(input.password),
+  }
+  writeUsers([...users, user])
+  return toPublicUser(user)
+}
+
+export function readLocalTickets(): Ticket[] {
+  try {
+    return JSON.parse(localStorage.getItem(TICKETS_KEY) || '[]')
+  } catch {
+    return []
+  }
+}
+
+function writeLocalTickets(tickets: Ticket[]) {
+  localStorage.setItem(TICKETS_KEY, JSON.stringify(tickets))
+}
+
+export function localIssueTicket(input: {
+  institutionId: string
+  serviceId: string
+  userId: string
+  userName: string
+  priority?: TicketPriority
+  scheduledDate?: string
+  scheduledTime?: string
+}): Ticket {
+  const tickets = readLocalTickets()
+  const seq = tickets.length + 1
+  const prefix =
+    input.priority === 'emergency' ? 'E' : input.priority === 'elderly' ? 'S' : input.priority === 'disability' ? 'D' : 'N'
+  const number = `${prefix}-${String(seq).padStart(3, '0')}`
+  const ticket: Ticket = {
+    id: `local-${Date.now()}`,
+    number,
+    userId: input.userId,
+    userName: input.userName,
+    institutionId: input.institutionId,
+    serviceId: input.serviceId,
+    status: 'waiting',
+    priority: input.priority || 'normal',
+    qrCode: `SQK:${input.institutionId}:${number}`,
+    estimatedWaitTime: 15,
+    scheduledAt:
+      input.scheduledDate && input.scheduledTime
+        ? `${input.scheduledDate}T${input.scheduledTime}:00`
+        : undefined,
+    positionInQueue: 1,
+    createdAt: new Date(),
+  }
+  writeLocalTickets([ticket, ...tickets])
+  return ticket
+}
+
+export function localCancelTicket(ticketId: string) {
+  writeLocalTickets(
+    readLocalTickets().map((t) =>
+      t.id === ticketId || (t as any)._id === ticketId ? { ...t, status: 'cancelled' } : t,
+    ),
+  )
+}
+
+export function localGoogleLogin(input: {
+  googleId: string
+  email: string
+  name: string
+}): User {
+  const email = input.email.trim().toLowerCase()
+  const users = readUsers()
+  const found = users.find((u) => u.email === email || (input.googleId && u.googleId === input.googleId))
+  if (found) return toPublicUser(found)
+
+  const user: LocalUser = {
+    id: `local-google-${input.googleId || Date.now()}`,
+    name: input.name.trim() || email.split('@')[0],
+    email,
+    role: 'citizen',
+    createdAt: new Date(),
+    passwordHash: `google:${input.googleId || email}`,
+    googleId: input.googleId,
   }
   writeUsers([...users, user])
   return toPublicUser(user)
@@ -129,7 +209,7 @@ export function localVoiceIntent(input: {
       : ['Letërnjoftimi', 'Numri personal']
 
   const speak = {
-    sq: `Për ${inst.name} merrni me vete: ${docs.join(', ')}. Orari është ${inst.workingHours.open}–${inst.workingHours.close}. Hapeni radhën nga Institucionet.`,
+    sq: `Për ${inst.name} duhet me i pas me vete: ${docs.join(', ')}. Orari osht ${inst.workingHours.open} deri ${inst.workingHours.close}. Hapni radhën te Institucionet.`,
     en: `For ${inst.name} bring: ${docs.join(', ')}. Hours ${inst.workingHours.open}–${inst.workingHours.close}. Open the queue from Institutions.`,
     sr: `Za ${inst.name} ponesite: ${docs.join(', ')}. Radno vreme ${inst.workingHours.open}–${inst.workingHours.close}.`,
   }[lang]

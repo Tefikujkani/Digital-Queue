@@ -25,7 +25,18 @@ import {
   Loader2,
   KeyRound,
   Trash2,
+  Mic,
 } from 'lucide-react'
+import { micDeniedGuideKey, queryMicPermission, requestMicrophone, stopMicStream } from '../lib/micPermission'
+import { isNetworkError } from '../lib/offlineData'
+import {
+  buildWhatsAppShareLink,
+  openWhatsApp,
+  rememberWhatsAppPhone,
+  rememberedWhatsAppPhone,
+  toWhatsAppDigits,
+} from '../lib/whatsapp'
+import { unlockMicAudio, playMicDenied, playMicGranted } from '../lib/micSounds'
 
 const SettingsPage: React.FC = () => {
   const navigate = useNavigate()
@@ -79,6 +90,8 @@ const SettingsPage: React.FC = () => {
   const [newPassword, setNewPassword] = useState('')
   const [deletePassword, setDeletePassword] = useState('')
   const [pwLoading, setPwLoading] = useState(false)
+  const [micState, setMicState] = useState<'granted' | 'denied' | 'unknown'>('unknown')
+  const [micAsking, setMicAsking] = useState(false)
 
   const [channels, setChannels] = useState<
     Record<string, { configured: boolean; label: string; note: string }>
@@ -122,7 +135,7 @@ const SettingsPage: React.FC = () => {
       return
     }
     setPreferredCity(user?.preferredCity || 'Prishtinë')
-    setWaPhone(user?.whatsappPhone || user?.phone || '')
+    setWaPhone(user?.whatsappPhone || user?.phone || rememberedWhatsAppPhone())
     setPrefs({
       inApp: user?.notificationPrefs?.inApp !== false,
       email: user?.notificationPrefs?.email !== false,
@@ -133,6 +146,10 @@ const SettingsPage: React.FC = () => {
     })
     api.get('/citizen/cities').then((r) => setCities(r.data?.cities || []))
     loadMessengerStatus()
+    queryMicPermission().then((state) => {
+      if (state === 'granted' || state === 'denied') setMicState(state)
+      else setMicState('unknown')
+    })
   }, [isAuthenticated, user, navigate])
 
   useEffect(() => {
@@ -249,24 +266,52 @@ const SettingsPage: React.FC = () => {
     }
   }
 
+  const persistWaPhoneLocal = (raw: string) => {
+    const digits = rememberWhatsAppPhone(raw)
+    if (!digits) return ''
+    const e164 = `+${digits}`
+    refreshUser({
+      whatsappPhone: e164,
+      notificationPrefs: { ...prefs, whatsapp: true },
+    } as any)
+    setPrefs((p) => ({ ...p, whatsapp: true }))
+    return e164
+  }
+
   const testWhatsApp = async () => {
+    if (!toWhatsAppDigits(waPhone)) {
+      toast.error(t('appointment.waNeedPhone'))
+      return
+    }
+    persistWaPhoneLocal(waPhone)
+    const text = `✅ SmartQueue Kosova\nWhatsApp u lidh.\n${user?.name || 'Qytetar'}\n\nKur rezervon termin, konfirmimi hapet këtu — shtyp Dërgo.`
     try {
       const { data } = await api.post('/whatsapp/test', { phone: waPhone })
-      if (data.sent) toast.success(t('settings.waAutoOn'))
-      else toast.error(data.message || t('settings.waNeedLink'))
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || t('settings.waNeedLink'))
+      if (data.sent) {
+        toast.success(t('settings.waAutoOn'))
+        return
+      }
+    } catch {
+      /* open WhatsApp on the phone instead */
     }
+    openWhatsApp(buildWhatsAppShareLink(text, waPhone))
+    toast.success(t('settings.openWhatsApp'))
   }
 
   const saveWaPhone = async () => {
+    if (!toWhatsAppDigits(waPhone)) {
+      toast.error(t('appointment.waNeedPhone'))
+      return
+    }
     setLinkingWa(true)
     try {
       const { data } = await api.post('/whatsapp/phone', { phone: waPhone })
       if (!data.ok) {
-        toast.error(data.message || t('settings.waLinkFailed'))
+        persistWaPhoneLocal(waPhone)
+        toast.success(t('settings.waSaved'))
         return
       }
+      rememberWhatsAppPhone(data.phone || waPhone)
       await refreshUser({
         whatsappPhone: data.phone,
         notificationPrefs: { ...prefs, whatsapp: true },
@@ -274,6 +319,11 @@ const SettingsPage: React.FC = () => {
       setPrefs((p) => ({ ...p, whatsapp: true }))
       toast.success(t('settings.waSaved'))
     } catch (err: any) {
+      if (isNetworkError(err) || !err?.response) {
+        persistWaPhoneLocal(waPhone)
+        toast.success(t('settings.waSaved'))
+        return
+      }
       toast.error(err?.response?.data?.message || t('settings.waLinkFailed'))
     } finally {
       setLinkingWa(false)
@@ -357,6 +407,46 @@ const SettingsPage: React.FC = () => {
           </div>
 
           <div className="space-y-5">
+            <div className="surface-card rounded-2xl p-5 space-y-3 border border-[#0c4f91]/15">
+              <div className="flex items-center gap-2">
+                <Mic className="w-4 h-4 text-primary" />
+                <h2 className="font-semibold">{t('settings.micTitle')}</h2>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">{t('settings.micBody')}</p>
+              <p className="text-sm font-medium">
+                {micState === 'granted' ? t('settings.micOn') : t('settings.micOff')}
+              </p>
+              {micState === 'denied' && (
+                <p className="text-xs text-muted-foreground whitespace-pre-line rounded-lg bg-muted/60 border border-border px-3 py-2">
+                  {t(micDeniedGuideKey())}
+                </p>
+              )}
+              <Button
+                type="button"
+                className="w-full h-11"
+                disabled={micAsking}
+                onClick={async () => {
+                  unlockMicAudio()
+                  setMicAsking(true)
+                  const result = await requestMicrophone({ keep: true })
+                  setMicAsking(false)
+                  stopMicStream()
+                  if (result.ok) {
+                    playMicGranted()
+                    setMicState('granted')
+                    toast.success(t('settings.micOn'))
+                  } else {
+                    playMicDenied()
+                    setMicState('denied')
+                    toast.error(t('voice.micError'))
+                  }
+                }}
+              >
+                {micAsking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mic className="w-4 h-4" />}
+                {t('settings.micCta')}
+              </Button>
+            </div>
+
             {/* TELEGRAM — hero channel */}
             <div className="surface-card rounded-2xl p-5 space-y-4 border border-sky-500/25 bg-gradient-to-br from-sky-500/10 to-transparent">
               <div className="flex items-center gap-2">
@@ -511,17 +601,23 @@ const SettingsPage: React.FC = () => {
                 className="h-12"
                 inputMode="tel"
               />
-              {!waLinked && (
-                <Button
-                  variant="outline"
-                  className="w-full h-11"
-                  onClick={saveWaPhone}
-                  disabled={linkingWa || !waPhone.trim()}
-                >
-                  {linkingWa ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  {t('settings.waSavePhone')}
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                className="w-full h-11"
+                onClick={saveWaPhone}
+                disabled={linkingWa || !waPhone.trim()}
+              >
+                {linkingWa ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {t('settings.waSavePhone')}
+              </Button>
+              <Button
+                className="w-full h-12 bg-[#25D366] text-white hover:bg-[#1ebe5d]"
+                onClick={testWhatsApp}
+                disabled={!waPhone.trim()}
+              >
+                <MessageCircle className="w-4 h-4" />
+                {t('settings.openWhatsApp')}
+              </Button>
 
               {waStatus.sessionReady || waStatus.autoSend ? (
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 space-y-3">

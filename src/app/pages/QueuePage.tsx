@@ -45,7 +45,15 @@ import {
   Sparkles,
   Share2,
   Copy,
+  MessageCircle,
 } from 'lucide-react'
+import {
+  buildBookingWhatsAppText,
+  buildWhatsAppShareLink,
+  openWhatsApp,
+  prepareWhatsAppWindow,
+  rememberedWhatsAppPhone,
+} from '../lib/whatsapp'
 import { type VoiceGuide } from '../lib/voiceApi'
 import ServiceVoicePanel from '../components/ServiceVoicePanel'
 import { TicketPriority } from '../types'
@@ -238,8 +246,10 @@ const QueuePage: React.FC = () => {
       return
     }
 
+    const waPhone = (user as any)?.whatsappPhone || user?.phone || rememberedWhatsAppPhone()
+    const pendingWa = selectedDate && selectedTime ? prepareWhatsAppWindow() : null
     try {
-      await getTicket(
+      const ticket = await getTicket(
         institutionId || (institution as any)._id!,
         selectedService,
         selectedPriority,
@@ -247,12 +257,41 @@ const QueuePage: React.FC = () => {
         selectedDate || undefined,
         selectedTime || undefined,
         selectedDate && selectedTime
-          ? { notifySms: true, phone: user?.phone }
+          ? {
+              notifySms: true,
+              notifyWhatsApp: true,
+              phone: waPhone,
+            }
           : undefined,
       )
+      if (selectedDate && selectedTime) {
+        const svc = services.find((s) => (s.id || (s as any)._id) === selectedService)
+        const text = buildBookingWhatsAppText({
+          name: user?.name || t('auth.citizen'),
+          ticketNumber: ticket.number,
+          institutionName: institution?.name,
+          serviceName: svc?.name,
+          dateStr: selectedDate,
+          timeStr: selectedTime,
+          address: institution?.location?.address,
+        })
+        const shareLink =
+          (ticket as any).notification?.shareLink || buildWhatsAppShareLink(text, waPhone)
+        openWhatsApp(shareLink, pendingWa)
+      } else {
+        try {
+          pendingWa?.close()
+        } catch {
+          /* ignore */
+        }
+      }
       setShowTicketDialog(true)
     } catch {
-      // Error handled in context
+      try {
+        pendingWa?.close()
+      } catch {
+        /* ignore */
+      }
     }
   }
 
@@ -748,6 +787,30 @@ const QueuePage: React.FC = () => {
                 </p>
               </div>
 
+              {currentTicket.scheduledAt ? (
+                <Button asChild className="w-full h-12 bg-[#25D366] text-white hover:bg-[#1ebe5d] print:hidden">
+                  <a
+                    href={buildWhatsAppShareLink(
+                      buildBookingWhatsAppText({
+                        name: user?.name || t('auth.citizen'),
+                        ticketNumber: currentTicket.number,
+                        institutionName: institution.name,
+                        dateStr: new Date(currentTicket.scheduledAt).toLocaleDateString(locale),
+                        timeStr: new Date(currentTicket.scheduledAt).toLocaleTimeString(locale, {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        }),
+                      }),
+                      (user as any)?.whatsappPhone || user?.phone || rememberedWhatsAppPhone(),
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    {t('appointment.waOpen')}
+                  </a>
+                </Button>
+              ) : null}
               <Button variant="outline" className="w-full h-11 print:hidden" onClick={handleDownloadQR}>
                 <Download className="w-4 h-4" /> {t('queue.downloadPhoto')}
               </Button>

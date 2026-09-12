@@ -33,6 +33,16 @@ import type { Institution, Service } from '../types'
 import api from '../lib/api'
 import { Input } from '../components/ui/input'
 import { Switch } from '../components/ui/switch'
+import { FALLBACK_INSTITUTIONS } from '../lib/offlineData'
+import {
+  buildBookingWhatsAppText,
+  buildWhatsAppShareLink,
+  openWhatsApp,
+  prepareWhatsAppWindow,
+  rememberWhatsAppPhone,
+  rememberedWhatsAppPhone,
+  toWhatsAppDigits,
+} from '../lib/whatsapp'
 
 const FALLBACK_TIMES = [
   '08:00',
@@ -73,7 +83,9 @@ const AppointmentsPage: React.FC = () => {
   const [slotsLoading, setSlotsLoading] = useState(false)
   const [notifyWhatsApp, setNotifyWhatsApp] = useState(true)
   const [notifySms, setNotifySms] = useState(true)
-  const [phone, setPhone] = useState((user as any)?.whatsappPhone || user?.phone || '')
+  const [phone, setPhone] = useState(
+    (user as any)?.whatsappPhone || user?.phone || rememberedWhatsAppPhone(),
+  )
   const [waConfirm, setWaConfirm] = useState<{
     number: string
     shareLink?: string
@@ -82,17 +94,17 @@ const AppointmentsPage: React.FC = () => {
   } | null>(null)
 
   useEffect(() => {
-    const saved = (user as any)?.whatsappPhone || user?.phone
+    const saved = (user as any)?.whatsappPhone || user?.phone || rememberedWhatsAppPhone()
     if (saved) setPhone(saved)
-  }, [user?.phone])
+  }, [user?.phone, (user as any)?.whatsappPhone])
 
   useEffect(() => {
     const fetchInstitutions = async () => {
       try {
         const response = await api.get('/institutions')
-        setInstitutions(response.data)
-      } catch (error) {
-        console.error('Failed to fetch institutions:', error)
+        setInstitutions(response.data?.length ? response.data : FALLBACK_INSTITUTIONS)
+      } catch {
+        setInstitutions(FALLBACK_INSTITUTIONS)
       }
     }
     fetchInstitutions()
@@ -107,15 +119,23 @@ const AppointmentsPage: React.FC = () => {
       }
       try {
         const response = await api.get(`/institutions/${selectedInstitution}/services`)
-        setServices(response.data)
+        if (response.data?.length) {
+          setServices(response.data)
+        } else {
+          const inst = institutions.find((i) => (i.id || (i as any)._id) === selectedInstitution)
+          setServices(inst?.services || [])
+        }
         setSelectedService('')
         setSelectedTime('')
-      } catch (error) {
-        console.error('Failed to fetch services:', error)
+      } catch {
+        const inst = institutions.find((i) => (i.id || (i as any)._id) === selectedInstitution)
+        setServices(inst?.services || [])
+        setSelectedService('')
+        setSelectedTime('')
       }
     }
     fetchServices()
-  }, [selectedInstitution])
+  }, [selectedInstitution, institutions])
 
   useEffect(() => {
     const loadSlots = async () => {
@@ -168,11 +188,13 @@ const AppointmentsPage: React.FC = () => {
       return
     }
 
-    if (notifyWhatsApp && !phone.trim()) {
+    if (notifyWhatsApp && !toWhatsAppDigits(phone)) {
       toast.error(t('appointment.waNeedPhone'))
       return
     }
 
+    const pendingWa = notifyWhatsApp ? prepareWhatsAppWindow() : null
+    rememberWhatsAppPhone(phone)
     setBookingLoading(true)
     try {
       // Lokal YYYY-MM-DD — JO toISOString (zhvendos datën në Kosovë / UTC+2)
@@ -191,21 +213,31 @@ const AppointmentsPage: React.FC = () => {
         },
       )
       const note = (ticket as any).notification
-      const fallbackText = encodeURIComponent(
-        `✅ SmartQueue Kosova\nTermini u konfirmua.\n🎫 Numri: ${ticket.number}\nRuaje këtë mesazh — nuk ju duhet email.`,
-      )
-      const digits = phone.replace(/\D/g, '')
-      const e164 = digits.startsWith('0') ? `383${digits.slice(1)}` : digits
+      const inst = institutions.find((i) => (i.id || (i as any)._id) === selectedInstitution)
+      const svc = services.find((s) => (s.id || (s as any)._id) === selectedService)
+      const text = buildBookingWhatsAppText({
+        name: user?.name || t('auth.citizen'),
+        ticketNumber: ticket.number,
+        institutionName: inst?.name,
+        serviceName: svc?.name,
+        dateStr: format(selectedDate, 'dd.MM.yyyy'),
+        timeStr: selectedTime,
+        address: inst?.location?.address || inst?.address,
+      })
+      const shareLink = note?.shareLink || buildWhatsAppShareLink(text, phone)
+      if (notifyWhatsApp) openWhatsApp(shareLink, pendingWa)
       setWaConfirm({
         number: ticket.number,
-        shareLink:
-          note?.shareLink ||
-          (e164 ? `https://wa.me/${e164}?text=${fallbackText}` : `https://wa.me/?text=${fallbackText}`),
+        shareLink,
         sent: Boolean(note?.sent || note?.delivered),
         institutionId: selectedInstitution,
       })
     } catch (error: any) {
-      // Error toast already shown by QueueContext.getTicket with API message
+      try {
+        pendingWa?.close()
+      } catch {
+        /* ignore */
+      }
       console.error('Booking failed:', error)
     } finally {
       setBookingLoading(false)
@@ -572,13 +604,13 @@ const AppointmentsPage: React.FC = () => {
               <p className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
                 {t('appointment.waSent')}
               </p>
-            ) : waConfirm?.shareLink ? (
-              <Button
-                className="bg-[#25D366] text-white hover:bg-[#1ebe5d]"
-                onClick={() => window.open(waConfirm.shareLink, '_blank', 'noopener,noreferrer')}
-              >
-                <MessageCircle className="w-4 h-4" />
-                {t('appointment.waOpen')}
+            ) : null}
+            {waConfirm?.shareLink ? (
+              <Button asChild className="bg-[#25D366] text-white hover:bg-[#1ebe5d] h-12">
+                <a href={waConfirm.shareLink} target="_blank" rel="noopener noreferrer">
+                  <MessageCircle className="w-4 h-4" />
+                  {t('appointment.waOpen')}
+                </a>
               </Button>
             ) : null}
             <Button

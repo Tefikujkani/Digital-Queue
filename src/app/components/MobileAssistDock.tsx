@@ -3,6 +3,7 @@ import { useLocation } from 'react-router'
 import { MessageCircle, Mic } from 'lucide-react'
 import { useLanguage } from '../contexts/LanguageContext'
 import { ASSISTANT_EVENT, isAuthPath, openAssistant } from '../lib/assistantUi'
+import { launchVoiceAssistant } from '../lib/voiceLaunch'
 
 const MobileAssistDock: React.FC = () => {
   const { t } = useLanguage()
@@ -32,7 +33,7 @@ const MobileAssistDock: React.FC = () => {
       <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
-          onClick={() => openAssistant('voice')}
+          onClick={() => launchVoiceAssistant()}
           className="h-12 rounded-xl bg-secondary text-secondary-foreground font-semibold text-sm shadow-lg flex items-center justify-center gap-2"
         >
           <Mic className="w-5 h-5" />

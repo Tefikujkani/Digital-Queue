@@ -24,6 +24,14 @@ export const chatLimiter = rateLimit({
   message: { message: 'Kufiri i chat-it u arrit. Prit një minutë.' },
 })
 
+export const voiceLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 12,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Shumë kërkesa zëri. Prit një minutë.' },
+})
+
 export const ticketLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 20,

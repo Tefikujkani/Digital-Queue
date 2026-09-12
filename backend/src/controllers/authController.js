@@ -3,6 +3,7 @@ import Ticket from '../models/Ticket.js'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import { sendEmail } from '../services/emailService.js'
+import { verifyGoogleIdToken } from '../services/googleAuth.js'
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -68,6 +69,38 @@ export const registerUser = async (req, res) => {
   }
 }
 
+export const loginWithGoogle = async (req, res) => {
+  try {
+    const credential = req.body?.credential || req.body?.idToken
+    const profile = await verifyGoogleIdToken(credential)
+
+    let user = await User.findOne({ googleId: profile.googleId })
+    if (!user) user = await User.findOne({ email: profile.email })
+
+    if (user) {
+      if (!user.googleId) {
+        user.googleId = profile.googleId
+        if (!user.name) user.name = profile.name
+        await user.save()
+      }
+    } else {
+      user = await User.create({
+        name: profile.name,
+        email: profile.email,
+        googleId: profile.googleId,
+        role: 'citizen',
+      })
+    }
+
+    res.json({
+      ...publicUser(user),
+      token: generateToken(user._id),
+    })
+  } catch (error) {
+    res.status(error.status || 500).json({ message: error.message })
+  }
+}
+
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body
@@ -76,8 +109,13 @@ export const loginUser = async (req, res) => {
     }
 
     const user = await User.findOne({ email: String(email).toLowerCase().trim() }).select(
-      '+password',
+      '+password +googleId',
     )
+    if (user && !user.password && user.googleId) {
+      return res.status(401).json({
+        message: 'Kjo llogari përdor Google. Shtyp «Vazhdo me Google».',
+      })
+    }
     if (user && (await user.matchPassword(password))) {
       res.json({
         ...publicUser(user),

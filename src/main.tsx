@@ -1,9 +1,12 @@
 import { createRoot } from 'react-dom/client'
 import App from './app/App.tsx'
 import './styles/index.css'
-import { listenForInstallPrompt } from './app/lib/pwaInstall'
+import { applyIosAppClass, listenForInstallPrompt } from './app/lib/pwaInstall'
+import { preloadGoogleAuth } from './app/lib/googleAuth'
 
+applyIosAppClass()
 listenForInstallPrompt()
+preloadGoogleAuth()
 
 createRoot(document.getElementById('root')!).render(<App />)
 
