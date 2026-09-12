@@ -27,14 +27,33 @@ export async function fetchChatSuggestions(lang: string): Promise<string[]> {
     const { data } = await api.get('/chat/suggestions', { params: { lang } })
     return data.suggestions || []
   } catch {
-    return [
-      'Si e marr një numër digjital?',
-      'Cilat institucione ka në Prishtinë?',
-      'Sa është pritja tani në spital?',
-      'Si rezervoj një termin?',
-      'Cilat janë prioritetet e radhës?',
-      'Ku i shoh ticket-et e mia?',
-    ]
+    const fallback = {
+      en: [
+        'How do I get a digital number?',
+        'Which institutions are in Prishtina?',
+        'How long is the hospital wait right now?',
+        'How do I book an appointment?',
+        'What queue priorities exist?',
+        'Where can I see my tickets?',
+      ],
+      sr: [
+        'Kako da uzmem digitalni broj?',
+        'Koje institucije ima u Prištini?',
+        'Koliko se sada čeka u bolnici?',
+        'Kako da rezervišem termin?',
+        'Koji prioriteti postoje u redu?',
+        'Gde da vidim svoje tikete?',
+      ],
+      sq: [
+        'Si e marr një numër digjital?',
+        'Cilat institucione ka në Prishtinë?',
+        'Sa është pritja tani në spital?',
+        'Si rezervoj një termin?',
+        'Cilat janë prioritetet e radhës?',
+        'Ku i shoh ticket-et e mia?',
+      ],
+    }
+    return fallback[lang === 'en' || lang === 'sr' ? lang : 'sq']
   }
 }
 

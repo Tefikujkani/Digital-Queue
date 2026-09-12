@@ -1,5 +1,6 @@
 import Institution from '../models/Institution.js'
 import Ticket from '../models/Ticket.js'
+import { buildServiceGuide } from './voiceGuideService.js'
 
 export const GROK_TOOLS = [
   {
@@ -139,6 +140,23 @@ export const GROK_TOOLS = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'get_service_guide',
+      description:
+        'Voice/civic briefing for a Kosovo public service: required documents, working hours, current wait, and when the citizen should go.',
+      parameters: {
+        type: 'object',
+        properties: {
+          institutionId: { type: 'string' },
+          serviceId: { type: 'string' },
+          name: { type: 'string', description: 'Institution or free-text, e.g. letërnjoftim Prishtinë' },
+          serviceName: { type: 'string' },
+        },
+      },
+    },
+  },
 ]
 
 const GUIDES = {
@@ -155,6 +173,12 @@ const GUIDES = {
 3) Take a digital ticket or book an appointment
 4) Track live status + QR on your phone
 5) Get notified when your turn approaches`,
+    sr: `SmartQueue Kosova je digitalna platforma za redove i termine.
+1) Registruj se / prijavi se kao građanin
+2) Izaberi instituciju
+3) Uzmi digitalni broj ili rezerviši termin
+4) Prati status uživo i QR na telefonu
+5) Dobij obaveštenje kad se približi tvoj red`,
   },
   get_ticket: {
     sq: `Si merret numri digjital:
@@ -169,6 +193,12 @@ const GUIDES = {
 3) Choose priority if needed
 4) Tap Get Ticket (login required)
 5) Save the QR and watch live status`,
+    sr: `Kako da uzmeš digitalni broj:
+1) Otvori Institucije i izaberi jednu
+2) Izaberi uslugu
+3) Izaberi prioritet ako treba
+4) Pritisni Uzmi broj (moraš biti prijavljen)
+5) Sačuvaj QR i prati status uživo`,
   },
   book_appointment: {
     sq: `Si rezervohen terminet:
@@ -183,28 +213,40 @@ const GUIDES = {
 3) Pick institution, service, date and time
 4) Confirm
 5) It appears as a scheduled ticket`,
+    sr: `Kako da rezervišeš termin:
+1) Prijavi se
+2) Otvori Termine
+3) Izaberi instituciju, uslugu, datum i vreme
+4) Potvrdi
+5) Pojavljuje se kao tiket sa zakazanim vremenom`,
   },
   priority: {
     sq: `Prioritetet: normal, të moshuar, emergjencë, aftësi të kufizuara.
 Përdor prioritetin e duhur vetëm kur ke të drejtë — sistemi e ndihmon radhën të jetë më e drejtë.`,
     en: `Priorities: normal, elderly, emergency, disability.
 Use the correct priority only when eligible so the queue stays fair.`,
+    sr: `Prioriteti: normalan, stariji, hitan slučaj, osobe sa invaliditetom.
+Koristi pravi prioritet samo ako imaš pravo — tako red ostaje pošten.`,
   },
   qr_checkin: {
     sq: `Pas marrjes së numrit shfaqet QR. Mbaje në telefon dhe paraqite te sporteli kur thirret numri yt.`,
     en: `After issuing a ticket you get a QR code. Keep it on your phone and show it at the counter when called.`,
+    sr: `Posle uzimanja broja dobijaš QR. Drži ga na telefonu i pokaži na šalteru kad te pozovu.`,
   },
   notifications: {
     sq: `Njoftimet vijnë në aplikacion (zile), dhe kur janë të konfiguruara edhe email/SMS kur merret numri ose thirret radha.`,
     en: `Notifications appear in-app (bell). Email/SMS are sent when configured (ticket issued / called).`,
+    sr: `Obaveštenja stižu u aplikaciji (zvono), a ako su podešeni i email/SMS kad uzmeš broj ili kad te pozovu.`,
   },
   cancel_ticket: {
     sq: `Anulo ticket-in nga Paneli i Qytetarit ose faqja e radhës me butonin Anulo, përderisa statusi është waiting.`,
     en: `Cancel from Citizen Dashboard or the queue page while status is waiting.`,
+    sr: `Otkaži tiket sa panela građanina ili stranice reda dok je status waiting.`,
   },
   register_login: {
     sq: `Regjistrohu me emër, email, telefon dhe fjalëkalim si Qytetar. Pastaj Hyrja me email/fjalëkalim.`,
     en: `Register as Citizen with name, email, phone and password. Then log in.`,
+    sr: `Registruj se kao građanin imenom, emailom, telefonom i lozinkom. Zatim se prijavi.`,
   },
 }
 
@@ -373,6 +415,17 @@ export async function executeChatTool(name, args = {}, context = {}) {
         }
       }
 
+      case 'get_service_guide': {
+        return buildServiceGuide({
+          institutionId: args.institutionId,
+          serviceId: args.serviceId,
+          serviceName: args.serviceName,
+          name: args.name,
+          transcript: args.name || args.serviceName || '',
+          language: lang,
+        })
+      }
+
       case 'suggest_best_time': {
         const inst = await findInstitution(args)
         if (!inst) return { error: 'Institution not found' }
@@ -381,11 +434,24 @@ export async function executeChatTool(name, args = {}, context = {}) {
           status: 'waiting',
         })
         const hour = new Date().getHours()
-        const suggestions = [
-          { window: '08:00–09:30', note: 'Hapja e mëngjesit — shpesh më e qetë' },
-          { window: '14:00–15:30', note: 'Pas dite — zakonisht më pak njerëz' },
-          { window: 'Terminet', note: 'Rezervo orar të saktë nga faqja Terminet' },
-        ]
+        const suggestionCopy = {
+          sq: [
+            { window: '08:00–09:30', note: 'Hapja e mëngjesit — shpesh më e qetë' },
+            { window: '14:00–15:30', note: 'Pas dite — zakonisht më pak njerëz' },
+            { window: 'Terminet', note: 'Rezervo orar të saktë nga faqja Terminet' },
+          ],
+          en: [
+            { window: '08:00–09:30', note: 'Morning opening — often quieter' },
+            { window: '14:00–15:30', note: 'Afternoon — usually fewer people' },
+            { window: 'Appointments', note: 'Book an exact slot from Appointments' },
+          ],
+          sr: [
+            { window: '08:00–09:30', note: 'Jutarnje otvaranje — često mirnije' },
+            { window: '14:00–15:30', note: 'Popodne — obično manje ljudi' },
+            { window: 'Termini', note: 'Rezerviši tačno vreme na stranici Termini' },
+          ],
+        }
+        const suggestions = suggestionCopy[lang] || suggestionCopy.sq
         return {
           institution: inst.name,
           currentWaiting: waiting,

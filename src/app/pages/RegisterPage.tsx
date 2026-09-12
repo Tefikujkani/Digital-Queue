@@ -52,15 +52,13 @@ const RegisterPage: React.FC = () => {
 
   return (
     <div className="min-h-[calc(100vh-72px)] flex items-center justify-center p-5 relative">
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[420px] h-[420px] bg-primary/20 rounded-full blur-[100px] pointer-events-none" />
-
       <div className="w-full max-w-lg relative z-10">
-        <div className="surface-card rounded-3xl p-8 md:p-10">
+        <div className="surface-card rounded-xl p-8 md:p-10">
           <div className="text-center mb-8">
-            <div className="w-14 h-14 btn-gradient rounded-2xl flex items-center justify-center mx-auto mb-5 glow-primary">
-              <Ticket className="w-7 h-7 text-white" />
+            <div className="w-14 h-14 btn-gradient rounded-lg flex items-center justify-center mx-auto mb-5">
+              <Ticket className="w-7 h-7 text-primary-foreground" />
             </div>
-            <h1 className="text-2xl font-bold">{t('auth.createAccount')}</h1>
+            <h1 className="text-2xl font-bold text-primary">{t('auth.createAccount')}</h1>
             <p className="text-muted-foreground mt-1 text-sm">{t('auth.joinSubtitle')}</p>
           </div>
 

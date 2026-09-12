@@ -12,7 +12,9 @@ import {
   ExternalLink,
   Zap,
   User as UserIcon,
+  Mic,
 } from 'lucide-react'
+import { getSpeechRecognition, isSpeechRecognitionSupported } from '../lib/speech'
 import { useAuth } from '../contexts/AuthContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { streamChat, fetchChatSuggestions, type ChatMessage } from '../lib/chatApi'
@@ -232,6 +234,19 @@ const Chatbot: React.FC = () => {
     }
   }
 
+  const listenAndSend = () => {
+    const rec = getSpeechRecognition(language)
+    if (!rec) return
+    rec.onresult = (event: any) => {
+      let text = ''
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) text += event.results[i][0].transcript
+      }
+      if (text.trim()) sendMessage(text.trim())
+    }
+    rec.start()
+  }
+
   if (hideOnAuthPages || hideOnAdmin) return null
 
   return (
@@ -243,17 +258,17 @@ const Chatbot: React.FC = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.96 }}
             transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-            className="fixed bottom-24 right-4 sm:right-6 z-[60] w-[min(100vw-1.5rem,420px)] h-[min(72vh,640px)] flex flex-col rounded-3xl overflow-hidden border border-primary/25 bg-[#0e0e18]/95 backdrop-blur-xl shadow-[0_25px_80px_-20px_rgba(127,65,255,0.55)]"
+            className="fixed bottom-[calc(9.5rem+env(safe-area-inset-bottom))] lg:bottom-24 right-3 sm:right-6 z-[60] w-[min(100vw-1.5rem,420px)] h-[min(62vh,640px)] lg:h-[min(72vh,640px)] flex flex-col rounded-xl overflow-hidden border border-border bg-white shadow-xl"
             role="dialog"
             aria-label={t('chat.title')}
           >
-            <div className="relative px-4 py-3.5 border-b border-white/8 bg-gradient-to-r from-primary/25 via-secondary/10 to-transparent">
+            <div className="relative px-4 py-3.5 border-b border-[var(--border)]">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <div className="w-11 h-11 rounded-2xl btn-gradient flex items-center justify-center glow-primary-sm">
-                    <Bot className="w-5 h-5 text-white" />
+                  <div className="w-11 h-11 rounded-lg btn-gradient flex items-center justify-center">
+                    <Bot className="w-5 h-5 text-primary-foreground" />
                   </div>
-                  <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-accent border-2 border-[#0e0e18]" />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-success border-2 border-card" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -409,8 +424,8 @@ const Chatbot: React.FC = () => {
               <div ref={bottomRef} />
             </div>
 
-            <div className="p-3 border-t border-white/8 bg-[#0c0c14]/90">
-              <div className="flex items-end gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-2.5 py-2 focus-within:border-primary/40 transition-colors">
+            <div className="p-3 border-t border-border bg-muted/40">
+              <div className="flex items-end gap-2 rounded-xl border border-border bg-white px-2.5 py-2 focus-within:border-primary transition-colors">
                 <textarea
                   ref={inputRef}
                   rows={1}
@@ -421,6 +436,19 @@ const Chatbot: React.FC = () => {
                   disabled={busy}
                   className="flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground/70 max-h-28 py-1.5 px-1"
                 />
+                {isSpeechRecognitionSupported() && (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={listenAndSend}
+                    className="h-9 w-9 shrink-0"
+                    title={t('voice.tapToSpeak')}
+                  >
+                    <Mic className="w-4 h-4" />
+                  </Button>
+                )}
                 <Button
                   type="button"
                   size="icon"
@@ -446,7 +474,7 @@ const Chatbot: React.FC = () => {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         className={cn(
-          'fixed bottom-5 right-4 sm:right-6 z-[60] h-14 w-14 rounded-2xl btn-gradient glow-primary flex items-center justify-center shadow-lg',
+          'fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] lg:bottom-5 right-3 sm:right-6 z-[60] h-14 w-14 rounded-lg btn-gradient flex items-center justify-center shadow-lg',
           open && 'ring-2 ring-accent/50',
         )}
       >

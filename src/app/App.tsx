@@ -11,7 +11,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 export default function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark">
+      <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light">
         <LanguageProvider>
           <AuthProvider>
             <NotificationProvider>

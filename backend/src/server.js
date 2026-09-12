@@ -19,11 +19,13 @@ import citizenRoutes from './routes/citizenRoutes.js'
 import telegramRoutes from './routes/telegramRoutes.js'
 import viberRoutes from './routes/viberRoutes.js'
 import whatsappRoutes from './routes/whatsappRoutes.js'
+import voiceRoutes from './routes/voiceRoutes.js'
 import NotificationService from './services/notificationService.js'
 import { startAppointmentReminderJob } from './services/reminderJob.js'
 import { startTelegramPoller, isTelegramConfigured } from './services/telegramService.js'
 import { startViberWebhook, isViberConfigured } from './services/viberService.js'
-import { isWhatsAppConfigured } from './services/whatsappService.js'
+import { getGreenState } from './services/whatsappService.js'
+import { restoreWaSession, getWaSessionState } from './services/waSession.js'
 import { globalLimiter } from './middlewares/rateLimiters.js'
 import { notFound, errorHandler } from './middlewares/errorHandler.js'
 import User from './models/User.js'
@@ -131,8 +133,6 @@ const createSocketServer = (httpServer) => {
   })
 }
 
-connectDB()
-
 app.get('/health', (_req, res) => {
   res.json({
     ok: true,
@@ -159,6 +159,7 @@ app.use('/api/citizen', citizenRoutes)
 app.use('/api/telegram', telegramRoutes)
 app.use('/api/viber', viberRoutes)
 app.use('/api/whatsapp', whatsappRoutes)
+app.use('/api/voice', voiceRoutes)
 
 app.get('/', (_req, res) => {
   res.json({
@@ -195,11 +196,15 @@ const startServer = (port, attempt = 0) => {
       } else {
         console.log('💡 Viber OFF — vendos VIBER_AUTH_TOKEN + VIBER_BOT_URI (partners.viber.com)')
       }
-      if (isWhatsAppConfigured()) {
-        console.log('📱 WhatsApp Cloud API ON — iOS & Android (Cilësimet → Lidhu me WhatsApp)')
-      } else {
-        console.log('💡 WhatsApp OFF — vendos WHATSAPP_TOKEN + WHATSAPP_PHONE_NUMBER_ID (Meta)')
-      }
+      restoreWaSession()
+      getGreenState()
+        .then((g) => {
+          const session = getWaSessionState()
+          if (session.ready || session.hasSession) console.log('📱 WhatsApp session: duke u lidhur për dërgim automatik')
+          else if (g.authorized) console.log('📱 WhatsApp ON — Green-API falas')
+          else console.log('💡 WhatsApp: Cilësimet → lidh një herë me QR, pastaj dërgon vetë')
+        })
+        .catch(() => {})
     })
     .once('error', (error) => {
       if (error.code === 'EADDRINUSE' && attempt < MAX_PORT_RETRIES) {
@@ -214,4 +219,9 @@ const startServer = (port, attempt = 0) => {
     .listen(port)
 }
 
-startServer(DEFAULT_PORT)
+connectDB()
+  .then(() => startServer(DEFAULT_PORT))
+  .catch((error) => {
+    console.error('Failed to start server:', error.message)
+    process.exit(1)
+  })

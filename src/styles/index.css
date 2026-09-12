@@ -8,13 +8,13 @@
   }
 
   ::selection {
-    background: rgba(127, 65, 255, 0.35);
-    color: #fff;
+    background: rgba(12, 79, 145, 0.2);
+    color: #0c4f91;
   }
 
   input[type='date'],
   input[type='time'] {
-    color-scheme: dark;
+    color-scheme: light;
   }
 }
 
@@ -54,14 +54,10 @@
   @keyframes pulse-glow {
     0%,
     100% {
-      box-shadow:
-        0 0 20px rgba(127, 65, 255, 0.4),
-        0 0 40px rgba(127, 65, 255, 0.15);
+      box-shadow: 0 6px 18px rgba(80, 28, 10, 0.28);
     }
     50% {
-      box-shadow:
-        0 0 28px rgba(127, 65, 255, 0.6),
-        0 0 56px rgba(127, 65, 255, 0.28);
+      box-shadow: 0 10px 24px rgba(80, 28, 10, 0.4);
     }
   }
 

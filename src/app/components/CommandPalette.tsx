@@ -61,12 +61,20 @@ const CommandPalette: React.FC = () => {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden md:inline-flex items-center gap-2 h-9 px-3 rounded-xl border border-white/10 bg-white/5 text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
+        className="hidden md:inline-flex xl:hidden items-center justify-center size-9 rounded-md border border-border bg-muted text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+        aria-label={t('cmd.placeholder')}
+      >
+        <Search className="w-4 h-4" />
+      </button>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="hidden xl:inline-flex items-center gap-2 h-9 px-3.5 rounded-md border border-border bg-muted text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
         aria-label={t('cmd.placeholder')}
       >
         <Search className="w-3.5 h-3.5" />
         {t('cmd.placeholder')}
-        <kbd className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-black/40 border border-white/10">
+        <kbd className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-white border border-border">
           ⌘K
         </kbd>
       </button>

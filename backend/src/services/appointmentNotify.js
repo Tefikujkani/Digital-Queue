@@ -1,4 +1,5 @@
 import { deliverSmartMessage } from './smsService.js'
+import { buildBookingWhatsAppText } from './whatsappService.js'
 
 /**
  * Formato orën e terminit në zonën e Kosovës
@@ -32,6 +33,26 @@ export function buildAppointmentSms({
     return `SmartQueue Kujtesë: Termini juaj te ${institutionName} (${serviceName || 'shërbim'}) është ${dateStr} ora ${timeStr}. Numri: ${ticketNumber}. Merrni QR-në me vete.`
   }
   return `SmartQueue: Termini u KONFIRMUAR. ${institutionName} — ${serviceName || 'shërbim'}. ${dateStr} ora ${timeStr}. Numri: ${ticketNumber}. Hap aplikacionin për QR.`
+}
+
+export function buildAppointmentWhatsApp({
+  name,
+  ticketNumber,
+  institutionName,
+  serviceName,
+  scheduledAt,
+  address,
+}) {
+  const { dateStr, timeStr } = formatAppointmentLocal(scheduledAt)
+  return buildBookingWhatsAppText({
+    name,
+    ticketNumber,
+    institutionName,
+    serviceName,
+    dateStr,
+    timeStr,
+    address,
+  })
 }
 
 /**

@@ -55,6 +55,7 @@ export const issueTicket = async (req, res) => {
       scheduledDate,
       scheduledTime,
       notifySms,
+      notifyWhatsApp,
       phone,
     } = req.body
 
@@ -143,7 +144,8 @@ export const issueTicket = async (req, res) => {
           serviceName,
           {
             notifySms: notifySms === true,
-            phone: phone || req.user.phone,
+            notifyWhatsApp: notifyWhatsApp !== false,
+            phone: phone || req.user.whatsappPhone || req.user.phone,
             enableSms: notifySms === true,
           },
         )
@@ -164,7 +166,12 @@ export const issueTicket = async (req, res) => {
         ...ticket.toObject(),
         notification: {
           type: 'appointment',
+          whatsapp: notifyWhatsApp !== false,
           smsRequested: notifySms === true,
+          delivered: Boolean(delivery?.delivery?.delivered),
+          sent: Boolean(delivery?.delivery?.delivered),
+          via: delivery?.delivery?.via || (delivery?.delivery?.shareLink ? 'whatsapp_link' : null),
+          shareLink: delivery?.delivery?.shareLink || null,
           delivery: delivery?.delivery || null,
         },
       })

@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import api from '../lib/api'
 import { useAuth } from './AuthContext'
 import { toast } from 'sonner'
+import { translate } from '../i18n/translate'
 
 interface FavoritesContextType {
   favoriteIds: Set<string>
@@ -46,7 +47,7 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const toggleFavorite = useCallback(
     async (id: string) => {
       if (!isAuthenticated) {
-        toast.error('Kyçu për të ruajtur të preferuarat')
+        toast.error(translate('favorites.loginRequired'))
         return
       }
       try {
@@ -57,9 +58,9 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           else next.delete(String(id))
           return next
         })
-        toast.success(data.message || 'U përditësua')
+        toast.success(data.favorited ? translate('favorites.added') : translate('favorites.removed'))
       } catch (err: any) {
-        toast.error(err?.response?.data?.message || 'Nuk u ruajt')
+        toast.error(err?.response?.data?.message || translate('favorites.saveFailed'))
       }
     },
     [isAuthenticated],

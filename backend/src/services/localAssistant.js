@@ -4,11 +4,159 @@ import { executeChatTool } from './chatTools.js'
  * Asistent lokal në shqip — përdor të njëjtat tools si Grok
  * kur XAI_API_KEY mungon ose API dështon.
  */
-export async function chatLocally({ messages, user = null, onEvent }) {
+const COPY = {
+  sq: {
+    loginTickets:
+      'Për të parë ticket-et e tua, duhet të **kyçesh** në llogari.\n\nShko te /login ose regjistrohu te /register, pastaj pyet përsëri.',
+    noTickets:
+      'Nuk ke ticket aktiv për momentin.\n\nMund të marrësh një numër digjital nga /institutions ose të rezervosh termin te /appointments.',
+    ticketsTitle: (n) => `Ja ticket-et e tua (${n}):`,
+    dashboard: 'Paneli yt: /dashboard/citizen',
+    useful:
+      'Lidhje të dobishme:\n• Institucionet: /institutions\n• Terminet: /appointments\n• Hyrja: /login',
+    openAppointments: 'Hape: /appointments',
+    noExact:
+      'Nuk gjeta status të saktë, por ja disa institucione:\n\n',
+    askWait: '\n\nHap njërin dhe pyet: “Sa është pritja te [emri]?”',
+    noInst:
+      'Nuk gjeta institucion me atë emër. Provo p.sh. “Cilat institucione ka në Prishtinë?” ose shko te /institutions.',
+    waiting: 'Në pritje',
+    eta: 'Koha e përafërt',
+    called: 'Duke u thirrur',
+    minutes: 'minuta',
+    people: 'persona',
+    openQueue: 'Hap radhën',
+    noBest:
+      'Nuk gjeta institucionin. Shkruaj emrin ose shiko /institutions.',
+    loadLow: 'e ulët',
+    loadMed: 'mesatare',
+    loadHigh: 'e lartë',
+    forInst: (name, load, n) =>
+      `Për **${name}** (ngarkesa tani: **${load}**, ${n} në pritje):`,
+    noFilter:
+      'Nuk gjeta institucione me këtë filtër. Provo një qytet tjetër ose hap /institutions.',
+    found: (n) => `Gjeta **${n}** institucione:\n\n`,
+    clickLink: '\n\nKliko lidhjen për të marrë numër digjital.',
+    noDetail:
+      'Nuk gjeta atë institucion. Shkruaj emrin më qartë ose kërko te /institutions.',
+    address: 'Adresa',
+    hours: 'Orari',
+    phone: 'Telefon',
+    services: 'Shërbimet',
+    hello:
+      `Përshëndetje! Unë jam **Asistenti SmartQueue**.\n\n` +
+      `Mund të të ndihmoj me:\n` +
+      `• Kërkimin e institucioneve\n` +
+      `• Statusin e radhës live\n` +
+      `• Si merret numri digjital / terminet\n` +
+      `• Ticket-et e tua (nëse je i kyçur)\n\n` +
+      `Provo p.sh.: “Cilat institucione ka në Prishtinë?”`,
+    fallbackStart: 'Ja çfarë mund të bëj për ty:\n\n',
+    related: 'Disa institucione të lidhura:\n',
+    askMore: 'Pyet më konkretisht, p.sh. “Si rezervoj termin?” ose “Sa është pritja në spital?”.',
+  },
+  en: {
+    loginTickets:
+      'To see your tickets, please **log in**.\n\nGo to /login or register at /register, then ask again.',
+    noTickets:
+      'You have no active ticket right now.\n\nTake a digital number from /institutions or book at /appointments.',
+    ticketsTitle: (n) => `Your tickets (${n}):`,
+    dashboard: 'Your dashboard: /dashboard/citizen',
+    useful:
+      'Useful links:\n• Institutions: /institutions\n• Appointments: /appointments\n• Login: /login',
+    openAppointments: 'Open: /appointments',
+    noExact: 'I could not find an exact status, but here are some institutions:\n\n',
+    askWait: '\n\nOpen one and ask: “How long is the wait at [name]?”',
+    noInst:
+      'I could not find that institution. Try “Which institutions are in Prishtina?” or go to /institutions.',
+    waiting: 'Waiting',
+    eta: 'Estimated time',
+    called: 'Now being called',
+    minutes: 'minutes',
+    people: 'people',
+    openQueue: 'Open the queue',
+    noBest: 'I could not find that institution. Type the name or see /institutions.',
+    loadLow: 'low',
+    loadMed: 'medium',
+    loadHigh: 'high',
+    forInst: (name, load, n) =>
+      `For **${name}** (current load: **${load}**, ${n} waiting):`,
+    noFilter:
+      'No institutions matched that filter. Try another city or open /institutions.',
+    found: (n) => `Found **${n}** institutions:\n\n`,
+    clickLink: '\n\nOpen a link to take a digital number.',
+    noDetail: 'I could not find that institution. Type the name more clearly or search /institutions.',
+    address: 'Address',
+    hours: 'Hours',
+    phone: 'Phone',
+    services: 'Services',
+    hello:
+      `Hello! I am the **SmartQueue Assistant**.\n\n` +
+      `I can help with:\n` +
+      `• Finding institutions\n` +
+      `• Live queue status\n` +
+      `• Digital numbers and appointments\n` +
+      `• Your tickets (if you are signed in)\n\n` +
+      `Try: “Which institutions are in Prishtina?”`,
+    fallbackStart: 'Here is what I can do for you:\n\n',
+    related: 'Related institutions:\n',
+    askMore: 'Ask more specifically, e.g. “How do I book an appointment?” or “How long is the hospital wait?”.',
+  },
+  sr: {
+    loginTickets:
+      'Da vidiš tikete, moraš da se **prijaviš**.\n\nIdi na /login ili se registruj na /register, pa pitaj ponovo.',
+    noTickets:
+      'Trenutno nemaš aktivan tiket.\n\nUzmi digitalni broj na /institutions ili rezerviši na /appointments.',
+    ticketsTitle: (n) => `Tvoji tiketi (${n}):`,
+    dashboard: 'Tvoj panel: /dashboard/citizen',
+    useful:
+      'Korisni linkovi:\n• Institucije: /institutions\n• Termini: /appointments\n• Prijava: /login',
+    openAppointments: 'Otvori: /appointments',
+    noExact: 'Nisam našao tačan status, ali evo nekih institucija:\n\n',
+    askWait: '\n\nOtvori jednu i pitaj: „Koliko se čeka kod [ime]?“',
+    noInst:
+      'Nisam našao tu instituciju. Probaj „Koje institucije ima u Prištini?“ ili idi na /institutions.',
+    waiting: 'Na čekanju',
+    eta: 'Procenjeno vreme',
+    called: 'Trenutno se poziva',
+    minutes: 'minuta',
+    people: 'osoba',
+    openQueue: 'Otvori red',
+    noBest: 'Nisam našao instituciju. Upiši ime ili vidi /institutions.',
+    loadLow: 'nizak',
+    loadMed: 'srednji',
+    loadHigh: 'visok',
+    forInst: (name, load, n) =>
+      `Za **${name}** (opterećenje sada: **${load}**, ${n} na čekanju):`,
+    noFilter:
+      'Nema institucija za taj filter. Probaj drugi grad ili otvori /institutions.',
+    found: (n) => `Našao sam **${n}** institucija:\n\n`,
+    clickLink: '\n\nOtvori link da uzmeš digitalni broj.',
+    noDetail: 'Nisam našao tu instituciju. Upiši ime jasnije ili pretraži /institutions.',
+    address: 'Adresa',
+    hours: 'Radno vreme',
+    phone: 'Telefon',
+    services: 'Usluge',
+    hello:
+      `Zdravo! Ja sam **SmartQueue asistent**.\n\n` +
+      `Mogu da pomognem sa:\n` +
+      `• Traženjem institucija\n` +
+      `• Statusom reda uživo\n` +
+      `• Digitalnim brojem i terminima\n` +
+      `• Tvojim tiketima (ako si prijavljen)\n\n` +
+      `Probaj: „Koje institucije ima u Prištini?“`,
+    fallbackStart: 'Evo šta mogu da uradim za tebe:\n\n',
+    related: 'Povezane institucije:\n',
+    askMore: 'Pitaj konkretnije, npr. „Kako da rezervišem termin?“ ili „Koliko se čeka u bolnici?“.',
+  },
+}
+
+export async function chatLocally({ messages, language = 'sq', user = null, onEvent }) {
   const last = [...messages].reverse().find((m) => m.role === 'user')
   const text = String(last?.content || '').toLowerCase().trim()
-  const language = 'sq'
-  const ctx = { user, language }
+  const lang = ['sq', 'en', 'sr'].includes(language) ? language : 'sq'
+  const c = COPY[lang]
+  const ctx = { user, language: lang }
   const toolsUsed = []
 
   const run = async (tool, args = {}) => {
@@ -23,29 +171,27 @@ export async function chatLocally({ messages, user = null, onEvent }) {
 
   // Ticket-et e mia
   if (
-    /ticket|tiket|radha ime|numri im|ticket-et|tiketat|statusi im|çfarë kam|cfare kam/.test(
+    /ticket|tiket|radha ime|numri im|ticket-et|tiketat|statusi im|çfarë kam|cfare kam|moji tiket|my tickets|moje tikete/.test(
       text,
     )
   ) {
     const result = await run('get_my_tickets', { status: 'all' })
     if (result.error === 'not_authenticated') {
-      content =
-        'Për të parë ticket-et e tua, duhet të **kyçesh** në llogari.\n\nShko te /login ose regjistrohu te /register, pastaj pyet përsëri.'
+      content = c.loginTickets
     } else if (!result.tickets?.length) {
-      content =
-        'Nuk ke ticket aktiv për momentin.\n\nMund të marrësh një numër digjital nga /institutions ose të rezervosh termin te /appointments.'
+      content = c.noTickets
     } else {
       const lines = result.tickets.map(
         (t) =>
-          `• **${t.number}** — ${t.institution || 'Institucion'} (${statusSq(t.status)})${
+          `• **${t.number}** — ${t.institution || '—'} (${statusLabel(t.status, lang)})${
             t.estimatedWaitTime ? `, ~${t.estimatedWaitTime} min` : ''
-          }\n  Hap: ${t.deepLink}`,
+          }\n  ${t.deepLink}`,
       )
-      content = `Ja ticket-et e tua (${result.count}):\n\n${lines.join('\n')}\n\nPaneli yt: /dashboard/citizen`
+      content = `${c.ticketsTitle(result.count)}\n\n${lines.join('\n')}\n\n${c.dashboard}`
     }
   }
   // Si merret numri / udhëzues
-  else if (/si (e )?marr|si (ta )?marr|num[eë]r digjital|si funksionon|si t[eë] filloj|udh[eë]zues/.test(text)) {
+  else if (/si (e )?marr|si (ta )?marr|num[eë]r digjital|si funksionon|si t[eë] filloj|udh[eë]zues|how (do i|to) get|digital number|kako da uzmem|digitalni broj/.test(text)) {
     const topic = /termin|rezerv/.test(text)
       ? 'book_appointment'
       : /prioritet/.test(text)
@@ -62,21 +208,21 @@ export async function chatLocally({ messages, user = null, onEvent }) {
                   ? 'get_ticket'
                   : 'overview'
     const guide = await run('get_platform_guide', { topic })
-    content = `${guide.guide}\n\nLidhje të dobishme:\n• Institucionet: /institutions\n• Terminet: /appointments\n• Hyrja: /login`
+    content = `${guide.guide}\n\n${c.useful}`
   }
   // Prioritetet
-  else if (/prioritet/.test(text)) {
+  else if (/prioritet|priority|prioriteti/.test(text)) {
     const guide = await run('get_platform_guide', { topic: 'priority' })
     content = guide.guide
   }
   // Terminet
-  else if (/termin|rezerv|appointment/.test(text)) {
+  else if (/termin|rezerv|appointment|book/.test(text)) {
     const guide = await run('get_platform_guide', { topic: 'book_appointment' })
-    content = `${guide.guide}\n\nHape: /appointments`
+    content = `${guide.guide}\n\n${c.openAppointments}`
   }
   // Radha / pritja / spital / institucion + status
   else if (
-    /sa (është|eshte) prit|pritja|radha|queue|sa persona|sa njer[eë]z|sa pret|live/.test(text) ||
+    /sa (është|eshte) prit|pritja|radha|queue|sa persona|sa njer[eë]z|sa pret|live|how long|wait|čekanj|koliko se/.test(text) ||
     (/spital|komun|bank|atk|posta|universitet/.test(text) && /sa|tani|aktual|status/.test(text))
   ) {
     const name = extractInstitutionHint(text)
@@ -88,22 +234,21 @@ export async function chatLocally({ messages, user = null, onEvent }) {
       })
       if (search.institutions?.length) {
         content =
-          `Nuk gjeta status të saktë, por ja disa institucione:\n\n` +
-          formatInstitutions(search.institutions) +
-          `\n\nHap njërin dhe pyet: “Sa është pritja te [emri]?”`
+          c.noExact +
+          formatInstitutions(search.institutions, lang) +
+          c.askWait
       } else {
-        content =
-          'Nuk gjeta institucion me atë emër. Provo p.sh. “Cilat institucione ka në Prishtinë?” ose shko te /institutions.'
+        content = c.noInst
       }
     } else {
       content =
         `**${result.institution.name}**\n` +
-        `• Në pritje: **${result.waitingCount}** persona\n` +
-        `• Koha e përafërt: **~${result.estimatedWaitMinutes} minuta**\n` +
+        `• ${c.waiting}: **${result.waitingCount}** ${c.people}\n` +
+        `• ${c.eta}: **~${result.estimatedWaitMinutes} ${c.minutes}**\n` +
         (result.currentlyCalled?.length
-          ? `• Duke u thirrur: ${result.currentlyCalled.map((c) => c.number).join(', ')}\n`
+          ? `• ${c.called}: ${result.currentlyCalled.map((row) => row.number).join(', ')}\n`
           : '') +
-        `\n${result.tip}\n\nHap radhën: ${result.deepLink}`
+        `\n${result.tip || ''}\n\n${c.openQueue}: ${result.deepLink}`
     }
   }
   // Koha më e mirë
@@ -111,20 +256,19 @@ export async function chatLocally({ messages, user = null, onEvent }) {
     const name = extractInstitutionHint(text) || 'komun'
     const result = await run('suggest_best_time', { name })
     if (result.error) {
-      content =
-        'Nuk gjeta institucionin. Shkruaj emrin (p.sh. “Kur është më mirë te Komuna e Prishtinës?”) ose shiko /institutions.'
+      content = c.noBest
     } else {
-      const loadSq =
-        result.load === 'low' ? 'e ulët' : result.load === 'medium' ? 'mesatare' : 'e lartë'
+      const loadLabel =
+        result.load === 'low' ? c.loadLow : result.load === 'medium' ? c.loadMed : c.loadHigh
       content =
-        `Për **${result.institution}** (ngarkesa tani: **${loadSq}**, ${result.currentWaiting} në pritje):\n\n` +
+        `${c.forInst(result.institution, loadLabel, result.currentWaiting)}\n\n` +
         result.suggestions.map((s) => `• **${s.window}** — ${s.note}`).join('\n') +
-        `\n\nRadha: ${result.deepLink}\nTerminet: ${result.appointmentsLink}`
+        `\n\n${c.openQueue}: ${result.deepLink}\n${c.openAppointments}`
     }
   }
   // Kërkim institucionesh / qytet
   else if (
-    /institucion|ku mund|cilat|gjej|k[eë]rko|prishtin|prizren|pej[eë]|gjakov|mitrovic|ferizaj|gjilan|bank|spital|komun|posta|universitet|atk/.test(
+    /institucion|institucij|ku mund|cilat|gjej|k[eë]rko|prishtin|prištin|pristina|prizren|pej[eë]|gjakov|mitrovic|ferizaj|gjilan|bank|spital|bolnic|komun|opštin|posta|pošt|universitet|atk/.test(
       text,
     )
   ) {
@@ -148,13 +292,12 @@ export async function chatLocally({ messages, user = null, onEvent }) {
     })
 
     if (!result.institutions?.length) {
-      content =
-        'Nuk gjeta institucione me këtë filtër. Provo një qytet tjetër ose hap /institutions.'
+      content = c.noFilter
     } else {
       content =
-        `Gjeta **${result.count}** institucione:\n\n` +
-        formatInstitutions(result.institutions) +
-        `\n\nKliko lidhjen për të marrë numër digjital.`
+        c.found(result.count) +
+        formatInstitutions(result.institutions, lang) +
+        c.clickLink
     }
   }
   // Detaje për një institucion
@@ -162,31 +305,23 @@ export async function chatLocally({ messages, user = null, onEvent }) {
     const name = extractInstitutionHint(text) || text.slice(0, 40)
     const result = await run('get_institution_details', { name })
     if (result.error) {
-      content =
-        'Nuk gjeta atë institucion. Shkruaj emrin më qartë ose kërko te /institutions.'
+      content = c.noDetail
     } else {
       const services = (result.services || [])
         .map((s) => `• ${s.name}${s.estimatedTime ? ` (~${s.estimatedTime} min)` : ''}`)
         .join('\n')
       content =
-        `**${result.name}** (${typeSq(result.type)})\n` +
-        `• Adresa: ${result.location?.address || '—'}, ${result.location?.city || ''}\n` +
-        `• Orari: ${result.workingHours?.open || '?'} – ${result.workingHours?.close || '?'}\n` +
-        `• Telefon: ${result.contact?.phone || '—'}\n` +
-        (services ? `\nShërbimet:\n${services}\n` : '') +
-        `\nHap radhën: ${result.deepLink}`
+        `**${result.name}** (${typeLabel(result.type, lang)})\n` +
+        `• ${c.address}: ${result.location?.address || '—'}, ${result.location?.city || ''}\n` +
+        `• ${c.hours}: ${result.workingHours?.open || '?'} – ${result.workingHours?.close || '?'}\n` +
+        `• ${c.phone}: ${result.contact?.phone || '—'}\n` +
+        (services ? `\n${c.services}:\n${services}\n` : '') +
+        `\n${c.openQueue}: ${result.deepLink}`
     }
   }
   // Përshëndetje / default
-  else if (/^(pershendetje|përshëndetje|hello|hi|hey|tung|mir[eë]dita|si je)/.test(text)) {
-    content =
-      `Përshëndetje! Unë jam **Asistenti SmartQueue**.\n\n` +
-      `Mund të të ndihmoj me:\n` +
-      `• Kërkimin e institucioneve\n` +
-      `• Statusin e radhës live\n` +
-      `• Si merret numri digjital / terminet\n` +
-      `• Ticket-et e tua (nëse je i kyçur)\n\n` +
-      `Provo p.sh.: “Cilat institucione ka në Prishtinë?”`
+  else if (/^(pershendetje|përshëndetje|hello|hi|hey|tung|zdravo|cao|ćao|mir[eë]dita|si je)/.test(text)) {
+    content = c.hello
   } else {
     // Fallback: kërko institucione + udhëzues i shkurtër
     const [search, guide] = await Promise.all([
@@ -194,11 +329,11 @@ export async function chatLocally({ messages, user = null, onEvent }) {
       run('get_platform_guide', { topic: 'overview' }),
     ])
     content =
-      `Ja çfarë mund të bëj për ty:\n\n${guide.guide}\n\n` +
+      `${c.fallbackStart}${guide.guide}\n\n` +
       (search.institutions?.length
-        ? `Disa institucione të lidhura:\n${formatInstitutions(search.institutions)}\n\n`
+        ? `${c.related}${formatInstitutions(search.institutions, lang)}\n\n`
         : '') +
-      `Pyet më konkretisht, p.sh. “Si rezervoj termin?” ose “Sa është pritja në spital?”.`
+      c.askMore
   }
 
   // Stream artificial për UX të njëjtë
@@ -207,17 +342,17 @@ export async function chatLocally({ messages, user = null, onEvent }) {
     type: 'done',
     content,
     toolsUsed,
-    model: 'smartqueue-local-sq',
+    model: `smartqueue-local-${lang}`,
   })
 
-  return { content, toolsUsed, model: 'smartqueue-local-sq' }
+  return { content, toolsUsed, model: `smartqueue-local-${lang}` }
 }
 
-function formatInstitutions(list) {
+function formatInstitutions(list, lang = 'sq') {
   return list
     .map(
       (i) =>
-        `• **${i.name}** (${typeSq(i.type)}${i.city ? `, ${i.city}` : ''})\n  ${i.deepLink}`,
+        `• **${i.name}** (${typeLabel(i.type, lang)}${i.city ? `, ${i.city}` : ''})\n  ${i.deepLink}`,
     )
     .join('\n')
 }
@@ -251,28 +386,53 @@ function detectType(text) {
   return undefined
 }
 
-function statusSq(s) {
+function statusLabel(s, lang = 'sq') {
   const map = {
-    waiting: 'në pritje',
-    called: 'u thirr',
-    completed: 'përfunduar',
-    cancelled: 'anuluar',
+    sq: { waiting: 'në pritje', called: 'u thirr', completed: 'përfunduar', cancelled: 'anuluar' },
+    en: { waiting: 'waiting', called: 'called', completed: 'completed', cancelled: 'cancelled' },
+    sr: { waiting: 'na čekanju', called: 'pozvan', completed: 'završeno', cancelled: 'otkazano' },
   }
-  return map[s] || s
+  return (map[lang] || map.sq)[s] || s
 }
 
-function typeSq(t) {
+function typeLabel(t, lang = 'sq') {
   const map = {
-    municipality: 'Komunë',
-    hospital: 'Spital',
-    bank: 'Bankë',
-    university: 'Universitet',
-    post: 'Postë',
-    ministry: 'Ministri',
-    utility: 'Shërbim publik',
-    court: 'Gjykatë',
-    embassy: 'Ambasadë',
-    other: 'Tjetër',
+    sq: {
+      municipality: 'Komunë',
+      hospital: 'Spital',
+      bank: 'Bankë',
+      university: 'Universitet',
+      post: 'Postë',
+      ministry: 'Ministri',
+      utility: 'Shërbim publik',
+      court: 'Gjykatë',
+      embassy: 'Ambasadë',
+      other: 'Tjetër',
+    },
+    en: {
+      municipality: 'Municipality',
+      hospital: 'Hospital',
+      bank: 'Bank',
+      university: 'University',
+      post: 'Post',
+      ministry: 'Ministry',
+      utility: 'Public utility',
+      court: 'Court',
+      embassy: 'Embassy',
+      other: 'Other',
+    },
+    sr: {
+      municipality: 'Opština',
+      hospital: 'Bolnica',
+      bank: 'Banka',
+      university: 'Univerzitet',
+      post: 'Pošta',
+      ministry: 'Ministarstvo',
+      utility: 'Javna usluga',
+      court: 'Sud',
+      embassy: 'Ambasada',
+      other: 'Ostalo',
+    },
   }
-  return map[t] || t
+  return (map[lang] || map.sq)[t] || t
 }

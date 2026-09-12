@@ -30,12 +30,12 @@ const ForgotPasswordPage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-5 py-16">
-      <div className="w-full max-w-md surface-card rounded-3xl p-8 space-y-6">
+      <div className="w-full max-w-md surface-card rounded-xl p-8 space-y-6">
         <Link to="/login" className="inline-flex items-center gap-2 text-sm text-muted-foreground">
           <ArrowLeft className="w-4 h-4" /> {t('auth.backToLogin')}
         </Link>
         <div>
-          <h1 className="text-2xl font-bold">{t('auth.forgotPassword')}</h1>
+          <h1 className="font-serif text-2xl font-semibold">{t('auth.forgotPassword')}</h1>
           <p className="text-sm text-muted-foreground mt-1">{t('auth.forgotSubtitle')}</p>
         </div>
         {sent ? (

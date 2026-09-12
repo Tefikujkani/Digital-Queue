@@ -53,8 +53,20 @@ const SettingsPage: React.FC = () => {
   }>({ configured: false, botUri: null })
   const [waStatus, setWaStatus] = useState<{
     configured: boolean
+    autoSend?: boolean
+    sessionReady?: boolean
+    sessionStatus?: string
+    qr?: string
+    pairingCode?: string
     hasBusinessNumber?: boolean
+    greenConfigured?: boolean
+    greenAuthorized?: boolean
+    signupUrl?: string
+    note?: string
   }>({ configured: false })
+  const [sessionQr, setSessionQr] = useState('')
+  const [sessionCode, setSessionCode] = useState('')
+  const [startingSession, setStartingSession] = useState(false)
   const [waPhone, setWaPhone] = useState('')
   const [linking, setLinking] = useState(false)
   const [linkingViber, setLinkingViber] = useState(false)
@@ -84,6 +96,27 @@ const SettingsPage: React.FC = () => {
   }
 
   useEffect(() => {
+    if (waStatus.sessionReady) return undefined
+    const tick = setInterval(async () => {
+      try {
+        const { data } = await api.get('/whatsapp/session')
+        if (data.qr) setSessionQr(data.qr)
+        if (data.pairingCode) setSessionCode(data.pairingCode)
+        if (data.ready) {
+          setSessionQr('')
+          setSessionCode('')
+          setStartingSession(false)
+          loadMessengerStatus()
+          toast.success(t('settings.waAutoOn'))
+        }
+      } catch {
+        /* keep polling */
+      }
+    }, 2000)
+    return () => clearInterval(tick)
+  }, [waStatus.sessionReady, t])
+
+  useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login')
       return
@@ -101,6 +134,14 @@ const SettingsPage: React.FC = () => {
     api.get('/citizen/cities').then((r) => setCities(r.data?.cities || []))
     loadMessengerStatus()
   }, [isAuthenticated, user, navigate])
+
+  useEffect(() => {
+    if (!isAuthenticated || waStatus.sessionReady) return
+    api.post('/whatsapp/session/start').then((r) => {
+      if (r.data?.qr) setSessionQr(r.data.qr)
+      if (r.data?.ready) loadMessengerStatus()
+    }).catch(() => {})
+  }, [isAuthenticated, waStatus.sessionReady])
 
   const linkTelegram = async () => {
     setLinking(true)
@@ -190,31 +231,31 @@ const SettingsPage: React.FC = () => {
     }
   }
 
-  const linkWhatsApp = async () => {
-    setLinkingWa(true)
+  const connectWhatsAppAuto = async () => {
+    setStartingSession(true)
     try {
-      const { data } = await api.post('/whatsapp/link')
-      if (!data.ok) {
-        toast.error(data.message || t('settings.waLinkFailed'))
-        return
+      if (!waLinked && waPhone.trim()) await saveWaPhone()
+      const { data } = await api.post('/whatsapp/session/start', { phone: waPhone })
+      if (data.qr) setSessionQr(data.qr)
+      if (data.pairingCode) setSessionCode(data.pairingCode)
+      if (data.ready) {
+        setStartingSession(false)
+        loadMessengerStatus()
+        toast.success(t('settings.waAutoOn'))
       }
-      toast.success(t('settings.openWhatsApp'))
-      window.open(data.deepLink, '_blank', 'noopener,noreferrer')
-      let tries = 0
-      const poll = setInterval(async () => {
-        tries += 1
-        try {
-          await refreshUser()
-        } catch {
-          /* ignore */
-        }
-        if (tries > 40) clearInterval(poll)
-      }, 2500)
-      setTimeout(() => clearInterval(poll), 120000)
     } catch (err: any) {
+      setStartingSession(false)
       toast.error(err?.response?.data?.message || t('settings.waLinkFailed'))
-    } finally {
-      setLinkingWa(false)
+    }
+  }
+
+  const testWhatsApp = async () => {
+    try {
+      const { data } = await api.post('/whatsapp/test', { phone: waPhone })
+      if (data.sent) toast.success(t('settings.waAutoOn'))
+      else toast.error(data.message || t('settings.waNeedLink'))
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || t('settings.waNeedLink'))
     }
   }
 
@@ -306,11 +347,11 @@ const SettingsPage: React.FC = () => {
             <ArrowLeft className="w-4 h-4" /> {t('common.back')}
           </Button>
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-2xl btn-gradient flex items-center justify-center">
-              <Settings className="w-5 h-5 text-white" />
+            <div className="w-12 h-12 rounded-lg btn-gradient flex items-center justify-center">
+              <Settings className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">{t('settings.title')}</h1>
+              <h1 className="font-serif text-3xl font-semibold">{t('settings.title')}</h1>
               <p className="text-sm text-muted-foreground">{t('settings.subtitle')}</p>
             </div>
           </div>
@@ -385,11 +426,11 @@ const SettingsPage: React.FC = () => {
             </div>
 
             {/* VIBER */}
-            <div className="surface-card rounded-2xl p-5 space-y-4 border border-violet-500/25 bg-gradient-to-br from-violet-500/10 to-transparent">
+            <div className="surface-card rounded-xl p-5 space-y-4">
               <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-violet-300" />
+                <MessageSquare className="w-4 h-4 text-accent" />
                 <h2 className="font-semibold">{t('settings.viberTitle')}</h2>
-                <span className="ml-auto text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-200">
+                <span className="ml-auto text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent/15 text-accent">
                   {t('settings.free')}
                 </span>
               </div>
@@ -434,7 +475,7 @@ const SettingsPage: React.FC = () => {
                     </p>
                   )}
                   <Button
-                    className="w-full h-12 bg-violet-600 hover:bg-violet-500 text-white"
+                    className="w-full h-12"
                     onClick={linkViber}
                     disabled={linkingViber || !vbStatus.configured}
                   >
@@ -453,87 +494,72 @@ const SettingsPage: React.FC = () => {
             </div>
 
             {/* WHATSAPP — iOS + Android */}
-            <div className="surface-card rounded-2xl p-5 space-y-4 border border-emerald-500/25 bg-gradient-to-br from-emerald-500/10 to-transparent">
+            <div className="surface-card rounded-2xl p-5 space-y-4 border border-emerald-200">
               <div className="flex items-center gap-2">
-                <MessageCircle className="w-4 h-4 text-emerald-300" />
+                <MessageCircle className="w-4 h-4 text-emerald-700" />
                 <h2 className="font-semibold">{t('settings.waTitle')}</h2>
-                <span className="ml-auto text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-200">
+                <span className="ml-auto text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800">
                   {t('settings.iosAndroid')}
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                {t('settings.waBody')}
-              </p>
+              <p className="text-xs text-muted-foreground leading-relaxed">{t('settings.waBody')}</p>
 
-              {waLinked ? (
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                  <div className="flex-1 flex items-center gap-2 text-sm text-accent">
-                    <CheckCircle2 className="w-5 h-5 shrink-0" />
-                    <span>
-                      {t('settings.linked')}
-                      {user?.whatsappPhone ? (
-                        <>
-                          {' '}
-                          · <strong>+{String(user.whatsappPhone).replace(/^\+/, '')}</strong>
-                        </>
-                      ) : null}
-                    </span>
-                  </div>
+              <Input
+                value={waPhone}
+                onChange={(e) => setWaPhone(e.target.value)}
+                placeholder="044 / 048 xxx xxx"
+                className="h-12"
+                inputMode="tel"
+              />
+              {!waLinked && (
+                <Button
+                  variant="outline"
+                  className="w-full h-11"
+                  onClick={saveWaPhone}
+                  disabled={linkingWa || !waPhone.trim()}
+                >
+                  {linkingWa ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {t('settings.waSavePhone')}
+                </Button>
+              )}
+
+              {waStatus.sessionReady || waStatus.autoSend ? (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 space-y-3">
+                  <p className="text-sm font-semibold text-emerald-800 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    {t('settings.waAutoOn')}
+                    {user?.whatsappPhone ? ` · +${String(user.whatsappPhone).replace(/^\+/, '')}` : ''}
+                  </p>
                   <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={unlinkWa}
-                    disabled={unlinkingWa}
-                    className="border-white/15"
+                    className="w-full h-11 bg-[#25D366] text-white hover:bg-[#1ebe5d]"
+                    onClick={testWhatsApp}
                   >
-                    {unlinkingWa ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Unplug className="w-4 h-4" />
-                    )}
-                    {t('settings.unlink')}
+                    <MessageCircle className="w-4 h-4" />
+                    {t('settings.waTest')}
                   </Button>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {!waStatus.configured && (
-                    <p className="text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
-                      {t('settings.waAdminHint')}
-                    </p>
-                  )}
-                  <div className="flex gap-2">
-                    <Input
-                      value={waPhone}
-                      onChange={(e) => setWaPhone(e.target.value)}
-                      placeholder={t('settings.waPhonePlaceholder')}
-                      className="h-12"
-                      inputMode="tel"
-                    />
-                    <Button
-                      className="h-12 shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white"
-                      onClick={saveWaPhone}
-                      disabled={linkingWa || !waPhone.trim()}
-                    >
-                      {linkingWa ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                      {t('settings.waSavePhone')}
-                    </Button>
-                  </div>
                   <Button
-                    variant="outline"
-                    className="w-full h-11 border-emerald-500/30"
-                    onClick={linkWhatsApp}
-                    disabled={linkingWa || !waStatus.configured}
+                    className="w-full h-12 bg-[#25D366] text-white hover:bg-[#1ebe5d]"
+                    onClick={connectWhatsAppAuto}
+                    disabled={startingSession}
                   >
-                    {linkingWa ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <ExternalLink className="w-4 h-4" />
-                    )}
-                    {t('settings.linkWhatsApp')}
+                    {startingSession ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}
+                    {t('settings.waConnect')}
                   </Button>
-                  <p className="text-[11px] text-muted-foreground text-center">
-                    {t('settings.waLinkHint')}
-                  </p>
+                  <p className="text-[11px] text-muted-foreground">{t('settings.waScan')}</p>
+                  {sessionQr && (
+                    <img src={sessionQr} alt="WhatsApp QR" className="mx-auto w-56 h-56 rounded-lg bg-white p-2 border" />
+                  )}
+                  {sessionCode && (
+                    <div className="rounded-xl bg-white border border-emerald-200 p-4 text-center space-y-2">
+                      <p className="text-xs text-muted-foreground">{t('settings.waPair')}</p>
+                      <p className="text-3xl font-black tracking-[0.18em] text-[#128C7E]">
+                        {`${sessionCode.slice(0, 4)}-${sessionCode.slice(4)}`}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -650,7 +676,7 @@ const SettingsPage: React.FC = () => {
 
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-start gap-3">
-                  <MessageSquare className="w-4 h-4 text-violet-300 mt-0.5" />
+                  <MessageSquare className="w-4 h-4 text-accent mt-0.5" />
                   <div>
                     <p className="text-sm font-medium">{t('settings.viber')}</p>
                     <p className="text-xs text-muted-foreground">

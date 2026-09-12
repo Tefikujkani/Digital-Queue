@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router'
 import { Button } from './ui/button'
 import { useAuth } from '../contexts/AuthContext'
@@ -7,17 +7,12 @@ import { useNotifications } from '../contexts/NotificationContext'
 import type { Language } from '../types'
 import CommandPalette from './CommandPalette'
 import {
-  Menu,
-  X,
   LayoutDashboard,
   Building2,
   Calendar,
   LogOut,
-  Globe,
   Bell,
   Ticket,
-  Check,
-  ChevronDown,
   MapPin,
   Settings,
   HelpCircle,
@@ -35,28 +30,13 @@ const Navigation: React.FC = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications()
   const navigate = useNavigate()
   const location = useLocation()
-  const [isOpen, setIsOpen] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
-  const [showLangMenu, setShowLangMenu] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const langMenuRef = useRef<HTMLDivElement>(null)
-
-  const currentLang = languages.find((l) => l.code === language) || languages[0]
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 16)
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (langMenuRef.current && !langMenuRef.current.contains(e.target as Node)) {
-        setShowLangMenu(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   const navLinks = [
@@ -73,96 +53,74 @@ const Navigation: React.FC = () => {
         : '/dashboard/citizen'
 
   return (
-    <div className="fixed top-0 left-0 w-full z-[100]">
+    <div className="fixed top-0 left-0 w-full z-[100] pt-[env(safe-area-inset-top)] bg-white">
+      <div className="hidden lg:flex h-9 bg-secondary text-secondary-foreground text-xs">
+        <div className="container mx-auto max-w-7xl px-5 h-full flex items-center justify-between gap-6">
+          <div className="flex items-center gap-4 font-semibold">
+            <Link to="/help" className="hover:underline">
+              {t('footer.help')}
+            </Link>
+            <Link to="/privacy" className="hidden sm:inline hover:underline">
+              {t('footer.privacy')}
+            </Link>
+            <Link to="/terms" className="hidden sm:inline hover:underline">
+              {t('footer.terms')}
+            </Link>
+          </div>
+          <div className="flex items-center gap-3 font-bold tracking-wide">
+            {languages.map((lang) => (
+              <button
+                key={lang.code}
+                type="button"
+                onClick={() => setLanguage(lang.code)}
+                className={language === lang.code ? 'underline underline-offset-2' : 'opacity-70 hover:opacity-100'}
+              >
+                {lang.label === 'SQ' ? 'Shq' : lang.label === 'EN' ? 'Eng' : 'Srb'}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
       <nav
-        className={`
-          transition-all duration-500 border-b
-          ${
-            scrolled
-              ? 'glass border-primary/20 shadow-[0_8px_32px_rgba(0,0,0,0.4)]'
-              : 'bg-transparent border-transparent'
-          }
-        `}
+        className={`bg-white border-b border-border ${
+          scrolled ? 'shadow-[0_4px_18px_rgba(12,45,82,0.08)]' : ''
+        }`}
       >
-        <div className="container mx-auto max-w-6xl px-5 flex justify-between items-center h-[72px]">
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="relative w-10 h-10 rounded-xl btn-gradient flex items-center justify-center glow-primary-sm group-hover:glow-primary transition-all duration-300">
-              <Ticket className="w-5 h-5 text-white" />
+        <div className="container mx-auto max-w-7xl px-4 lg:px-5 flex justify-between items-center h-14 lg:h-[72px] gap-3 lg:gap-6">
+          <Link to="/" className="flex items-center gap-2.5 lg:gap-3 group shrink-0">
+            <div className="relative w-9 h-9 lg:w-10 lg:h-10 rounded-full btn-gradient flex items-center justify-center">
+              <Ticket className="w-4 h-4 lg:w-5 lg:h-5 text-primary-foreground" />
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-lg leading-none tracking-tight">SmartQueue</span>
-              <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary mt-0.5">
-                Kosova
+              <span className="font-bold text-base lg:text-lg leading-none tracking-normal text-primary">SmartQueue</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-secondary-foreground/70 mt-1 hidden sm:block">
+                {t('brand.region')}
               </span>
             </div>
           </Link>
 
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-2">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
                 className={`
-                  flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-xl transition-all duration-300
+                  flex items-center gap-2 text-sm font-medium tracking-normal px-4 py-2.5 rounded-lg transition-colors
                   ${
                     location.pathname === link.path
-                      ? 'text-white bg-primary/20 border border-primary/30'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+                      ? 'text-primary bg-primary/8'
+                      : 'text-muted-foreground hover:text-primary hover:bg-muted'
                   }
                 `}
               >
-                <link.icon className="w-4 h-4" />
-                {link.name}
+                <link.icon className="w-4 h-4 shrink-0" />
+                <span>{link.name}</span>
               </Link>
             ))}
+          </div>
 
-            <div className="h-5 w-px bg-white/10 mx-3" />
+          <div className="hidden lg:flex items-center gap-3 ml-auto">
             <CommandPalette />
-            <div className="h-5 w-px bg-white/10 mx-3" />
-
-            <div className="relative" ref={langMenuRef}>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="rounded-xl gap-1.5 px-3"
-                onClick={() => {
-                  setShowLangMenu((open) => !open)
-                  setShowNotifications(false)
-                }}
-              >
-                <Globe className="w-4 h-4" />
-                <span className="text-xs font-bold tracking-wide">{currentLang.label}</span>
-                <ChevronDown className="w-3.5 h-3.5 opacity-60" />
-              </Button>
-              {showLangMenu && (
-                <div className="absolute top-full right-0 mt-2 w-44 glass rounded-xl z-[300] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.5)] border border-white/10">
-                  {languages.map((lang) => (
-                    <button
-                      key={lang.code}
-                      type="button"
-                      className={`w-full flex items-center gap-2 px-3 py-2.5 text-sm text-left transition-colors ${
-                        language === lang.code
-                          ? 'bg-primary/15 text-foreground'
-                          : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
-                      }`}
-                      onClick={() => {
-                        setLanguage(lang.code)
-                        setShowLangMenu(false)
-                        setIsOpen(false)
-                      }}
-                    >
-                      <span className="w-4 flex justify-center">
-                        {language === lang.code ? <Check className="w-3.5 h-3.5 text-primary" /> : null}
-                      </span>
-                      <span className="font-medium">{lang.native}</span>
-                      <span className="ml-auto text-[10px] font-bold tracking-wide opacity-60">
-                        {lang.label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
 
             {isAuthenticated ? (
               <>
@@ -173,17 +131,16 @@ const Navigation: React.FC = () => {
                     className="rounded-xl relative"
                     onClick={() => {
                       setShowNotifications(!showNotifications)
-                      setShowLangMenu(false)
                     }}
                   >
                     <Bell className="w-4 h-4" />
                     {unreadCount > 0 && (
-                      <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full glow-primary-sm" />
+                      <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full" />
                     )}
                   </Button>
                   {showNotifications && (
-                    <div className="absolute top-full right-0 mt-3 w-80 glass rounded-2xl z-[300] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
-                      <div className="p-4 border-b border-white/8 flex justify-between items-center">
+                    <div className="absolute top-full right-0 mt-3 w-80 glass rounded-xl z-[300] overflow-hidden shadow-lg">
+                      <div className="p-4 border-b border-border flex justify-between items-center">
                         <h3 className="font-semibold text-sm">{t('nav.notifications')}</h3>
                         {unreadCount > 0 && (
                           <button
@@ -205,7 +162,7 @@ const Navigation: React.FC = () => {
                               key={notif._id}
                               className={`p-3 rounded-xl mb-1 cursor-pointer transition-colors ${
                                 notif.read
-                                  ? 'hover:bg-white/5'
+                                  ? 'hover:bg-muted'
                                   : 'bg-primary/10 hover:bg-primary/15'
                               }`}
                               onClick={() => {
@@ -229,14 +186,14 @@ const Navigation: React.FC = () => {
                     </div>
                   )}
                 </div>
-                <Button size="sm" className="ml-1" onClick={() => navigate(dashboardPath)}>
+                <Button size="sm" className="ml-1 px-4" onClick={() => navigate(dashboardPath)}>
                   <LayoutDashboard className="w-4 h-4" />
                   {t('nav.dashboard')}
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="rounded-xl"
+                  className="rounded-xl hidden xl:inline-flex"
                   onClick={() => navigate('/settings')}
                   title={t('nav.settings')}
                 >
@@ -245,7 +202,7 @@ const Navigation: React.FC = () => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="rounded-xl"
+                  className="rounded-xl hidden xl:inline-flex"
                   onClick={() => navigate('/help')}
                   title={t('nav.help')}
                 >
@@ -254,7 +211,7 @@ const Navigation: React.FC = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-muted-foreground hover:text-destructive"
+                  className="text-muted-foreground hover:text-destructive px-3"
                   onClick={logout}
                 >
                   <LogOut className="w-4 h-4" />
@@ -273,83 +230,59 @@ const Navigation: React.FC = () => {
             )}
           </div>
 
-          <button
-            className="md:hidden w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors"
-            onClick={() => setIsOpen(!isOpen)}
-          >
-            {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          {isAuthenticated && (
+            <div className="lg:hidden relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-xl relative"
+                onClick={() => setShowNotifications(!showNotifications)}
+              >
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full" />
+                )}
+              </Button>
+              {showNotifications && (
+                <div className="absolute top-full right-0 mt-2 w-[min(100vw-2rem,20rem)] glass rounded-xl z-[300] overflow-hidden shadow-lg">
+                  <div className="p-4 border-b border-border flex justify-between items-center">
+                    <h3 className="font-semibold text-sm">{t('nav.notifications')}</h3>
+                    {unreadCount > 0 && (
+                      <button onClick={markAllAsRead} className="text-xs text-primary">
+                        {t('nav.markAllRead')}
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-72 overflow-y-auto p-2">
+                    {notifications.length === 0 ? (
+                      <div className="p-6 text-center text-muted-foreground text-sm">
+                        {t('nav.noNotifications')}
+                      </div>
+                    ) : (
+                      notifications.map((notif) => (
+                        <div
+                          key={notif._id}
+                          className={`p-3 rounded-xl mb-1 ${
+                            notif.read ? '' : 'bg-primary/10'
+                          }`}
+                          onClick={() => {
+                            if (!notif.read) markAsRead(notif._id)
+                            setShowNotifications(false)
+                            if (notif.type === 'ticket_issued') navigate('/dashboard/citizen')
+                          }}
+                        >
+                          <p className="text-sm font-semibold">{notif.title}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{notif.message}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </nav>
-
-      {isOpen && (
-        <div className="md:hidden absolute top-full left-0 right-0 glass border-b border-primary/20 p-5 z-[200] shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
-          <div className="space-y-2">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className="flex items-center gap-3 text-base font-medium text-muted-foreground hover:text-primary transition-colors py-3 px-3 rounded-xl hover:bg-white/5"
-                onClick={() => setIsOpen(false)}
-              >
-                <link.icon className="w-5 h-5" />
-                {link.name}
-              </Link>
-            ))}
-            <div className="h-px bg-white/8 my-3" />
-            <div className="px-3 py-2">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
-                <Globe className="w-3.5 h-3.5" />
-                {t('nav.language')}
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                {languages.map((lang) => (
-                  <button
-                    key={lang.code}
-                    type="button"
-                    onClick={() => {
-                      setLanguage(lang.code)
-                      setIsOpen(false)
-                    }}
-                    className={`py-2.5 rounded-xl text-xs font-semibold transition-colors ${
-                      language === lang.code
-                        ? 'bg-primary/20 text-white border border-primary/40'
-                        : 'bg-white/5 text-muted-foreground border border-white/5 hover:bg-white/10'
-                    }`}
-                  >
-                    {lang.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="h-px bg-white/8 my-3" />
-            {isAuthenticated ? (
-              <>
-                <Link
-                  to={dashboardPath}
-                  className="flex items-center gap-3 text-base font-medium py-3 px-3"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <LayoutDashboard className="w-5 h-5 text-primary" />
-                  {t('nav.dashboard')}
-                </Link>
-                <Button className="w-full h-12 mt-2" variant="destructive" onClick={logout}>
-                  <LogOut className="w-4 h-4" /> {t('nav.logout')}
-                </Button>
-              </>
-            ) : (
-              <div className="grid gap-3 pt-2">
-                <Button className="h-12" variant="outline" onClick={() => navigate('/login')}>
-                  {t('auth.login')}
-                </Button>
-                <Button className="h-12" onClick={() => navigate('/register')}>
-                  {t('auth.register')}
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

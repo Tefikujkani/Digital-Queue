@@ -17,36 +17,47 @@ export function isGrokConfigured() {
   return Boolean(getApiKey())
 }
 
-function buildSystemPrompt({ user }) {
+function normalizeLang(raw) {
+  const lang = String(raw || '').toLowerCase().slice(0, 2)
+  return ['sq', 'en', 'sr'].includes(lang) ? lang : 'sq'
+}
+
+function buildSystemPrompt({ user, language = 'sq' }) {
+  const lang = normalizeLang(language)
+  const outputLang = {
+    sq: 'Kosovo Albanian (shqip i Kosovës)',
+    en: 'English',
+    sr: 'Serbian in Latin script (srpski latinica, not Cyrillic)',
+  }[lang]
   const userBlock = user
-    ? `Përdoruesi i kyçur: ${user.name} (${user.email}), roli=${user.role}. Mund të përdorësh get_my_tickets për të.`
-    : 'Vizitor (i pakyçur). Nëse pyet për ticket-et personale, kërkoji me mirësjellje të hyjë në llogari (/login).'
+    ? `Signed-in user: ${user.name} (${user.email}), role=${user.role}. You may use get_my_tickets for them.`
+    : 'Visitor (not signed in). If they ask for personal tickets, politely ask them to log in (/login).'
 
-  return `Ti je **Asistenti SmartQueue** — udhëzues inteligjent për platformën SmartQueue Kosova (radhë digjitale dhe termine për institucione publike/private në Kosovë).
+  return `You are the **SmartQueue Assistant** — a civic guide for SmartQueue Kosova (digital queues and appointments at public/private institutions in Kosovo).
 
-## GJUHA (E DETYRUESHME)
-- Përgjigju GJITHMONË vetëm në **shqip** (standardi i Kosovës).
-- Mos shkruaj anglisht, serbisht apo gjuhë të tjera — edhe nëse përdoruesi shkruan në anglisht, përgjigju në shqip.
-- Emri yt: Asistenti SmartQueue.
+## LANGUAGE (MANDATORY)
+- Always reply only in ${outputLang}.
+- Do not mix languages, even if the user writes in another language.
+- Your name: SmartQueue Assistant.
 
-## Misioni
-Ndihmo qytetarët shpejt: gjej institucione, kupto radhën dhe kohën e pritjes, merri numrin digjital, rezervo termin, shpjego prioritetin/QR/njoftimet, dhe navigimin në aplikacion.
+## Mission
+Help citizens quickly: find institutions, understand the live queue and wait time, take a digital number, book an appointment, explain priority/QR/notifications, and navigate the app.
 
-## Fakte për produktin
-- Qytetarët shfletojnë Institucionet, marrin numra digjitalë, rezervojnë termine, ndjekin radhën live, marrin QR dhe njoftime.
-- Prioritetet: normal, të moshuar, emergjencë, aftësi të kufizuara.
-- Rolet: qytetar, admin (sportel), superadmin.
-- Lidhje që mund t'i sugjerosh: /institutions, /appointments, /login, /register, /dashboard/citizen, /queue/:institutionId
+## Product facts
+- Citizens browse Institutions, take digital numbers, book appointments, follow the live queue, get a QR and notifications.
+- Priorities: normal, elderly, emergency, disability.
+- Roles: citizen, admin (counter), superadmin.
+- Links you may suggest: /institutions, /appointments, /login, /register, /dashboard/citizen, /queue/:institutionId
 
-## Mjetet (tools)
-Ke mjete live për institucione, statusin e radhës, ticket-et, udhëzuesit dhe kohën më të mirë të vizitës. PËRDORI kur pyetet për institucione reale, kohë pritjeje ose ticket-e — mos invento numra.
+## Tools
+You have live tools for institutions, service documents (get_service_guide), queue status, tickets, guides and best visit time. USE get_service_guide when the citizen asks what documents they need or when to go — do not invent document lists.
 
-## Stili
-- I qartë, i ngrohtë, praktik. Fjali të shkurtra dhe pika kur ndihmon.
-- Kur ke id të institucionit, përmend /queue/<id> që UI të bëjë deep-link.
-- Mos invento fjalëkalime, çelësa API ose kredenciale admini.
-- Nëse nuk je i sigurt, thuaje dhe ofro udhëzuesin ose kërkimin e institucioneve.
-- Je i fuqizuar nga Grok (xAI), por prezantohu si Asistenti SmartQueue.
+## Style
+- Clear, warm, practical. Short sentences and bullets when helpful.
+- When you have an institution id, mention /queue/<id> so the UI can deep-link.
+- Do not invent passwords, API keys or admin credentials.
+- If you are unsure, say so and offer the guide or institution search.
+- You are powered by Grok (xAI), but introduce yourself as the SmartQueue Assistant.
 
 ${userBlock}`
 }
@@ -102,11 +113,11 @@ async function callGrok({ messages, stream = false, tools = GROK_TOOLS }) {
   return res.json()
 }
 
-async function chatWithGrokEngine({ messages, user = null, onEvent }) {
-  const language = 'sq'
+async function chatWithGrokEngine({ messages, language = 'sq', user = null, onEvent }) {
+  const lang = normalizeLang(language)
   const model = getModel()
   const conversation = [
-    { role: 'system', content: buildSystemPrompt({ user }) },
+    { role: 'system', content: buildSystemPrompt({ user, language: lang }) },
     ...messages
       .filter((m) => m.role === 'user' || m.role === 'assistant')
       .slice(-16)
@@ -139,7 +150,7 @@ async function chatWithGrokEngine({ messages, user = null, onEvent }) {
         }
 
         onEvent?.({ type: 'tool_start', tool: fnName, args })
-        const result = await executeChatTool(fnName, args, { user, language })
+        const result = await executeChatTool(fnName, args, { user, language: lang })
         toolsUsed.push(fnName)
         onEvent?.({ type: 'tool_end', tool: fnName, ok: !result?.error })
 
@@ -168,7 +179,12 @@ async function chatWithGrokEngine({ messages, user = null, onEvent }) {
         ...conversation,
         {
           role: 'user',
-          content: 'Ju lutem përgjigju në shqip bazuar në rezultatet e mjeteve më sipër.',
+          content:
+            lang === 'sr'
+              ? 'Odgovori na srpskom (latinica) na osnovu rezultata alata iznad.'
+              : lang === 'en'
+                ? 'Please reply in English based on the tool results above.'
+                : 'Ju lutem përgjigju në shqip bazuar në rezultatet e mjeteve më sipër.',
         },
       ],
       stream: true,
@@ -219,28 +235,48 @@ async function chatWithGrokEngine({ messages, user = null, onEvent }) {
 export async function chatWithGrok({ messages, language = 'sq', user = null, onEvent }) {
   if (!isGrokConfigured()) {
     onEvent?.({ type: 'mode', mode: 'local' })
-    return chatLocally({ messages, user, onEvent })
+    return chatLocally({ messages, language, user, onEvent })
   }
 
   try {
     onEvent?.({ type: 'mode', mode: 'grok', model: getModel() })
-    return await chatWithGrokEngine({ messages, user, onEvent })
+    return await chatWithGrokEngine({ messages, language, user, onEvent })
   } catch (err) {
     console.warn('Grok dështoi, kaloj te asistenti lokal:', err.message)
     onEvent?.({ type: 'mode', mode: 'local_fallback', reason: err.message })
-    return chatLocally({ messages, user, onEvent })
+    return chatLocally({ messages, language, user, onEvent })
   }
 }
 
-export function getSuggestedPrompts() {
-  return [
-    'Si e marr një numër digjital?',
-    'Cilat institucione ka në Prishtinë?',
-    'Sa është pritja tani në spital?',
-    'Si rezervoj një termin?',
-    'Cilat janë prioritetet e radhës?',
-    'Ku i shoh ticket-et e mia?',
-  ]
+export function getSuggestedPrompts(language = 'sq') {
+  const lang = normalizeLang(language)
+  const prompts = {
+    sq: [
+      'Si e marr një numër digjital?',
+      'Cilat institucione ka në Prishtinë?',
+      'Sa është pritja tani në spital?',
+      'Si rezervoj një termin?',
+      'Cilat janë prioritetet e radhës?',
+      'Ku i shoh ticket-et e mia?',
+    ],
+    en: [
+      'How do I get a digital number?',
+      'Which institutions are in Prishtina?',
+      'How long is the hospital wait right now?',
+      'How do I book an appointment?',
+      'What queue priorities exist?',
+      'Where can I see my tickets?',
+    ],
+    sr: [
+      'Kako da uzmem digitalni broj?',
+      'Koje institucije ima u Prištini?',
+      'Koliko se sada čeka u bolnici?',
+      'Kako da rezervišem termin?',
+      'Koji prioriteti postoje u redu?',
+      'Gde da vidim svoje tikete?',
+    ],
+  }
+  return prompts[lang]
 }
 
 export function getChatStatus() {
@@ -248,7 +284,6 @@ export function getChatStatus() {
     configured: isGrokConfigured(),
     model: getModel(),
     mode: isGrokConfigured() ? 'grok' : 'local',
-    assistant: 'Asistenti SmartQueue',
-    language: 'sq',
+    assistant: 'SmartQueue Assistant',
   }
 }

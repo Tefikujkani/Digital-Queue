@@ -69,10 +69,8 @@ const HelpPage: React.FC = () => {
             <div className="flex items-start gap-3">
               <MessageCircle className="w-5 h-5 text-accent mt-0.5" />
               <div>
-                <p className="font-semibold">Asistenti SmartQueue</p>
-                <p className="text-sm text-muted-foreground">
-                  Hap chatbot-in poshtë djathtas për ndihmë live në shqip.
-                </p>
+                <p className="font-semibold">{t('help.assistant')}</p>
+                <p className="text-sm text-muted-foreground">{t('help.assistantHint')}</p>
               </div>
             </div>
             <Button variant="outline" onClick={() => navigate('/settings')}>

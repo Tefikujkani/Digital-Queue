@@ -39,13 +39,14 @@ import {
   MapPin,
   Activity,
   CheckCircle2,
-  FileText,
   Heart,
   Star,
   Sparkles,
   Share2,
   Copy,
 } from 'lucide-react'
+import { type VoiceGuide } from '../lib/voiceApi'
+import ServiceVoicePanel from '../components/ServiceVoicePanel'
 import { TicketPriority } from '../types'
 import { toast } from 'sonner'
 import { useFavorites } from '../contexts/FavoritesContext'
@@ -76,6 +77,7 @@ const QueuePage: React.FC = () => {
   const [ratingComment, setRatingComment] = useState('')
   const [docsChecked, setDocsChecked] = useState<Record<string, boolean>>({})
   const [boardTickets, setBoardTickets] = useState<any[]>([])
+  const [voiceGuide, setVoiceGuide] = useState<VoiceGuide | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -134,6 +136,7 @@ const QueuePage: React.FC = () => {
 
   useEffect(() => {
     setDocsChecked({})
+    setVoiceGuide(null)
   }, [selectedService])
 
   useEffect(() => {
@@ -146,17 +149,20 @@ const QueuePage: React.FC = () => {
     }
   }, [currentTicket, institutionId, institution?._id])
 
+  const requiredDocs =
+    voiceGuide?.documents?.length
+      ? voiceGuide.documents
+      : selectedServiceObj?.requiredDocuments || []
   const allDocsReady =
-    !selectedServiceObj?.requiredDocuments?.length ||
-    selectedServiceObj.requiredDocuments.every((d) => docsChecked[d])
+    !requiredDocs.length || requiredDocs.every((d) => docsChecked[d])
 
   const submitRating = async () => {
     if (!isAuthenticated) {
-      toast.error('Kyçu për të vlerësuar')
+      toast.error(t('queue.loginToRate'))
       return navigate('/login')
     }
     if (ratingScore < 1) {
-      toast.error('Zgjidh një vlerësim 1–5')
+      toast.error(t('queue.pickStars'))
       return
     }
     try {
@@ -166,12 +172,12 @@ const QueuePage: React.FC = () => {
         comment: ratingComment,
         ticketId: currentTicket?.id || currentTicket?._id,
       })
-      toast.success('Faleminderit për vlerësimin!')
+      toast.success(t('queue.thanksRating'))
       setRatingComment('')
       const stats = await api.get(`/citizen/wait-stats/${institutionId}`)
       setWaitStats(stats.data)
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Vlerësimi dështoi')
+      toast.error(err?.response?.data?.message || t('queue.ratingFailed'))
     }
   }
 
@@ -208,7 +214,7 @@ const QueuePage: React.FC = () => {
       return
     }
     if (!allDocsReady) {
-      toast.error('Konfirmo që i ke të gjitha dokumentet e nevojshme')
+      toast.error(t('queue.confirmDocs'))
       return
     }
     if (!openStatus.isOpen) {
@@ -219,7 +225,7 @@ const QueuePage: React.FC = () => {
     }
     if (selectedPriority !== 'normal') {
       const ok = window.confirm(
-        'Po zgjedh prioritet të veçantë. Përdore vetëm nëse ke të drejtë. Vazhdon?',
+        t('queue.priorityConfirm'),
       )
       if (!ok) return
     }
@@ -249,7 +255,7 @@ const QueuePage: React.FC = () => {
   const handleDownloadQR = () => {
     const canvas = document.getElementById('ticket-qr-canvas') as HTMLCanvasElement | null
     if (!canvas || !currentTicket) {
-      toast.error('QR nuk u gjet')
+      toast.error(t('queue.qrNotFound'))
       return
     }
     const url = canvas.toDataURL('image/png')
@@ -272,20 +278,25 @@ const QueuePage: React.FC = () => {
 
   const shareTicket = async () => {
     if (!currentTicket) return
-    const text = `SmartQueue · Numri ${currentTicket.number} te ${institution.name}. Status: ${currentTicket.status}. Hap: ${window.location.origin}/queue/${institutionId}`
+    const text = t('queue.shareText', {
+      number: currentTicket.number,
+      name: institution.name,
+      status: currentTicket.status,
+      url: `${window.location.origin}/queue/${institutionId}`,
+    })
     try {
       if (navigator.share) {
-        await navigator.share({ title: 'SmartQueue Ticket', text })
+        await navigator.share({ title: 'SmartQueue', text })
       } else {
         await navigator.clipboard.writeText(text)
-        toast.success('U kopjua në clipboard')
+        toast.success(t('queue.copied'))
       }
     } catch {
       try {
         await navigator.clipboard.writeText(text)
-        toast.success('U kopjua në clipboard')
+        toast.success(t('queue.copied'))
       } catch {
-        toast.error('Nuk u nda')
+        toast.error(t('queue.shareFailed'))
       }
     }
   }
@@ -314,7 +325,7 @@ const QueuePage: React.FC = () => {
                 {waitStats?.bestHourHint && (
                   <span className="text-xs font-medium px-3 py-1 rounded-full bg-accent/10 text-accent inline-flex items-center gap-1">
                     <Sparkles className="w-3 h-3" />
-                    Më mirë: {waitStats.bestHourHint}
+                    {t('queue.betterHour')}: {waitStats.bestHourHint}
                   </span>
                 )}
                 <span
@@ -351,7 +362,7 @@ const QueuePage: React.FC = () => {
                       : ''
                   }`}
                 />
-                Preferuar
+                {t('queue.favorite')}
               </Button>
               <div className="hidden md:flex items-center gap-2 text-success text-sm font-medium">
                 <span className="w-2 h-2 bg-success rounded-full animate-pulse" />
@@ -410,13 +421,13 @@ const QueuePage: React.FC = () => {
 
             {/* Priority lanes */}
             <div className="surface-card rounded-2xl p-5">
-              <h2 className="font-semibold text-sm mb-3">Radha sipas prioritetit</h2>
+              <h2 className="font-semibold text-sm mb-3">{t('queue.priorityLanes')}</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {[
-                  { key: 'emergency', label: 'Emergjencë', count: priorityCounts.emergency, cls: 'text-destructive' },
-                  { key: 'elderly', label: 'Të moshuar', count: priorityCounts.elderly, cls: 'text-warning' },
-                  { key: 'disability', label: 'Aftësi kufizuara', count: priorityCounts.disability, cls: 'text-secondary' },
-                  { key: 'normal', label: 'Normal', count: priorityCounts.normal, cls: 'text-muted-foreground' },
+                  { key: 'emergency', label: t('priority.emergency'), count: priorityCounts.emergency, cls: 'text-destructive' },
+                  { key: 'elderly', label: t('priority.elderly'), count: priorityCounts.elderly, cls: 'text-warning' },
+                  { key: 'disability', label: t('priority.disability'), count: priorityCounts.disability, cls: 'text-secondary' },
+                  { key: 'normal', label: t('priority.normal'), count: priorityCounts.normal, cls: 'text-muted-foreground' },
                 ].map((lane) => (
                   <div
                     key={lane.key}
@@ -483,36 +494,17 @@ const QueuePage: React.FC = () => {
                   </Select>
                 </div>
 
-                {selectedServiceObj?.requiredDocuments &&
-                  selectedServiceObj.requiredDocuments.length > 0 && (
-                    <div className="rounded-2xl border border-accent/20 bg-accent/5 p-4 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-accent" />
-                        <p className="text-sm font-semibold">Dokumentet e nevojshme</p>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Konfirmo që i ke me vete para se të marrësh numrin.
-                      </p>
-                      <div className="space-y-2">
-                        {selectedServiceObj.requiredDocuments.map((doc) => (
-                          <label
-                            key={doc}
-                            className="flex items-center gap-3 text-sm cursor-pointer"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={!!docsChecked[doc]}
-                              onChange={(e) =>
-                                setDocsChecked((prev) => ({ ...prev, [doc]: e.target.checked }))
-                              }
-                              className="rounded border-white/20"
-                            />
-                            <span>{doc}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                {selectedServiceObj && (
+                  <ServiceVoicePanel
+                    institutionId={institutionId || institution?._id}
+                    serviceId={selectedServiceObj.id || selectedServiceObj._id}
+                    serviceName={selectedServiceObj.name}
+                    showChecklist
+                    docsChecked={docsChecked}
+                    onDocsCheckedChange={setDocsChecked}
+                    onGuide={setVoiceGuide}
+                  />
+                )}
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
@@ -634,17 +626,27 @@ const QueuePage: React.FC = () => {
             <div className="surface-card rounded-2xl p-5">
               <h3 className="font-semibold mb-4 text-sm">{t('queue.allServices')}</h3>
               <div className="space-y-2">
-                {services.map((service) => (
-                  <div
-                    key={service.id || service._id}
-                    className="flex justify-between items-center p-3 rounded-xl hover:bg-white/5 transition-colors text-sm"
-                  >
-                    <span className="font-medium">{service.name}</span>
-                    <span className="text-xs text-muted-foreground px-2 py-1 rounded-full bg-muted">
-                      ~{service.estimatedTime} min
-                    </span>
-                  </div>
-                ))}
+                {services.map((service) => {
+                  const sid = service.id || service._id || ''
+                  const active = selectedService === sid
+                  return (
+                    <button
+                      key={sid}
+                      type="button"
+                      onClick={() => setSelectedService(sid)}
+                      className={`w-full flex justify-between items-center p-3 rounded-xl text-sm text-left transition-colors ${
+                        active
+                          ? 'bg-[#0c4f91]/10 border border-[#f5c400]/50'
+                          : 'hover:bg-white/5 border border-transparent'
+                      }`}
+                    >
+                      <span className="font-medium">{service.name}</span>
+                      <span className="text-xs text-muted-foreground px-2 py-1 rounded-full bg-muted">
+                        ~{service.estimatedTime} min
+                      </span>
+                    </button>
+                  )
+                })}
                 {services.length === 0 && (
                   <p className="text-center text-muted-foreground py-4 text-sm">{t('queue.noServices')}</p>
                 )}
@@ -653,7 +655,7 @@ const QueuePage: React.FC = () => {
 
             <div className="surface-card rounded-2xl p-5 space-y-4">
               <h3 className="font-semibold text-sm flex items-center gap-2">
-                <Star className="w-4 h-4 text-warning" /> Vlerëso shërbimin
+                <Star className="w-4 h-4 text-warning" /> {t('queue.rateService')}
               </h3>
               <div className="flex gap-1">
                 {[1, 2, 3, 4, 5].map((n) => (
@@ -675,11 +677,11 @@ const QueuePage: React.FC = () => {
               <textarea
                 value={ratingComment}
                 onChange={(e) => setRatingComment(e.target.value)}
-                placeholder="Koment (opsional)…"
+                placeholder={t('queue.commentOptional')}
                 className="w-full min-h-[72px] rounded-xl bg-muted/50 border border-white/8 px-3 py-2 text-sm"
               />
               <Button className="w-full" variant="secondary" onClick={submitRating}>
-                Dërgo vlerësimin
+                {t('queue.sendRating')}
               </Button>
             </div>
           </div>
@@ -747,7 +749,7 @@ const QueuePage: React.FC = () => {
                 <Printer className="w-4 h-4" /> {t('queue.printTicket')}
               </Button>
               <Button variant="secondary" className="w-full h-11 print:hidden" onClick={shareTicket}>
-                <Share2 className="w-4 h-4" /> Ndaj / Kopjo ticket-in
+                <Share2 className="w-4 h-4" /> {t('queue.shareTicket')}
               </Button>
 
               <div className="space-y-3">

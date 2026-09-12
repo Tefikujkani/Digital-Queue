@@ -18,10 +18,17 @@ import {
   Info,
   X,
   Loader2,
-  Smartphone,
-  Mail,
+  MessageCircle,
 } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog'
 import { toast } from 'sonner'
+import ServiceVoicePanel from '../components/ServiceVoicePanel'
 import type { Institution, Service } from '../types'
 import api from '../lib/api'
 import { Input } from '../components/ui/input'
@@ -64,11 +71,19 @@ const AppointmentsPage: React.FC = () => {
   const [bookingLoading, setBookingLoading] = useState(false)
   const [slots, setSlots] = useState<SlotInfo[]>([])
   const [slotsLoading, setSlotsLoading] = useState(false)
-  const [notifySms, setNotifySms] = useState(false)
-  const [phone, setPhone] = useState(user?.phone || '')
+  const [notifyWhatsApp, setNotifyWhatsApp] = useState(true)
+  const [notifySms, setNotifySms] = useState(true)
+  const [phone, setPhone] = useState((user as any)?.whatsappPhone || user?.phone || '')
+  const [waConfirm, setWaConfirm] = useState<{
+    number: string
+    shareLink?: string
+    sent?: boolean
+    institutionId: string
+  } | null>(null)
 
   useEffect(() => {
-    if (user?.phone) setPhone(user.phone)
+    const saved = (user as any)?.whatsappPhone || user?.phone
+    if (saved) setPhone(saved)
   }, [user?.phone])
 
   useEffect(() => {
@@ -153,8 +168,8 @@ const AppointmentsPage: React.FC = () => {
       return
     }
 
-    if (notifySms && !phone.trim()) {
-      toast.error('Shkruaj numrin e telefonit për SMS, ose çaktivizo SMS')
+    if (notifyWhatsApp && !phone.trim()) {
+      toast.error(t('appointment.waNeedPhone'))
       return
     }
 
@@ -162,16 +177,33 @@ const AppointmentsPage: React.FC = () => {
     try {
       // Lokal YYYY-MM-DD — JO toISOString (zhvendos datën në Kosovë / UTC+2)
       const dateStr = format(selectedDate, 'yyyy-MM-dd')
-      await getTicket(
+      const ticket = await getTicket(
         selectedInstitution,
         selectedService,
         'normal',
         user?.name || t('auth.citizen'),
         dateStr,
         selectedTime,
-        { notifySms, phone: phone.trim() || undefined },
+        {
+          notifyWhatsApp,
+          notifySms,
+          phone: phone.trim() || undefined,
+        },
       )
-      navigate(`/queue/${selectedInstitution}`)
+      const note = (ticket as any).notification
+      const fallbackText = encodeURIComponent(
+        `✅ SmartQueue Kosova\nTermini u konfirmua.\n🎫 Numri: ${ticket.number}\nRuaje këtë mesazh — nuk ju duhet email.`,
+      )
+      const digits = phone.replace(/\D/g, '')
+      const e164 = digits.startsWith('0') ? `383${digits.slice(1)}` : digits
+      setWaConfirm({
+        number: ticket.number,
+        shareLink:
+          note?.shareLink ||
+          (e164 ? `https://wa.me/${e164}?text=${fallbackText}` : `https://wa.me/?text=${fallbackText}`),
+        sent: Boolean(note?.sent || note?.delivered),
+        institutionId: selectedInstitution,
+      })
     } catch (error: any) {
       // Error toast already shown by QueueContext.getTicket with API message
       console.error('Booking failed:', error)
@@ -197,8 +229,7 @@ const AppointmentsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-primary/5 blur-[100px] -z-10 rounded-full" />
-      <div className="absolute bottom-0 left-0 w-[40%] h-[40%] bg-accent/5 blur-[100px] -z-10 rounded-full" />
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent -z-10" />
 
       <div className="pt-10 pb-8 px-4 relative z-10">
         <div className="container mx-auto max-w-6xl">
@@ -282,6 +313,15 @@ const AppointmentsPage: React.FC = () => {
                         </SelectContent>
                       </Select>
                     </div>
+                    {selectedInstitution && selectedService && (
+                      <ServiceVoicePanel
+                        institutionId={selectedInstitution}
+                        serviceId={selectedService}
+                        serviceName={
+                          services.find((s) => (s.id || (s as any)._id) === selectedService)?.name
+                        }
+                      />
+                    )}
                   </div>
                   <div className="space-y-3">
                     <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">
@@ -309,11 +349,11 @@ const AppointmentsPage: React.FC = () => {
                   </Label>
                   {slotsLoading ? (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="w-4 h-4 animate-spin" /> Duke ngarkuar oraret…
+                      <Loader2 className="w-4 h-4 animate-spin" /> {t('appointment.loadingSlots')}
                     </div>
                   ) : visibleSlots.length === 0 ? (
                     <p className="text-sm text-amber-300/90">
-                      Nuk ka orare të lira për këtë ditë. Zgjidh datë tjetër.
+                      {t('appointment.noSlots')}
                     </p>
                   ) : (
                     <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
@@ -336,27 +376,20 @@ const AppointmentsPage: React.FC = () => {
                   )}
                 </div>
 
-                <div className="rounded-2xl border border-sky-500/25 bg-sky-500/5 p-5 space-y-4">
+                <div className="rounded-2xl border border-[#25D366]/35 bg-[#25D366]/8 p-5 space-y-4">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-start gap-3">
-                      <Smartphone className="w-5 h-5 text-sky-400 mt-0.5" />
+                      <MessageCircle className="w-5 h-5 text-[#128C7E] mt-0.5" />
                       <div>
                         <p className="font-semibold text-sm">{t('appointment.notifyTitle')}</p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {user?.telegramChatId
-                            ? t('appointment.notifyLinked')
-                            : t('appointment.notifyHint')}
+                          {t('appointment.notifyHint')}
                         </p>
                       </div>
                     </div>
-                    <Switch checked={notifySms} onCheckedChange={setNotifySms} />
+                    <Switch checked={notifyWhatsApp} onCheckedChange={setNotifyWhatsApp} />
                   </div>
-                  {user?.telegramChatId && (
-                    <p className="text-[11px] text-sky-300/90 flex items-center gap-1.5">
-                      ✓ {t('appointment.telegramActive')}
-                    </p>
-                  )}
-                  {notifySms && (
+                  {notifyWhatsApp && (
                     <div className="space-y-2">
                       <Label className="text-xs uppercase tracking-wider text-muted-foreground">
                         {t('appointment.phoneSms')}
@@ -367,10 +400,16 @@ const AppointmentsPage: React.FC = () => {
                         placeholder="044 xxx xxx"
                         className="h-12 rounded-xl"
                       />
-                      <p className="text-[11px] text-muted-foreground inline-flex items-center gap-1.5">
-                        <Mail className="w-3 h-3" /> Email konfirmimi shkon gjithmonë te {user?.email}
-                      </p>
                     </div>
+                  )}
+                  <label className="flex items-center justify-between gap-3 text-sm">
+                    <span className="text-muted-foreground">{t('appointment.smsBackup')}</span>
+                    <Switch checked={notifySms} onCheckedChange={setNotifySms} />
+                  </label>
+                  {user?.telegramChatId && (
+                    <p className="text-[11px] text-[#128C7E] flex items-center gap-1.5">
+                      ✓ {t('appointment.telegramActive')}
+                    </p>
                   )}
                 </div>
 
@@ -489,7 +528,7 @@ const AppointmentsPage: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card className="glass border-white/5 rounded-[2rem] bg-gradient-to-br from-primary/5 to-accent/5">
+            <Card className="surface-card rounded-xl">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg font-bold flex items-center gap-2">
                   <Info className="w-5 h-5 text-primary" />
@@ -512,6 +551,45 @@ const AppointmentsPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <Dialog
+        open={Boolean(waConfirm)}
+        onOpenChange={(open) => {
+          if (!open && waConfirm) navigate(`/queue/${waConfirm.institutionId}`)
+        }}
+      >
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {t('appointment.waTitle')} · {waConfirm?.number}
+            </DialogTitle>
+            <DialogDescription>
+              {waConfirm?.sent ? t('appointment.waSent') : t('appointment.waReady')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
+            {waConfirm?.sent ? (
+              <p className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                {t('appointment.waSent')}
+              </p>
+            ) : waConfirm?.shareLink ? (
+              <Button
+                className="bg-[#25D366] text-white hover:bg-[#1ebe5d]"
+                onClick={() => window.open(waConfirm.shareLink, '_blank', 'noopener,noreferrer')}
+              >
+                <MessageCircle className="w-4 h-4" />
+                {t('appointment.waOpen')}
+              </Button>
+            ) : null}
+            <Button
+              variant="outline"
+              onClick={() => waConfirm && navigate(`/queue/${waConfirm.institutionId}`)}
+            >
+              {t('appointment.waLater')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

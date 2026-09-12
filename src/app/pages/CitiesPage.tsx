@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { motion } from 'motion/react'
-import { MapPin, Building2, ArrowRight, Sparkles } from 'lucide-react'
+import { MapPin, ArrowRight, Sparkles } from 'lucide-react'
 import api from '../lib/api'
 import { Button } from '../components/ui/button'
 import { useLanguage } from '../contexts/LanguageContext'
@@ -28,7 +28,7 @@ const CitiesPage: React.FC = () => {
   return (
     <div className="min-h-screen pb-20">
       <section className="relative pt-14 pb-10 px-5 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/15 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/8 via-transparent to-transparent pointer-events-none" />
         <div className="container mx-auto max-w-6xl relative">
           <p className="text-primary text-xs font-bold uppercase tracking-[0.2em] mb-3 inline-flex items-center gap-2">
             <Sparkles className="w-3.5 h-3.5" /> {t('cities.eyebrow')}
@@ -60,25 +60,32 @@ const CitiesPage: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.04 }}
                 onClick={() => navigate(`/institutions?city=${encodeURIComponent(city.name)}`)}
-                className="surface-card rounded-2xl p-5 text-left hover:border-primary/40 transition-all hover:-translate-y-1 group"
+                className="surface-card rounded-xl p-5 text-left hover:border-primary/40 transition-colors group flex flex-col min-h-[200px]"
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center">
+                <div className="flex items-start justify-between gap-3 mb-4">
+                  <div className="w-11 h-11 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                     <MapPin className="w-5 h-5 text-primary" />
                   </div>
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-accent/10 text-accent">
-                    {city.count} {t('cities.activeInstitutions')}
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-muted text-muted-foreground whitespace-nowrap">
+                    {t('cities.countLabel', { n: city.count })}
                   </span>
                 </div>
-                <h2 className="text-xl font-semibold group-hover:text-primary transition-colors">
+                <h2 className="text-xl font-semibold text-primary leading-tight">
                   {city.name}
                 </h2>
-                <p className="text-xs text-muted-foreground mt-2 inline-flex items-center gap-1.5">
-                  <Building2 className="w-3.5 h-3.5" />
-                  {(city.types || []).slice(0, 3).join(' · ') || t('cities.publicServices')}
-                </p>
-                <span className="mt-4 inline-flex items-center gap-1 text-sm text-primary font-medium">
-                  {t('cities.viewInstitutions')} <ArrowRight className="w-4 h-4" />
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {(city.types?.length ? city.types.slice(0, 3) : ['other']).map((type) => (
+                    <span
+                      key={type}
+                      className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-primary/8 text-primary"
+                    >
+                      {t(`type.${type}`)}
+                    </span>
+                  ))}
+                </div>
+                <span className="mt-auto pt-4 inline-flex items-center gap-1 text-sm text-primary font-semibold">
+                  {t('cities.viewInstitutions')}
+                  <ArrowRight className="w-4 h-4 shrink-0" />
                 </span>
               </motion.button>
             ))}
@@ -87,16 +94,14 @@ const CitiesPage: React.FC = () => {
 
         <div className="mt-10 rounded-3xl border border-primary/20 bg-primary/5 p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <h3 className="text-lg font-semibold mb-1">Nuk e gjen qytetin?</h3>
-            <p className="text-sm text-muted-foreground">
-              Kërko në të gjitha institucionet ose pyet Asistentin SmartQueue.
-            </p>
+            <h3 className="text-lg font-semibold mb-1">{t('cities.notFoundTitle')}</h3>
+            <p className="text-sm text-muted-foreground">{t('cities.notFoundBody')}</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => navigate('/institutions')}>
-              Të gjitha
+              {t('institution.filter.all')}
             </Button>
-            <Button onClick={() => navigate('/institutions')}>Kërko tani</Button>
+            <Button onClick={() => navigate('/institutions')}>{t('cities.searchNow')}</Button>
           </div>
         </div>
       </div>

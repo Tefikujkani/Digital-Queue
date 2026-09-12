@@ -3,16 +3,31 @@
   "short_name": "SmartQueue",
   "description": "Radhë digjitale dhe termine për institucionet e Kosovës",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#08080f",
-  "theme_color": "#7f41ff",
+  "orientation": "portrait-primary",
+  "background_color": "#f4f6f8",
+  "theme_color": "#0c4f91",
   "lang": "sq",
+  "categories": ["utilities", "government"],
   "icons": [
+    {
+      "src": "/pwa-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "/pwa-icon.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }

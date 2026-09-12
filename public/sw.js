@@ -1,6 +1,6 @@
 /* SmartQueue offline shell */
-const CACHE = 'smartqueue-v1'
-const ASSETS = ['/', '/manifest.webmanifest', '/pwa-icon.svg']
+const CACHE = 'smartqueue-v2'
+const ASSETS = ['/', '/manifest.webmanifest', '/pwa-icon.svg', '/pwa-icon-192.png', '/apple-touch-icon.png']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)))

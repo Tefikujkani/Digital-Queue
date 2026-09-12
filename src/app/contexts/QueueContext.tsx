@@ -54,7 +54,7 @@ interface QueueContextType {
     userName: string,
     scheduledDate?: string,
     scheduledTime?: string,
-    options?: { notifySms?: boolean; phone?: string },
+    options?: { notifySms?: boolean; notifyWhatsApp?: boolean; phone?: string },
   ) => Promise<Ticket>
   cancelTicket: (ticketId: string) => Promise<void>
   callNextTicket: (institutionId: string, counterId: string) => Promise<void>
@@ -157,7 +157,7 @@ export const QueueProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       userName: string,
       scheduledDate?: string,
       scheduledTime?: string,
-      options?: { notifySms?: boolean; phone?: string },
+      options?: { notifySms?: boolean; notifyWhatsApp?: boolean; phone?: string },
     ): Promise<Ticket> => {
       try {
         const response = await api.post('/tickets', {
@@ -168,9 +168,14 @@ export const QueueProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           scheduledDate,
           scheduledTime,
           notifySms: options?.notifySms,
+          notifyWhatsApp: options?.notifyWhatsApp !== false,
           phone: options?.phone,
         })
         const newTicket = normalize(response.data)
+        const notification = response.data?.notification
+        if (notification) {
+          ;(newTicket as any).notification = notification
+        }
         setTickets((prev) => [...prev, newTicket])
         setCurrentTicket(newTicket)
 
@@ -181,9 +186,9 @@ export const QueueProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             : translate('toast.ticketSuccess', { number: newTicket.number }),
           {
             description: isAppointment
-              ? options?.notifySms
-                ? 'SMS u kërkua · email / njoftime në app'
-                : 'Email / njoftim në app u dërgua'
+              ? notification?.via === 'whatsapp'
+                ? translate('appointment.waSent')
+                : translate('appointment.waReady')
               : translate('toast.ticketPosition', {
                   position: newTicket.positionInQueue || translate('status.waiting'),
                 }),

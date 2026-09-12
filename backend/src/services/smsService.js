@@ -402,16 +402,20 @@ export async function deliverSmartMessage({
 }) {
   const results = []
 
+  let shareLink = null
+
+  if (whatsappPhone) {
+    const { sendBookingConfirmation } = await import('./whatsappService.js')
+    const wa = await sendBookingConfirmation({ phone: whatsappPhone, text: body })
+    shareLink = wa.shareLink || null
+    results.push({ channel: 'whatsapp', ...wa })
+    if (wa.success) return { delivered: true, via: 'whatsapp', shareLink, results }
+  }
+
   if (telegramChatId) {
     const tg = await sendViaTelegram(telegramChatId, body)
     results.push({ channel: 'telegram', ...tg })
-    if (tg.success) return { delivered: true, via: 'telegram', results }
-  }
-
-  if (whatsappPhone) {
-    const wa = await sendViaWhatsApp(whatsappPhone, body)
-    results.push({ channel: 'whatsapp', ...wa })
-    if (wa.success) return { delivered: true, via: 'whatsapp', results }
+    if (tg.success) return { delivered: true, via: 'telegram', shareLink, results }
   }
 
   if (viberId) {
@@ -424,7 +428,7 @@ export async function deliverSmartMessage({
     const sms = await sendSMS(phone, body)
     results.push({ channel: 'sms', ...sms })
     if (sms.success) {
-      return { delivered: true, via: sms.provider, results }
+      return { delivered: true, via: sms.provider, shareLink, results }
     }
   }
 
@@ -441,10 +445,10 @@ export async function deliverSmartMessage({
       </div>`,
     )
     results.push({ channel: 'email_fallback', success: !!mail?.success })
-    if (mail?.success) return { delivered: true, via: 'email_fallback', results }
+    if (mail?.success) return { delivered: true, via: 'email_fallback', shareLink, results }
   }
 
-  return { delivered: false, via: null, results }
+  return { delivered: false, via: shareLink ? 'whatsapp_link' : null, shareLink, results }
 }
 
 export default { sendSMS, deliverSmartMessage, getSmsProviderStatus, toE164Kosovo }

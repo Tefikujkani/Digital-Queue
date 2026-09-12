@@ -4,9 +4,11 @@ import { sendEmail, ticketIssuedEmail, ticketCalledEmail, ticketCompletedEmail }
 import { sendSMS } from './smsService.js'
 import {
   buildAppointmentSms,
+  buildAppointmentWhatsApp,
   sendAppointmentSMS,
   formatAppointmentLocal,
 } from './appointmentNotify.js'
+import { toE164Kosovo } from './whatsappService.js'
 
 /**
  * Central notification service — respects user.notificationPrefs
@@ -27,18 +29,23 @@ class NotificationService {
 
     const forceSms = channels.forceSms === true
     const inApp = channels.inApp !== false && prefs.inApp !== false
-    const email = Boolean(channels.email) && prefs.email !== false
     const wantsTelegram =
       Boolean(user?.telegramChatId) && prefs.telegram !== false
     const wantsViber = Boolean(user?.viberId) && prefs.viber !== false
-    const wantsWhatsApp = Boolean(user?.whatsappPhone) && prefs.whatsapp !== false
+    const waPhone = data.phoneOverride || user?.whatsappPhone || user?.phone
+    const forceWhatsApp = channels.forceWhatsApp !== false && type.startsWith('appointment_')
+    const wantsWhatsApp =
+      (forceWhatsApp && Boolean(waPhone)) ||
+      (Boolean(user?.whatsappPhone) && prefs.whatsapp !== false)
     // Transactional appointment SMS can override prefs when forceSms + phone
     const sms =
       (Boolean(channels.sms) && prefs.sms === true) ||
       (forceSms && Boolean(user?.phone || data.phoneOverride))
+    const hasEmail = Boolean(user?.email)
+    const email = Boolean(channels.email) && prefs.email !== false && hasEmail
     const smartDelivery =
       type.startsWith('appointment_') &&
-      (sms || wantsTelegram || wantsViber || wantsWhatsApp || forceSms)
+      (sms || wantsTelegram || wantsViber || wantsWhatsApp || forceSms || forceWhatsApp)
 
     const notification = await Notification.create({
       userId,
@@ -108,7 +115,7 @@ class NotificationService {
           email: user?.email,
           telegramChatId: wantsTelegram ? user.telegramChatId : undefined,
           viberId: wantsViber ? user.viberId : undefined,
-          whatsappPhone: wantsWhatsApp ? user.whatsappPhone : undefined,
+          whatsappPhone: wantsWhatsApp ? waPhone : undefined,
           body: message,
           subject: `📱 ${title}`,
         })
@@ -168,41 +175,35 @@ class NotificationService {
    * Kur qytetari rezervon termin — SMS + email + in-app (falas me cascade)
    */
   async appointmentBooked(userId, ticket, institutionName, serviceName, opts = {}) {
-    const smsBody = buildAppointmentSms({
+    const user = await User.findById(userId)
+    const phone = opts.phone || user?.whatsappPhone || user?.phone
+    const e164 = toE164Kosovo(phone)
+    const waBody = buildAppointmentWhatsApp({
+      name: user?.name || ticket.userName,
       ticketNumber: ticket.number,
       institutionName,
       serviceName,
       scheduledAt: ticket.scheduledAt,
-      kind: 'confirm',
     })
     const { dateStr, timeStr } = formatAppointmentLocal(ticket.scheduledAt)
 
-    // Opsional: ruaj telefonin nëse u dërgua nga forma e rezervimit
-    if (opts.phone) {
-      const user = await User.findById(userId)
-      if (user && !user.phone) {
-        user.phone = opts.phone
-        user.notificationPrefs = {
-          ...(user.notificationPrefs || {}),
-          sms: true,
-          email: true,
-          inApp: true,
-        }
-        await user.save()
-      } else if (user && opts.enableSms) {
-        user.notificationPrefs = {
-          ...(user.notificationPrefs || {}),
-          sms: true,
-        }
-        await user.save()
+    if (user && e164) {
+      user.phone = user.phone || e164
+      user.whatsappPhone = user.whatsappPhone || e164
+      user.notificationPrefs = {
+        ...(user.notificationPrefs?.toObject?.() || user.notificationPrefs || {}),
+        whatsapp: true,
+        inApp: true,
+        sms: opts.notifySms === true || user.notificationPrefs?.sms,
       }
+      await user.save()
     }
 
     return this.notify(
       userId,
       'appointment_booked',
-      'Termini u konfirmua',
-      smsBody,
+      'Termini u konfirmua në WhatsApp',
+      waBody,
       {
         ticketId: ticket._id.toString(),
         ticketNumber: ticket.number,
@@ -212,9 +213,15 @@ class NotificationService {
         scheduledAt: ticket.scheduledAt,
         dateStr,
         timeStr,
-        phoneOverride: opts.phone,
+        phoneOverride: e164 || phone,
       },
-      { inApp: true, email: true, sms: opts.notifySms === true, forceSms: opts.notifySms === true },
+      {
+        inApp: true,
+        email: Boolean(user?.email),
+        sms: true,
+        forceSms: true,
+        forceWhatsApp: opts.notifyWhatsApp !== false,
+      },
     )
   }
 

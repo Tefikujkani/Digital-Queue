@@ -6,7 +6,7 @@ import { Button } from '../components/ui/button'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../lib/api'
-import type { Institution, Ticket } from '../types'
+import type { Institution } from '../types'
 import {
   Clock,
   Calendar,
@@ -23,12 +23,20 @@ import {
   Zap,
   MapPin,
   Search,
+  Download,
 } from 'lucide-react'
+import DownloadApp from '../components/DownloadApp'
 
 type WaitLevel = 'low' | 'medium' | 'high'
 type LiveTab = 'near' | 'popular' | 'favorites'
 
 const TAB_ORDER: LiveTab[] = ['near', 'popular', 'favorites']
+
+type WaitStat = {
+  waiting?: number
+  estimatedWaitMinutes?: number
+  load?: WaitLevel
+}
 
 type LiveStation = {
   id: string
@@ -92,21 +100,24 @@ function AnimatedWait({ value }: { value: number }) {
   return <span>{text}</span>
 }
 
-function buildLiveStations(institutions: Institution[], tickets: Ticket[]): LiveStation[] {
+function buildLiveStations(
+  institutions: Institution[],
+  waitMap: Record<string, WaitStat>,
+): LiveStation[] {
   return institutions.map((inst, index) => {
     const id = String(inst.id || (inst as any)._id)
-    const waiting = tickets.filter(
-      (t) =>
-        String(t.institutionId) === id &&
-        (t.status === 'waiting' || t.status === 'called' || t.status === 'serving'),
-    )
+    const stat = waitMap[id] || {}
     const avgService =
       inst.services?.length > 0
         ? Math.round(
             inst.services.reduce((sum, s) => sum + (s.estimatedTime || 5), 0) / inst.services.length,
           )
         : 5
-    const wait = waiting.length === 0 ? avgService : waiting.length * avgService
+    const waitingCount = stat.waiting || 0
+    const wait =
+      stat.estimatedWaitMinutes && stat.estimatedWaitMinutes > 0
+        ? stat.estimatedWaitMinutes
+        : Math.max(avgService, waitingCount * avgService)
     const lat = inst.location?.lat ?? USER_LOCATION.lat + (index % 5) * 0.02
     const lng = inst.location?.lng ?? USER_LOCATION.lng + (index % 4) * 0.02
     const distKm = haversineKm(USER_LOCATION, { lat, lng })
@@ -116,8 +127,8 @@ function buildLiveStations(institutions: Institution[], tickets: Ticket[]): Live
       name: inst.name,
       city: inst.location?.city || inst.city || '',
       wait,
-      level: waitLevel(wait),
-      waitingCount: waiting.filter((t) => t.status === 'waiting').length,
+      level: stat.load || waitLevel(wait),
+      waitingCount,
       distKm,
       distLabel: `${distKm.toFixed(1)} km`,
     }
@@ -143,7 +154,7 @@ const HomePage: React.FC = () => {
   }, [])
 
   const [institutions, setInstitutions] = useState<Institution[]>([])
-  const [tickets, setTickets] = useState<Ticket[]>([])
+  const [waitMap, setWaitMap] = useState<Record<string, WaitStat>>({})
   const [loadingLive, setLoadingLive] = useState(true)
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState<LiveTab>('near')
@@ -220,12 +231,20 @@ const HomePage: React.FC = () => {
 
   const fetchLiveData = async () => {
     try {
-      const [instRes, ticketRes] = await Promise.all([
-        api.get('/institutions'),
-        api.get('/tickets'),
-      ])
-      setInstitutions(instRes.data || [])
-      setTickets(ticketRes.data || [])
+      const instRes = await api.get('/institutions')
+      const list: Institution[] = Array.isArray(instRes.data) ? instRes.data : []
+      setInstitutions(list)
+      const ids = list
+        .map((inst) => String(inst.id || (inst as any)._id || ''))
+        .filter(Boolean)
+        .slice(0, 50)
+        .join(',')
+      if (ids) {
+        const statsRes = await api.get('/citizen/wait-stats', { params: { ids } }).catch(() => ({
+          data: {},
+        }))
+        setWaitMap(statsRes.data || {})
+      }
     } catch (error) {
       console.error('Failed to load live queues:', error)
     } finally {
@@ -290,18 +309,11 @@ const HomePage: React.FC = () => {
           setIsLive(false)
         }
       })
-      s.on('new_ticket', (ticket: Ticket) => {
-        setTickets((prev) => {
-          const id = String((ticket as any)._id || ticket.id)
-          if (prev.some((t) => String((t as any)._id || t.id) === id)) return prev
-          return [...prev, ticket]
-        })
+      s.on('new_ticket', () => {
+        fetchLiveData()
       })
-      s.on('ticket_updated', (updated: Ticket) => {
-        const id = String((updated as any)._id || updated.id)
-        setTickets((prev) =>
-          prev.map((t) => (String((t as any)._id || t.id) === id ? updated : t)),
-        )
+      s.on('ticket_updated', () => {
+        fetchLiveData()
       })
     }
 
@@ -314,9 +326,10 @@ const HomePage: React.FC = () => {
   }, [])
 
   const stations = useMemo(
-    () => buildLiveStations(institutions, tickets),
-    [institutions, tickets],
+    () => buildLiveStations(institutions, waitMap),
+    [institutions, waitMap],
   )
+  const waitingTotal = Object.values(waitMap).reduce((sum, row) => sum + (row.waiting || 0), 0)
 
   const visibleStations = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -354,210 +367,196 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="min-h-screen">
-      <section className="relative min-h-[88vh] flex items-center px-5 overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-primary/20 via-transparent to-background" />
-          <motion.div
-            className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[700px] rounded-full bg-primary/15 blur-[120px]"
-            animate={{ scale: [1, 1.08, 1], opacity: [0.5, 0.75, 0.5] }}
-            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-          />
-          <div className="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-background to-transparent" />
-        </div>
-
-        <div className="container mx-auto max-w-6xl relative z-10 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center py-16 lg:py-8">
-          <div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="flex items-center gap-3 mb-8"
-            >
-              <motion.div
-                className="w-14 h-14 rounded-2xl btn-gradient flex items-center justify-center glow-primary"
-                animate={{ boxShadow: ['0 0 20px rgba(124,58,237,0.35)', '0 0 36px rgba(124,58,237,0.55)', '0 0 20px rgba(124,58,237,0.35)'] }}
-                transition={{ duration: 2.4, repeat: Infinity }}
-              >
-                <TicketIcon className="w-7 h-7 text-white" />
-              </motion.div>
-              <div>
-                <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight leading-none">
-                  SmartQueue
-                </h1>
-                <p className="text-primary text-xs font-semibold uppercase tracking-[0.25em] mt-1">
-                  Kosova
-                </p>
-              </div>
-            </motion.div>
-
-            <motion.h2
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.65, delay: 0.1 }}
-              className="text-4xl md:text-5xl lg:text-[3.4rem] font-bold tracking-tight leading-[1.1] mb-5"
-            >
-              {t('home.title')}
-            </motion.h2>
-
-            <motion.p
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.65, delay: 0.18 }}
-              className="text-base md:text-lg text-muted-foreground max-w-lg leading-relaxed mb-9"
-            >
-              {t('home.description')}
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.65, delay: 0.26 }}
-              className="flex flex-col sm:flex-row gap-3"
-            >
-              <Button
-                size="lg"
-                onClick={() =>
-                  isAuthenticated ? navigate('/institutions') : navigate('/login')
-                }
-              >
-                {t('home.getStarted')}
-                <ArrowRight className="w-5 h-5" />
-              </Button>
-              <Button size="lg" variant="outline" onClick={() => navigate('/institutions')}>
-                {t('nav.institutions')}
-              </Button>
-            </motion.div>
-          </div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="relative hidden lg:block"
+      <section className="relative overflow-hidden bg-white">
+        <div className="gov-skyline absolute inset-x-0 bottom-0 h-36 opacity-70 pointer-events-none" />
+        <div className="container mx-auto max-w-6xl relative z-10 px-5 pt-8 pb-14 lg:pt-14 lg:pb-24">
+          <motion.p
+            initial={false}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-sm font-semibold text-primary mb-3"
           >
-            <motion.div
-              className="surface-card rounded-3xl p-6 relative overflow-hidden"
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+            SmartQueue {t('brand.region')}
+          </motion.p>
+          <motion.h1
+            initial={false}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.4rem] font-bold text-primary max-w-3xl leading-[1.2]"
+          >
+            {t('home.title')}
+          </motion.h1>
+          <motion.p
+            initial={false}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-5 text-base md:text-lg text-muted-foreground max-w-2xl leading-relaxed"
+          >
+            {t('home.description')}
+          </motion.p>
+          <motion.div
+            initial={false}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-8 flex flex-col sm:flex-row gap-3"
+          >
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => navigate(isAuthenticated ? '/institutions' : '/register')}
             >
-              <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/30 rounded-full blur-3xl" />
-
-              <div className="flex items-center justify-between mb-6 relative">
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium">
-                    {t(greetingKey(new Date().getHours()))}
-                  </p>
-                  <p className="font-semibold text-lg">{t('home.liveQueues')}</p>
-                </div>
-                <motion.div
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full wait-low text-xs font-semibold"
-                  animate={{ scale: isLive ? [1, 1.04, 1] : 1 }}
-                  transition={{ duration: 1.6, repeat: Infinity }}
-                >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-success' : 'bg-muted-foreground'} ${isLive ? 'animate-pulse' : ''}`}
-                  />
-                  {t('home.live')}
-                </motion.div>
-              </div>
-
-              <div className="relative mb-4">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder={t('home.searchPlaceholder')}
-                  className="w-full h-12 rounded-2xl bg-muted/80 border border-white/6 pl-11 pr-4 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/40 transition-colors"
-                />
-              </div>
-
-              <div className="flex gap-2 mb-5">
-                {tabs.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => selectTab(item.id, true)}
-                    className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                      tab === item.id
-                        ? 'btn-gradient text-white glow-primary-sm'
-                        : 'bg-muted text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="space-y-3 min-h-[220px]">
-                {loadingLive ? (
-                  [0, 1, 2].map((i) => (
-                    <div
-                      key={i}
-                      className="h-[72px] rounded-2xl bg-white/[0.04] border border-white/6 animate-pulse"
-                    />
-                  ))
-                ) : visibleStations.length === 0 ? (
-                  <div className="h-[220px] flex items-center justify-center text-sm text-muted-foreground text-center px-4">
-                    {t('home.noLiveData')}
-                  </div>
-                ) : (
-                  <AnimatePresence mode="popLayout">
-                    {visibleStations.map((s, i) => (
-                      <motion.div
-                        key={s.id}
-                        layout
-                        initial={{ opacity: 0, y: 16, scale: 0.98 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.98 }}
-                        transition={{ duration: 0.35, delay: i * 0.05 }}
-                        className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/6 hover:border-primary/30 transition-colors cursor-pointer"
-                        onClick={() => navigate(`/queue/${s.id}`)}
-                        onDoubleClick={(e) => {
-                          e.stopPropagation()
-                          toggleFavorite(s.id)
-                        }}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <motion.div
-                            className="w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center shrink-0"
-                            whileHover={{ scale: 1.06 }}
-                          >
-                            <Building2 className="w-5 h-5 text-primary" />
-                          </motion.div>
-                          <div className="min-w-0">
-                            <p className="font-semibold text-sm truncate">{s.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {s.distLabel} {t('home.away')}
-                              {favorites.includes(s.id) ? ' · ★' : ''}
-                            </p>
-                          </div>
-                        </div>
-                        <motion.span
-                          key={`${s.id}-${s.wait}-${s.level}`}
-                          initial={{ scale: 0.9, opacity: 0.6 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          className={`text-xs font-semibold px-3 py-1.5 rounded-full shrink-0 ml-3 ${
-                            s.level === 'low'
-                              ? 'wait-low'
-                              : s.level === 'medium'
-                                ? 'wait-medium'
-                                : 'wait-high'
-                          }`}
-                        >
-                          <AnimatedWait value={s.wait} /> min · {t(`wait.${s.level}`)}
-                        </motion.span>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                )}
-              </div>
-
-              <Button className="w-full mt-5 h-12" onClick={() => navigate('/institutions')}>
-                {t('home.reserveSlot')}
-                <Zap className="w-4 h-4" />
-              </Button>
-            </motion.div>
+              {t('auth.register')}
+            </Button>
+            <Button
+              size="lg"
+              onClick={() => navigate(isAuthenticated ? '/institutions' : '/login')}
+            >
+              {t('home.getStarted')}
+              <ArrowRight className="w-5 h-5" />
+            </Button>
+            <Button
+              size="lg"
+              variant="secondary"
+              onClick={() => document.getElementById('shkarko')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              <Download className="w-5 h-5" />
+              {t('pwa.shkarko')}
+            </Button>
           </motion.div>
+          <p className="mt-5 text-sm text-primary font-medium">{t('voice.homeHint')}</p>
+        </div>
+      </section>
+
+      <section className="bg-white border-y border-border px-5 py-10">
+        <div className="container mx-auto max-w-6xl grid grid-cols-2 md:grid-cols-4 gap-6">
+          {[
+            {
+              label: t('home.stat.institutions'),
+              value: institutions.length || cities.reduce((s, c) => s + c.count, 0) || '24+',
+              icon: Building2,
+              tile: 'gov-tile-orange bg-[#f39b3c]',
+            },
+            { label: t('home.stat.users'), value: '10K+', icon: Users, tile: 'gov-tile-blue bg-[#3db5e6]' },
+            {
+              label: t('home.stat.waiting'),
+              value: waitingTotal,
+              icon: CheckCircle2,
+              tile: 'gov-tile-green bg-[#7cb342]',
+            },
+            { label: t('home.stat.timeSaved'), value: '1M+', icon: TrendingUp, tile: 'gov-tile-purple bg-[#7e57c2]' },
+          ].map((s, i) => (
+            <div key={i} className="flex flex-col items-center text-center">
+              <div className={`w-14 h-14 rounded-lg ${s.tile} flex items-center justify-center mb-3`}>
+                <s.icon className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-2xl md:text-3xl font-bold text-primary">{s.value}</div>
+              <div className="text-xs text-muted-foreground mt-1 font-medium">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="px-5 py-12">
+        <div className="container mx-auto max-w-6xl">
+          <div className="surface-card rounded-xl p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <p className="text-xs text-muted-foreground font-medium">
+                  {t(greetingKey(new Date().getHours()))}
+                </p>
+                <p className="font-semibold text-lg text-foreground">{t('home.liveQueues')}</p>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full wait-low text-xs font-semibold">
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-success' : 'bg-muted-foreground'} ${isLive ? 'animate-pulse' : ''}`}
+                />
+                {t('home.live')}
+              </div>
+            </div>
+
+            <div className="relative mb-4">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t('home.searchPlaceholder')}
+                className="w-full h-12 rounded-lg bg-muted border border-border pl-11 pr-4 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary transition-colors"
+              />
+            </div>
+
+            <div className="flex gap-2 mb-5">
+              {tabs.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => selectTab(item.id, true)}
+                  className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                    tab === item.id
+                      ? 'btn-gradient text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-3 min-h-[180px]">
+              {loadingLive ? (
+                [0, 1, 2].map((i) => (
+                  <div key={i} className="h-[72px] rounded-lg bg-muted border border-border animate-pulse" />
+                ))
+              ) : visibleStations.length === 0 ? (
+                <div className="h-[160px] flex items-center justify-center text-sm text-muted-foreground text-center px-4">
+                  {t('home.noLiveData')}
+                </div>
+              ) : (
+                <AnimatePresence mode="popLayout">
+                  {visibleStations.map((s, i) => (
+                    <motion.div
+                      key={s.id}
+                      layout
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.25, delay: i * 0.04 }}
+                      className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border border-border hover:border-primary/40 transition-colors cursor-pointer"
+                      onClick={() => navigate(`/queue/${s.id}`)}
+                      onDoubleClick={(e) => {
+                        e.stopPropagation()
+                        toggleFavorite(s.id)
+                      }}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-11 h-11 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                          <Building2 className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-sm truncate text-foreground">{s.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {s.distLabel} {t('home.away')}
+                            {favorites.includes(s.id) ? ' · ★' : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <span
+                        className={`text-xs font-semibold px-3 py-1.5 rounded-full shrink-0 ml-3 ${
+                          s.level === 'low'
+                            ? 'wait-low'
+                            : s.level === 'medium'
+                              ? 'wait-medium'
+                              : 'wait-high'
+                        }`}
+                      >
+                        <AnimatedWait value={s.wait} /> min · {t(`wait.${s.level}`)}
+                      </span>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              )}
+            </div>
+
+            <Button className="w-full mt-5 h-12" onClick={() => navigate('/institutions')}>
+              {t('home.reserveSlot')}
+              <Zap className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </section>
 
@@ -582,7 +581,7 @@ const HomePage: React.FC = () => {
                 key={c.name}
                 type="button"
                 onClick={() => navigate(`/institutions?city=${encodeURIComponent(c.name)}`)}
-                className="shrink-0 px-5 py-3 rounded-2xl surface-card hover:border-primary/40 text-left min-w-[140px]"
+                className="shrink-0 px-5 py-3 rounded-lg surface-card hover:border-primary/40 text-left min-w-[140px]"
               >
                 <p className="font-semibold text-sm">{c.name}</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -597,42 +596,7 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Stats strip */}
-      <section className="py-12 px-5">
-        <div className="container mx-auto max-w-6xl">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              {
-                label: t('home.stat.institutions'),
-                value: institutions.length || `${cities.reduce((s, c) => s + c.count, 0) || '50'}+`,
-                icon: Building2,
-              },
-              { label: t('home.stat.users'), value: '10K+', icon: Users },
-              {
-                label: t('home.stat.waiting'),
-                value: tickets.filter((tk) => tk.status === 'waiting').length,
-                icon: CheckCircle2,
-              },
-              { label: t('home.stat.timeSaved'), value: '1M+ min', icon: TrendingUp },
-            ].map((s, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.08 }}
-                className="surface-card rounded-2xl p-5 text-center hover:border-primary/30 transition-colors"
-              >
-                <s.icon className="w-5 h-5 text-primary mx-auto mb-3" />
-                <div className="text-2xl md:text-3xl font-bold">{s.value}</div>
-                <div className="text-xs text-muted-foreground mt-1 font-medium">{s.label}</div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-20 px-5">
+      <section className="py-20 px-5 bg-white">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-14">
             <p className="text-primary text-xs font-bold uppercase tracking-[0.2em] mb-3">
@@ -652,9 +616,9 @@ const HomePage: React.FC = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.06 }}
-                className="surface-card rounded-2xl p-6 hover:border-primary/35 transition-all duration-300 group hover:-translate-y-1"
+                className="surface-card rounded-xl p-6 hover:border-primary/35 transition-colors duration-300 group"
               >
-                <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center mb-5 group-hover:glow-primary-sm transition-all">
+                <div className="w-12 h-12 rounded-lg bg-primary/12 flex items-center justify-center mb-5">
                   <f.icon className="w-5 h-5 text-primary" />
                 </div>
                 <h3 className="text-base font-semibold mb-2">{f.title}</h3>
@@ -685,8 +649,8 @@ const HomePage: React.FC = () => {
                 transition={{ delay: i * 0.1 }}
                 className="relative text-center p-8"
               >
-                <div className="w-16 h-16 rounded-2xl btn-gradient flex items-center justify-center mx-auto mb-6 glow-primary-sm">
-                  <step.icon className="w-7 h-7 text-white" />
+                <div className="w-16 h-16 rounded-lg btn-gradient flex items-center justify-center mx-auto mb-6">
+                  <step.icon className="w-7 h-7 text-primary-foreground" />
                 </div>
                 <div className="text-xs text-primary font-bold tracking-widest mb-2">
                   {t('home.stepLabel')} {step.num}
@@ -702,11 +666,11 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
+      <DownloadApp />
+
       <section className="py-20 px-5">
         <div className="container mx-auto max-w-4xl">
-          <div className="relative rounded-3xl overflow-hidden p-10 md:p-16 text-center border border-primary/30">
-            <div className="absolute inset-0 btn-gradient opacity-90" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.2),transparent_60%)]" />
+          <div className="relative overflow-hidden rounded-xl bg-primary p-10 md:p-16 text-center">
             <div className="relative z-10">
               <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
                 {t('home.ctaTitle')}
@@ -716,7 +680,8 @@ const HomePage: React.FC = () => {
               </p>
               <Button
                 size="lg"
-                className="bg-white text-primary hover:bg-white/90 glow-primary border-0 h-14 px-10"
+                variant="secondary"
+                className="h-14 px-10"
                 onClick={() => navigate(isAuthenticated ? '/institutions' : '/register')}
               >
                 {t('home.ctaRegister')}

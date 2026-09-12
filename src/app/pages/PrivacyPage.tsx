@@ -18,10 +18,10 @@ const PrivacyPage: React.FC = () => {
           <section className="space-y-2">
             <h2 className="text-foreground font-semibold text-base">2. {t('privacy.s2')}</h2>
             <ul className="list-disc pl-5 space-y-1">
-              <li>Të dhëna llogarie: emër, email, telefon (opsional)</li>
-              <li>Ticket-e, termine, preferenca njoftimesh</li>
-              <li>Telegram Chat ID nëse e lidh vetë</li>
-              <li>Të dhëna teknike (IP/log) për siguri dhe stabilitet</li>
+              <li>{t('privacy.l1')}</li>
+              <li>{t('privacy.l2')}</li>
+              <li>{t('privacy.l3')}</li>
+              <li>{t('privacy.l4')}</li>
             </ul>
           </section>
           <section className="space-y-2">

@@ -132,8 +132,8 @@ const InstitutionsPage: React.FC = () => {
   return (
     <div className="min-h-screen pb-20">
       <div className="pt-10 pb-8 px-5">
-        <div className="container mx-auto max-w-6xl">
-          <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="container mx-auto max-w-7xl">
+          <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-5">
             <div>
               <p className="text-primary text-xs font-bold uppercase tracking-[0.2em] mb-2">
                 {t('institution.discover')}
@@ -171,13 +171,13 @@ const InstitutionsPage: React.FC = () => {
             />
           </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide mb-2">
+          <div className="flex flex-wrap gap-3 mb-4">
             <button
               onClick={() => setSelectedCity('all')}
-              className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap ${
+              className={`px-5 py-2.5 rounded-lg text-sm font-semibold tracking-normal ${
                 selectedCity === 'all'
-                  ? 'btn-gradient text-white'
-                  : 'bg-muted/60 text-muted-foreground border border-white/5'
+                  ? 'btn-gradient text-primary-foreground'
+                  : 'bg-muted text-muted-foreground border border-border hover:bg-muted/80'
               }`}
             >
               {t('institution.allCities')}
@@ -186,10 +186,10 @@ const InstitutionsPage: React.FC = () => {
               <button
                 key={c.name}
                 onClick={() => setSelectedCity(c.name)}
-                className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap ${
+                className={`px-5 py-2.5 rounded-lg text-sm font-semibold tracking-normal ${
                   selectedCity === c.name
-                    ? 'btn-gradient text-white'
-                    : 'bg-muted/60 text-muted-foreground border border-white/5'
+                    ? 'btn-gradient text-primary-foreground'
+                    : 'bg-muted text-muted-foreground border border-border hover:bg-muted/80'
                 }`}
               >
                 {c.name} ({c.count})
@@ -197,15 +197,15 @@ const InstitutionsPage: React.FC = () => {
             ))}
           </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide items-center">
+          <div className="flex flex-wrap gap-3 items-center">
             {types.map((id) => (
               <button
                 key={id}
                 onClick={() => setSelectedType(id)}
-                className={`px-4 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-300 ${
+                className={`px-5 py-2.5 rounded-lg text-sm font-semibold tracking-normal transition-colors ${
                   selectedType === id
-                    ? 'btn-gradient text-white glow-primary-sm'
-                    : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground border border-white/5'
+                    ? 'btn-gradient text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-white hover:text-foreground border border-border'
                 }`}
               >
                 {t(`institution.filter.${id}`)}
@@ -216,10 +216,10 @@ const InstitutionsPage: React.FC = () => {
                 if (!isAuthenticated) return navigate('/login')
                 setOnlyFavorites((v) => !v)
               }}
-              className={`px-4 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap inline-flex items-center gap-1.5 ${
+              className={`px-5 py-2.5 rounded-lg text-sm font-semibold tracking-normal inline-flex items-center gap-2 ${
                 onlyFavorites
-                  ? 'bg-accent/20 text-accent border border-accent/40'
-                  : 'bg-muted/40 text-muted-foreground border border-white/5'
+                  ? 'bg-accent/15 text-accent border border-accent/40'
+                  : 'bg-muted text-muted-foreground border border-border'
               }`}
             >
               <Heart className={`w-3.5 h-3.5 ${onlyFavorites ? 'fill-accent' : ''}`} />
@@ -229,7 +229,7 @@ const InstitutionsPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="container mx-auto max-w-6xl px-5">
+      <div className="container mx-auto max-w-7xl px-5">
         {view === 'map' && (
           <div className="mb-8 rounded-3xl border border-white/10 overflow-hidden bg-[#0c1020]">
             <div className="p-4 border-b border-white/8 flex items-center justify-between">
@@ -272,13 +272,13 @@ const InstitutionsPage: React.FC = () => {
         )}
 
         {loading ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="h-72 rounded-2xl bg-muted/50 animate-pulse" />
             ))}
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {list.map((institution) => {
               const Icon = institutionIcons[institution.type] || Building2
               const id = String((institution as any)._id || institution.id)

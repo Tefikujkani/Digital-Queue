@@ -5,12 +5,18 @@ import {
   isGrokConfigured,
 } from '../services/grokService.js'
 
-export const getSuggestions = (_req, res) => {
+function normalizeLang(raw) {
+  const lang = String(raw || '').toLowerCase().slice(0, 2)
+  return ['sq', 'en', 'sr'].includes(lang) ? lang : 'sq'
+}
+
+export const getSuggestions = (req, res) => {
+  const language = normalizeLang(req.query.lang || req.query.language)
   res.json({
-    suggestions: getSuggestedPrompts(),
+    suggestions: getSuggestedPrompts(language),
     assistant: {
-      name: 'Asistenti SmartQueue',
-      poweredBy: isGrokConfigured() ? 'Grok · xAI' : 'SmartQueue Live · shqip',
+      name: 'SmartQueue Assistant',
+      poweredBy: isGrokConfigured() ? 'Grok · xAI' : 'SmartQueue Live',
       mode: isGrokConfigured() ? 'grok' : 'local',
     },
   })
@@ -22,7 +28,7 @@ export const getStatus = (_req, res) => {
 
 export const chat = async (req, res) => {
   const { messages, stream = true } = req.body || {}
-  const language = 'sq'
+  const language = normalizeLang(req.body?.language)
 
   if (!Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ message: 'Duhet të dërgoni mesazhe' })

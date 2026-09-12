@@ -22,9 +22,9 @@ const TermsPage: React.FC = () => {
           <section className="space-y-2">
             <h2 className="text-foreground font-semibold text-base">3. {t('terms.s3')}</h2>
             <ul className="list-disc pl-5 space-y-1">
-              <li>Mos rezervoni termine të rreme ose abuzive</li>
-              <li>Mos tentoni të hyni si admin pa autorizim</li>
-              <li>Respektoni oraret dhe rregullat e institucionit</li>
+              <li>{t('terms.l1')}</li>
+              <li>{t('terms.l2')}</li>
+              <li>{t('terms.l3')}</li>
             </ul>
           </section>
           <section className="space-y-2">

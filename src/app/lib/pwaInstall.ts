@@ -1,0 +1,54 @@
+type BeforeInstallPrompt = Event & {
+  prompt: () => Promise<void>
+  userChoice?: Promise<{ outcome: string }>
+}
+
+let deferred: BeforeInstallPrompt | null = null
+const listeners = new Set<() => void>()
+
+function notify() {
+  listeners.forEach((fn) => fn())
+}
+
+export function isStandaloneApp() {
+  if (typeof window === 'undefined') return false
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (navigator as any).standalone === true
+  )
+}
+
+export function isIosDevice() {
+  if (typeof navigator === 'undefined') return false
+  return /iphone|ipad|ipod/i.test(navigator.userAgent)
+}
+
+export function listenForInstallPrompt() {
+  if (typeof window === 'undefined') return
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault()
+    deferred = e as BeforeInstallPrompt
+    notify()
+  })
+  window.addEventListener('appinstalled', () => {
+    deferred = null
+    notify()
+  })
+}
+
+export function getInstallPrompt() {
+  return deferred
+}
+
+export async function promptInstallApp() {
+  if (!deferred) return false
+  await deferred.prompt()
+  deferred = null
+  notify()
+  return true
+}
+
+export function subscribeInstallReady(fn: () => void) {
+  listeners.add(fn)
+  return () => listeners.delete(fn)
+}
