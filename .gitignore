@@ -6,3 +6,4 @@ dist/
 .wa-session/
 backend/.wa-session/
 .vercel
+.env*
