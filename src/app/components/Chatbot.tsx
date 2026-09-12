@@ -18,7 +18,7 @@ import { getSpeechRecognition, isSpeechRecognitionSupported } from '../lib/speec
 import { useAuth } from '../contexts/AuthContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { streamChat, fetchChatSuggestions, type ChatMessage } from '../lib/chatApi'
-import { isAuthPath, useAssistantExclusive, useKeyboardInset } from '../lib/assistantUi'
+import { isAuthPath, useAssistantExclusive, useKeyboardInset, useOpenAssistant } from '../lib/assistantUi'
 import { Button } from './ui/button'
 import { cn } from './ui/utils'
 
@@ -110,6 +110,7 @@ const Chatbot: React.FC = () => {
 
   const keyboardInset = useKeyboardInset()
   const peerOpen = useAssistantExclusive('chat', open, setOpen)
+  useOpenAssistant('chat', setOpen)
   const hideOnAuthPages = isAuthPath(location.pathname)
   const hideOnAdmin =
     location.pathname.startsWith('/dashboard/admin') ||
@@ -125,7 +126,10 @@ const Chatbot: React.FC = () => {
   }, [messages, activeTool, open])
 
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 200)
+    if (!open) return
+    if (window.matchMedia('(min-width: 1024px)').matches) {
+      setTimeout(() => inputRef.current?.focus(), 200)
+    }
   }, [open])
 
   useEffect(() => {
@@ -492,7 +496,7 @@ const Chatbot: React.FC = () => {
           onClick={() => setOpen(true)}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] lg:bottom-5 right-4 sm:right-6 z-[60] h-14 w-14 rounded-2xl btn-gradient flex items-center justify-center shadow-lg"
+          className="hidden lg:flex fixed bottom-5 right-6 z-[60] h-14 w-14 rounded-2xl btn-gradient items-center justify-center shadow-lg"
         >
           <span className="relative">
             <MessageCircle className="w-6 h-6 text-white" />

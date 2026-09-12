@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { AnimatePresence, motion } from 'motion/react'
-import { Mic, MicOff, Volume2, X, FileText, Clock, MapPin, ArrowRight, Loader2 } from 'lucide-react'
+import { Mic, MicOff, Volume2, X, FileText, Clock, MapPin, ArrowRight, Loader2, Send } from 'lucide-react'
 import { useLanguage } from '../contexts/LanguageContext'
 import { postVoiceIntent, type VoiceGuide } from '../lib/voiceApi'
 import {
@@ -10,7 +10,7 @@ import {
   speakText,
   stopSpeaking,
 } from '../lib/speech'
-import { isAuthPath, useAssistantExclusive, useKeyboardInset } from '../lib/assistantUi'
+import { isAuthPath, useAssistantExclusive, useKeyboardInset, useOpenAssistant } from '../lib/assistantUi'
 import { Button } from './ui/button'
 import { cn } from './ui/utils'
 
@@ -25,8 +25,10 @@ const VoiceAssistant: React.FC<Props> = ({ institutionId, serviceId, compact }) 
   const navigate = useNavigate()
   const location = useLocation()
   const [open, setOpen] = useState(false)
+  const [typed, setTyped] = useState('')
   const keyboardInset = useKeyboardInset()
   const peerOpen = useAssistantExclusive('voice', open, setOpen)
+  useOpenAssistant('voice', setOpen)
   const [listening, setListening] = useState(false)
   const [busy, setBusy] = useState(false)
   const [interim, setInterim] = useState('')
@@ -157,28 +159,57 @@ const VoiceAssistant: React.FC<Props> = ({ institutionId, serviceId, compact }) 
             </div>
 
             <div className="p-4 space-y-4 overflow-y-auto flex-1 pb-[max(1rem,env(safe-area-inset-bottom))]">
-              <button
-                type="button"
-                onClick={listening ? stopListen : startListen}
-                disabled={!supported || busy}
-                className={cn(
-                  'w-full h-28 sm:h-24 rounded-xl border flex flex-col items-center justify-center gap-2 transition-colors',
-                  listening
-                    ? 'bg-primary text-white border-primary'
-                    : 'bg-muted border-border text-primary hover:border-primary',
-                )}
+              {supported ? (
+                <button
+                  type="button"
+                  onClick={listening ? stopListen : startListen}
+                  disabled={busy}
+                  className={cn(
+                    'w-full h-24 rounded-xl border flex flex-col items-center justify-center gap-2 transition-colors',
+                    listening
+                      ? 'bg-primary text-white border-primary'
+                      : 'bg-muted border-border text-primary hover:border-primary',
+                  )}
+                >
+                  {busy ? (
+                    <Loader2 className="w-7 h-7 animate-spin" />
+                  ) : listening ? (
+                    <Mic className="w-8 h-8" />
+                  ) : (
+                    <MicOff className="w-7 h-7" />
+                  )}
+                  <span className="text-sm font-semibold">
+                    {listening ? t('voice.listening') : busy ? t('voice.thinking') : t('voice.tapToSpeak')}
+                  </span>
+                </button>
+              ) : (
+                <p className="text-xs text-muted-foreground bg-muted rounded-lg px-3 py-2">
+                  {t('voice.typeHint')}
+                </p>
+              )}
+
+              <form
+                className="flex items-end gap-2 rounded-xl border border-border bg-muted/40 p-2"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  const q = typed.trim()
+                  if (!q || busy) return
+                  setHeard(q)
+                  setTyped('')
+                  runIntent(q)
+                }}
               >
-                {busy ? (
-                  <Loader2 className="w-7 h-7 animate-spin" />
-                ) : listening ? (
-                  <Mic className="w-8 h-8" />
-                ) : (
-                  <MicOff className="w-7 h-7" />
-                )}
-                <span className="text-sm font-semibold">
-                  {listening ? t('voice.listening') : busy ? t('voice.thinking') : t('voice.tapToSpeak')}
-                </span>
-              </button>
+                <input
+                  value={typed}
+                  onChange={(e) => setTyped(e.target.value)}
+                  placeholder={t('voice.typePlaceholder')}
+                  enterKeyHint="send"
+                  className="flex-1 min-w-0 h-11 px-3 rounded-lg bg-white border border-border text-base outline-none"
+                />
+                <Button type="submit" size="icon" className="h-11 w-11 shrink-0" disabled={busy || !typed.trim()}>
+                  {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                </Button>
+              </form>
 
               {(interim || heard) && (
                 <p className="text-sm text-muted-foreground">
@@ -306,7 +337,7 @@ const VoiceAssistant: React.FC<Props> = ({ institutionId, serviceId, compact }) 
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           className={cn(
-            'fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] lg:bottom-5 left-4 lg:left-auto lg:right-24 z-[60] h-14 w-14 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center shadow-lg',
+            'hidden lg:flex fixed bottom-5 right-24 z-[60] h-14 w-14 rounded-full bg-secondary text-secondary-foreground items-center justify-center shadow-lg',
             listening && 'ring-4 ring-primary/30',
           )}
         >

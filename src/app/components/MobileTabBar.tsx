@@ -13,10 +13,12 @@ import {
   HelpCircle,
   X,
   Download,
+  Mic,
+  MessageCircle,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useLanguage } from '../contexts/LanguageContext'
-import { isAuthPath } from '../lib/assistantUi'
+import { isAuthPath, openAssistant } from '../lib/assistantUi'
 import type { Language } from '../types'
 
 const languages: { code: Language; label: string; native: string }[] = [
@@ -105,6 +107,28 @@ const MobileTabBar: React.FC = () => {
               ))}
             </div>
             <div className="space-y-1">
+              <button
+                type="button"
+                className="flex w-full items-center gap-3 h-12 px-3 rounded-lg hover:bg-muted text-left"
+                onClick={() => {
+                  setMoreOpen(false)
+                  openAssistant('voice')
+                }}
+              >
+                <Mic className="w-5 h-5 text-primary" />
+                {t('voice.title')}
+              </button>
+              <button
+                type="button"
+                className="flex w-full items-center gap-3 h-12 px-3 rounded-lg hover:bg-muted text-left"
+                onClick={() => {
+                  setMoreOpen(false)
+                  openAssistant('chat')
+                }}
+              >
+                <MessageCircle className="w-5 h-5 text-primary" />
+                {t('chat.title')}
+              </button>
               <button
                 type="button"
                 className="flex w-full items-center gap-3 h-12 px-3 rounded-lg hover:bg-muted text-left"

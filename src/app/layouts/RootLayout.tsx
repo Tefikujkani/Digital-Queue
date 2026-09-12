@@ -5,6 +5,7 @@ import MobileTabBar from '../components/MobileTabBar'
 import InstallBanner from '../components/InstallBanner'
 import Chatbot from '../components/Chatbot'
 import VoiceAssistant from '../components/VoiceAssistant'
+import MobileAssistDock from '../components/MobileAssistDock'
 import { Toaster } from '../components/ui/sonner'
 import { useLanguage } from '../contexts/LanguageContext'
 import { isAuthPath } from '../lib/assistantUi'
@@ -33,7 +34,7 @@ const RootLayout: React.FC = () => {
           className={`overflow-x-clip pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-[108px] ${
             authPage
               ? 'pb-6 lg:pb-0'
-              : 'pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-0'
+              : 'pb-[calc(8.75rem+env(safe-area-inset-bottom))] lg:pb-0'
           }`}
           key={`page-${language}`}
         >
@@ -41,6 +42,7 @@ const RootLayout: React.FC = () => {
           <Outlet />
         </main>
         <MobileTabBar />
+        <MobileAssistDock />
         <Toaster position="top-center" expand={false} richColors theme="light" />
         <Chatbot key={`chat-${language}`} />
         <VoiceAssistant key={`voice-${language}`} />
