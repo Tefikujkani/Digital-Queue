@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import type { User, UserRole } from '../types'
 import api from '../lib/api'
+import { isNetworkError, localLogin, localRegister } from '../lib/offlineData'
 import { toast } from 'sonner'
 import { translate } from '../i18n/translate'
 
@@ -65,8 +66,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       persist(formattedUser, token)
       return formattedUser
     } catch (error: any) {
-      const message = error.response?.data?.message || translate('auth.loginFailed')
-      toast.error(message)
+      if (isNetworkError(error)) {
+        try {
+          const localUser = await localLogin(email, password)
+          persist(localUser, `local-${localUser.id}`)
+          return localUser
+        } catch (localError: any) {
+          toast.error(localError?.message || translate('auth.loginFailed'))
+          throw localError
+        }
+      }
+      toast.error(error.response?.data?.message || translate('auth.loginFailed'))
       throw error
     }
   }, [])
@@ -94,8 +104,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         persist(formattedUser, token)
         return formattedUser
       } catch (error: any) {
-        const message = error.response?.data?.message || translate('auth.registerFailed')
-        toast.error(message)
+        if (isNetworkError(error)) {
+          try {
+            const localUser = await localRegister({ name, email, password, phone })
+            persist(localUser, `local-${localUser.id}`)
+            return localUser
+          } catch (localError: any) {
+            toast.error(localError?.message || translate('auth.registerFailed'))
+            throw localError
+          }
+        }
+        toast.error(error.response?.data?.message || translate('auth.registerFailed'))
         throw error
       }
     },

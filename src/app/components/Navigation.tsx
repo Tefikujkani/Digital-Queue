@@ -230,6 +230,17 @@ const Navigation: React.FC = () => {
             )}
           </div>
 
+          {!isAuthenticated && (
+            <div className="lg:hidden flex items-center gap-1.5">
+              <Button variant="ghost" size="sm" className="h-9 px-3" onClick={() => navigate('/login')}>
+                {t('auth.login')}
+              </Button>
+              <Button size="sm" className="h-9 px-3" onClick={() => navigate('/register')}>
+                {t('auth.register')}
+              </Button>
+            </div>
+          )}
+
           {isAuthenticated && (
             <div className="lg:hidden relative">
               <Button

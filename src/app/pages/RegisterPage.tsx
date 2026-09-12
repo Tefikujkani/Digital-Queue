@@ -52,7 +52,7 @@ const RegisterPage: React.FC = () => {
   }
 
   return (
-    <div className="flex justify-center px-4 py-4 sm:py-8">
+    <div className="flex justify-center px-4 py-4 sm:py-8 pb-10 relative z-20">
       <form
         className="w-full max-w-lg"
         onSubmit={handleRegister}

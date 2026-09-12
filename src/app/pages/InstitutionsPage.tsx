@@ -6,6 +6,7 @@ import { useLanguage } from '../contexts/LanguageContext'
 import { useAuth } from '../contexts/AuthContext'
 import { useFavorites } from '../contexts/FavoritesContext'
 import api from '../lib/api'
+import { FALLBACK_CITIES, FALLBACK_INSTITUTIONS } from '../lib/offlineData'
 import type { Institution } from '../types'
 import { getOpenStatus } from '../lib/hours'
 import { translate } from '../i18n/translate'
@@ -91,6 +92,19 @@ const InstitutionsPage: React.FC = () => {
         }
       } catch (e) {
         console.error(e)
+        const q = searchTerm.trim().toLowerCase()
+        setInstitutions(
+          FALLBACK_INSTITUTIONS.filter((inst) => {
+            const cityOk = selectedCity === 'all' || inst.city === selectedCity
+            const typeOk = selectedType === 'all' || inst.type === selectedType
+            const textOk =
+              !q ||
+              inst.name.toLowerCase().includes(q) ||
+              String(inst.city || '').toLowerCase().includes(q)
+            return cityOk && typeOk && textOk
+          }),
+        )
+        setCities(FALLBACK_CITIES)
       } finally {
         setLoading(false)
       }

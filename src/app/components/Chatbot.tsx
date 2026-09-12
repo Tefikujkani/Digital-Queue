@@ -132,7 +132,10 @@ const Chatbot: React.FC = () => {
     }
   }, [open])
 
+  const prevPath = useRef(location.pathname)
   useEffect(() => {
+    if (prevPath.current === location.pathname) return
+    prevPath.current = location.pathname
     setOpen(false)
   }, [location.pathname])
 

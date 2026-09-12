@@ -45,7 +45,7 @@ const LoginPage: React.FC = () => {
   }
 
   return (
-    <div className="flex justify-center px-4 py-4 sm:py-8">
+    <div className="flex justify-center px-4 py-4 sm:py-8 pb-10 relative z-20">
       <form className="w-full max-w-md" onSubmit={handleLogin} noValidate>
         <div className="surface-card rounded-xl p-4 sm:p-8 md:p-10">
           <div className="text-center mb-5 sm:mb-8">

@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../lib/api'
+import { FALLBACK_CITIES, FALLBACK_INSTITUTIONS } from '../lib/offlineData'
 import type { Institution } from '../types'
 import {
   Clock,
@@ -147,7 +148,7 @@ const HomePage: React.FC = () => {
         const cityRes = await api.get('/citizen/cities')
         setCities((cityRes.data?.cities || []).slice(0, 6))
       } catch {
-        /* keep empty */
+        setCities(FALLBACK_CITIES)
       }
     }
     load()
@@ -247,6 +248,7 @@ const HomePage: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to load live queues:', error)
+      setInstitutions((prev) => (prev.length ? prev : FALLBACK_INSTITUTIONS))
     } finally {
       setLoadingLive(false)
     }

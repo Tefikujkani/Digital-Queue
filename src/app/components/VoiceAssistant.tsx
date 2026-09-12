@@ -45,9 +45,13 @@ const VoiceAssistant: React.FC<Props> = ({ institutionId, serviceId, compact }) 
     }
   }, [])
 
+  const prevPath = useRef(location.pathname)
   useEffect(() => {
+    if (prevPath.current === location.pathname) return
+    prevPath.current = location.pathname
     setOpen(false)
-    stopListen()
+    recRef.current?.stop()
+    setListening(false)
     stopSpeaking()
   }, [location.pathname])
 

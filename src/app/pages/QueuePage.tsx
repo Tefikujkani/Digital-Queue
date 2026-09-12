@@ -22,6 +22,7 @@ import { useLanguage } from '../contexts/LanguageContext'
 import { useAuth } from '../contexts/AuthContext'
 import { useQueue } from '../contexts/QueueContext'
 import api from '../lib/api'
+import { FALLBACK_INSTITUTIONS } from '../lib/offlineData'
 import type { Institution, Service } from '../types'
 import { QRCodeCanvas } from 'qrcode.react'
 import {
@@ -88,7 +89,10 @@ const QueuePage: React.FC = () => {
           api.get(`/citizen/wait-stats/${institutionId}`).catch(() => ({ data: null })),
           api.get(`/tickets?institutionId=${institutionId}`).catch(() => ({ data: [] })),
         ])
-        const inst = instRes.data
+        const inst =
+          instRes.data ||
+          FALLBACK_INSTITUTIONS.find((row) => row.id === institutionId) ||
+          null
         setInstitution(inst)
         const rawServices = servRes.data?.length ? servRes.data : inst?.services || []
         setServices(

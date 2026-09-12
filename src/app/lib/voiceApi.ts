@@ -1,4 +1,5 @@
 import api from './api'
+import { localVoiceIntent } from './offlineData'
 
 export type VoiceGuide = {
   ok: boolean
@@ -50,6 +51,11 @@ export async function postVoiceIntent(body: {
   serviceId?: string
   language?: string
 }): Promise<VoiceGuide> {
-  const { data } = await api.post('/voice/intent', body)
-  return data
+  try {
+    const { data } = await api.post('/voice/intent', body)
+    if (data?.ok) return data
+  } catch {
+    /* use on-device guide when API is unreachable */
+  }
+  return localVoiceIntent(body)
 }

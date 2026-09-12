@@ -41,12 +41,6 @@ const RootLayout: React.FC = () => {
           <InstallBanner />
           <Outlet />
         </main>
-        <MobileTabBar />
-        <MobileAssistDock />
-        <Toaster position="top-center" expand={false} richColors theme="light" />
-        <Chatbot key={`chat-${language}`} />
-        <VoiceAssistant key={`voice-${language}`} />
-
         <footer className="hidden lg:block bg-primary text-white py-16 mt-8 relative">
           <div className="container mx-auto max-w-6xl px-5">
             <div className="grid md:grid-cols-4 gap-12">
@@ -137,6 +131,11 @@ const RootLayout: React.FC = () => {
           </div>
         </footer>
       </div>
+      <MobileTabBar />
+      <MobileAssistDock />
+      <Toaster position="top-center" expand={false} richColors theme="light" />
+      <Chatbot key={`chat-${language}`} />
+      <VoiceAssistant key={`voice-${language}`} />
     </div>
   )
 }

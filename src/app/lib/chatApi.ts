@@ -1,4 +1,5 @@
 import api from './api'
+import { localChatReply } from './offlineData'
 
 export type ChatMessage = {
   role: 'user' | 'assistant'
@@ -72,25 +73,28 @@ export async function streamChat({
   onEvent: (event: ChatStreamEvent) => void
 }): Promise<void> {
   const token = localStorage.getItem('smartqueue_token')
-  const res = await fetch(resolveChatUrl(), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ messages, language, stream: true }),
-    signal,
-  })
+  let res: Response
+  try {
+    res = await fetch(resolveChatUrl(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ messages, language, stream: true }),
+      signal,
+    })
+  } catch {
+    const reply = localChatReply(messages, language)
+    onEvent({ type: 'delta', content: reply })
+    onEvent({ type: 'done', content: reply })
+    return
+  }
 
   if (!res.ok) {
-    let message = 'Chat request failed'
-    try {
-      const err = await res.json()
-      message = err.message || message
-    } catch {
-      /* ignore */
-    }
-    onEvent({ type: 'error', message })
+    const reply = localChatReply(messages, language)
+    onEvent({ type: 'delta', content: reply })
+    onEvent({ type: 'done', content: reply })
     return
   }
 
